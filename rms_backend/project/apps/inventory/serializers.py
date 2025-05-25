@@ -4,16 +4,20 @@ from apps.supplier.models import Supplier
 from apps.supplier.serializers import SupplierSerializer
 
 class CategorySerializer(serializers.ModelSerializer):
+    product_count = serializers.SerializerMethodField()
     children = serializers.SerializerMethodField()
 
     class Meta:
         model = Category
-        fields = ['id', 'name', 'slug', 'description', 'parent', 'children', 'created_at', 'updated_at']
+        fields = ['id', 'name', 'slug', 'description', 'parent', 'created_at', 'updated_at', 'product_count', 'children']
         extra_kwargs = {
             'slug': {'read_only': True},
             'parent': {'required': False, 'allow_null': True},
             'description': {'required': False, 'allow_null': True, 'allow_blank': True}
         }
+
+    def get_product_count(self, obj):
+        return obj.products.count()
 
     def get_children(self, obj):
         try:
@@ -62,6 +66,7 @@ class ProductVariationSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     variations = ProductVariationSerializer(many=True, read_only=True)
     images = ProductImageSerializer(many=True, read_only=True)
+    category = serializers.SerializerMethodField()
     category_name = serializers.CharField(source='category.name', read_only=True, allow_null=True)
     supplier = serializers.SerializerMethodField()
     supplier_name = serializers.CharField(source='supplier.company_name', read_only=True, allow_null=True)
@@ -84,6 +89,17 @@ class ProductSerializer(serializers.ModelSerializer):
             'minimum_stock': {'required': False},
             'is_active': {'required': False}
         }
+
+    def get_category(self, obj):
+        if obj.category:
+            return {
+                'id': obj.category.id,
+                'name': obj.category.name,
+                'slug': obj.category.slug,
+                'description': obj.category.description,
+                'parent': obj.category.parent.id if obj.category.parent else None
+            }
+        return None
 
     def get_supplier(self, obj):
         if obj.supplier:

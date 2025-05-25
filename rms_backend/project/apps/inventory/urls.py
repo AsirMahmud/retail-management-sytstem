@@ -5,7 +5,8 @@ from .views import (
     ProductViewSet,
     ProductVariationViewSet,
     StockMovementViewSet,
-    InventoryAlertViewSet
+    InventoryAlertViewSet,
+    DashboardViewSet
 )
 
 router = DefaultRouter()
@@ -14,6 +15,7 @@ router.register(r'products', ProductViewSet)
 router.register(r'variations', ProductVariationViewSet)
 router.register(r'stock-movements', StockMovementViewSet)
 router.register(r'alerts', InventoryAlertViewSet)
+router.register(r'dashboard', DashboardViewSet, basename='dashboard')
 
 urlpatterns = [
     path('', include(router.urls)),

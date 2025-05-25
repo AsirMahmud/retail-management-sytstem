@@ -1,20 +1,20 @@
 import axiosInstance from './axios-config';
 import {
     Category,
-    Supplier,
     Product,
     ProductVariation,
     ProductImage,
     CreateCategoryDTO,
-    CreateSupplierDTO,
     CreateProductDTO,
     CreateProductVariationDTO,
     CreateProductImageDTO,
     UpdateCategoryDTO,
-    UpdateSupplierDTO,
     UpdateProductDTO,
     UpdateProductVariationDTO,
     UpdateProductImageDTO,
+    DashboardOverview,
+    CategoryMetrics,
+    StockMovementAnalysis
 } from '@/types/inventory';
 
 // Categories API
@@ -26,6 +26,21 @@ export const categoriesApi = {
 
     getById: async (id: number): Promise<Category> => {
         const { data } = await axiosInstance.get(`/inventory/categories/${id}/`);
+        return data;
+    },
+
+    getProducts: async (id: number): Promise<Product[]> => {
+        const { data } = await axiosInstance.get(`/inventory/categories/${id}/products/`);
+        return data;
+    },
+
+    getStats: async (id: number): Promise<{
+        total_products: number;
+        active_products: number;
+        low_stock_products: number;
+        total_value: number;
+    }> => {
+        const { data } = await axiosInstance.get(`/inventory/categories/${id}/stats/`);
         return data;
     },
 
@@ -124,4 +139,27 @@ export const productImagesApi = {
     delete: async (productId: number, id: number): Promise<void> => {
         await axiosInstance.delete(`/inventory/products/${productId}/images/${id}/`);
     },
+};
+
+// Dashboard API
+export const dashboardApi = {
+    getOverview: async (period: 'day' | 'month' | 'year' = 'day'): Promise<DashboardOverview> => {
+        const response = await axiosInstance.get(`/inventory/dashboard/overview/?period=${period}`);
+        return response.data;
+    },
+
+    getStockAlerts: async () => {
+        const response = await axiosInstance.get('/inventory/dashboard/stock-alerts/');
+        return response.data;
+    },
+
+    getCategoryMetrics: async (): Promise<CategoryMetrics[]> => {
+        const response = await axiosInstance.get('/inventory/dashboard/category-metrics/');
+        return response.data;
+    },
+
+    getStockMovementAnalysis: async (period: 'day' | 'month' | 'year' = 'month'): Promise<StockMovementAnalysis> => {
+        const response = await axiosInstance.get(`/inventory/dashboard/stock-movement-analysis/?period=${period}`);
+        return response.data;
+    }
 }; 

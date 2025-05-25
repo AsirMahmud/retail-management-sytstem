@@ -68,7 +68,8 @@ const mainNavItems = [
     icon: Package,
     href: "/inventory",
     subItems: [
-      { title: "Products", href: "/inventory" },
+      { title: "Dashboard", href: "/inventory" },
+      { title: "Products", href: "/inventory/products" },
       { title: "Add Product", href: "/inventory/add-product" },
       { title: "Categories", href: "/inventory/categories" },
       { title: "Suppliers", href: "/inventory/suppliers" },

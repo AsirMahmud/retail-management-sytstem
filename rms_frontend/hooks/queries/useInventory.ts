@@ -5,6 +5,7 @@ import {
     productsApi,
     productVariationsApi,
     productImagesApi,
+    dashboardApi
 } from '@/lib/api/inventory';
 import { supplierApi } from '@/lib/api/supplier';
 import {
@@ -20,11 +21,21 @@ import {
     UpdateProductDTO,
     UpdateProductVariationDTO,
     UpdateProductImageDTO,
+    DashboardOverview,
+    CategoryMetrics,
+    StockMovementAnalysis
 } from '@/types/inventory';
 
 // Query Keys
 export const inventoryKeys = {
     all: ['inventory'] as const,
+    dashboard: {
+        all: () => [...inventoryKeys.all, 'dashboard'] as const,
+        overview: (period: string) => [...inventoryKeys.dashboard.all(), 'overview', period] as const,
+        stockAlerts: () => [...inventoryKeys.dashboard.all(), 'stock-alerts'] as const,
+        categoryMetrics: () => [...inventoryKeys.dashboard.all(), 'category-metrics'] as const,
+        stockMovementAnalysis: (period: string) => [...inventoryKeys.dashboard.all(), 'stock-movement-analysis', period] as const,
+    },
     categories: {
         all: () => [...inventoryKeys.all, 'categories'] as const,
         lists: () => [...inventoryKeys.categories.all(), 'list'] as const,
@@ -291,5 +302,34 @@ export const useDeleteProductImage = (productId: number) => {
             queryClient.invalidateQueries({ queryKey: inventoryKeys.products.images(productId) });
             queryClient.invalidateQueries({ queryKey: inventoryKeys.products.image(productId, id) });
         },
+    });
+};
+
+// Dashboard Hooks
+export const useDashboardOverview = (period: 'day' | 'month' | 'year' = 'day') => {
+    return useQuery({
+        queryKey: inventoryKeys.dashboard.overview(period),
+        queryFn: () => dashboardApi.getOverview(period),
+    });
+};
+
+export const useStockAlerts = () => {
+    return useQuery({
+        queryKey: inventoryKeys.dashboard.stockAlerts(),
+        queryFn: dashboardApi.getStockAlerts,
+    });
+};
+
+export const useCategoryMetrics = () => {
+    return useQuery({
+        queryKey: inventoryKeys.dashboard.categoryMetrics(),
+        queryFn: dashboardApi.getCategoryMetrics,
+    });
+};
+
+export const useStockMovementAnalysis = (period: 'day' | 'month' | 'year' = 'month') => {
+    return useQuery({
+        queryKey: inventoryKeys.dashboard.stockMovementAnalysis(period),
+        queryFn: () => dashboardApi.getStockMovementAnalysis(period),
     });
 }; 

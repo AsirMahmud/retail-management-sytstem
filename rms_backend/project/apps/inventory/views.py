@@ -2,8 +2,10 @@ from rest_framework import viewsets, filters, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from django.db.models import Q, F
+from django.db.models import Q, F, Sum, Count, Avg
 from django.utils import timezone
+from datetime import datetime, timedelta
+from django.db.models.functions import TruncDate, TruncMonth, TruncYear
 from .models import Category, Product, ProductImage, ProductVariation, StockMovement, InventoryAlert
 from apps.supplier.models import Supplier
 from apps.supplier.serializers import SupplierSerializer
@@ -27,7 +29,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        queryset = Category.objects.all()
+        queryset = Category.objects.prefetch_related('products')
         search = self.request.query_params.get('search', None)
         if search:
             queryset = queryset.filter(name__icontains=search)
@@ -35,6 +37,30 @@ class CategoryViewSet(viewsets.ModelViewSet):
         if self.action == 'list':
             return queryset.filter(parent=None)
         return queryset
+
+    @action(detail=True, methods=['get'])
+    def products(self, request, pk=None):
+        category = self.get_object()
+        products = category.products.all()
+        serializer = ProductSerializer(products, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def stats(self, request, pk=None):
+        category = self.get_object()
+        total_products = category.products.count()
+        active_products = category.products.filter(is_active=True).count()
+        low_stock_products = category.products.filter(stock_quantity__lte=F('minimum_stock')).count()
+        total_value = category.products.aggregate(
+            total=Sum('selling_price' * 'stock_quantity')
+        )['total'] or 0
+
+        return Response({
+            'total_products': total_products,
+            'active_products': active_products,
+            'low_stock_products': low_stock_products,
+            'total_value': total_value
+        })
 
 class SupplierViewSet(viewsets.ModelViewSet):
     queryset = Supplier.objects.all()
@@ -276,3 +302,151 @@ class InventoryAlertViewSet(viewsets.ModelViewSet):
         alert = self.get_object()
         alert.resolve()
         return Response({'message': 'Alert resolved successfully'})
+
+class DashboardViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def _get_date_range(self, period):
+        today = timezone.now()
+        if period == 'day':
+            start_date = today.replace(hour=0, minute=0, second=0, microsecond=0)
+            end_date = today
+        elif period == 'month':
+            start_date = today.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            end_date = today
+        elif period == 'year':
+            start_date = today.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+            end_date = today
+        else:
+            start_date = today - timedelta(days=30)
+            end_date = today
+        return start_date, end_date
+
+    @action(detail=False, methods=['get'])
+    def overview(self, request):
+        # Get date range from query params
+        period = request.query_params.get('period', 'day')
+        start_date, end_date = self._get_date_range(period)
+
+        # Basic metrics
+        total_products = Product.objects.count()
+        active_products = Product.objects.filter(is_active=True).count()
+        low_stock_products = Product.objects.filter(stock_quantity__lte=F('minimum_stock')).count()
+        out_of_stock_products = Product.objects.filter(stock_quantity=0).count()
+        
+        # Inventory value
+        total_inventory_value = Product.objects.aggregate(
+            total=Sum(F('stock_quantity') * F('cost_price'))
+        )['total'] or 0
+
+        # Stock movements
+        stock_movements = StockMovement.objects.filter(
+            created_at__range=(start_date, end_date)
+        ).aggregate(
+            total_in=Sum('quantity', filter=Q(movement_type='IN')),
+            total_out=Sum('quantity', filter=Q(movement_type='OUT')),
+            total_adjustments=Sum('quantity', filter=Q(movement_type='ADJ'))
+        )
+
+        # Category distribution
+        category_distribution = Category.objects.annotate(
+            product_count=Count('products'),
+            total_value=Sum(F('products__stock_quantity') * F('products__cost_price'))
+        ).values('name', 'product_count', 'total_value')
+
+        # Recent alerts
+        recent_alerts = InventoryAlert.objects.filter(
+            is_active=True
+        ).order_by('-created_at')[:5]
+
+        # Stock movement trends
+        movement_trends = StockMovement.objects.filter(
+            created_at__range=(start_date, end_date)
+        ).annotate(
+            date=TruncDate('created_at')
+        ).values('date').annotate(
+            stock_in=Sum('quantity', filter=Q(movement_type='IN')),
+            stock_out=Sum('quantity', filter=Q(movement_type='OUT'))
+        ).order_by('date')
+
+        return Response({
+            'period': period,
+            'date_range': {
+                'start': start_date,
+                'end': end_date
+            },
+            'metrics': {
+                'total_products': total_products,
+                'active_products': active_products,
+                'low_stock_products': low_stock_products,
+                'out_of_stock_products': out_of_stock_products,
+                'total_inventory_value': total_inventory_value
+            },
+            'stock_movements': {
+                'total_in': stock_movements['total_in'] or 0,
+                'total_out': stock_movements['total_out'] or 0,
+                'total_adjustments': stock_movements['total_adjustments'] or 0
+            },
+            'category_distribution': category_distribution,
+            'recent_alerts': InventoryAlertSerializer(recent_alerts, many=True).data,
+            'movement_trends': movement_trends
+        })
+
+    @action(detail=False, methods=['get'])
+    def stock_alerts(self, request):
+        # Get low stock and out of stock products
+        low_stock_products = Product.objects.filter(
+            stock_quantity__lte=F('minimum_stock')
+        ).select_related('category', 'supplier')
+
+        out_of_stock_products = Product.objects.filter(
+            stock_quantity=0
+        ).select_related('category', 'supplier')
+
+        return Response({
+            'low_stock': ProductSerializer(low_stock_products, many=True).data,
+            'out_of_stock': ProductSerializer(out_of_stock_products, many=True).data
+        })
+
+    @action(detail=False, methods=['get'])
+    def category_metrics(self, request):
+        categories = Category.objects.annotate(
+            total_products=Count('products'),
+            active_products=Count('products', filter=Q(products__is_active=True)),
+            low_stock_products=Count('products', filter=Q(products__stock_quantity__lte=F('products__minimum_stock'))),
+            total_value=Sum(F('products__stock_quantity') * F('products__cost_price')),
+            avg_stock_level=Avg('products__stock_quantity')
+        ).values(
+            'id', 'name', 'total_products', 'active_products',
+            'low_stock_products', 'total_value', 'avg_stock_level'
+        )
+
+        return Response(categories)
+
+    @action(detail=False, methods=['get'])
+    def stock_movement_analysis(self, request):
+        period = request.query_params.get('period', 'month')
+        start_date, end_date = self._get_date_range(period)
+
+        # Get stock movement trends
+        movements = StockMovement.objects.filter(
+            created_at__range=(start_date, end_date)
+        ).annotate(
+            period=TruncMonth('created_at') if period == 'year' else TruncDate('created_at')
+        ).values('period').annotate(
+            stock_in=Sum('quantity', filter=Q(movement_type='IN')),
+            stock_out=Sum('quantity', filter=Q(movement_type='OUT')),
+            adjustments=Sum('quantity', filter=Q(movement_type='ADJ'))
+        ).order_by('period')
+
+        # Get top products by movement
+        top_products = StockMovement.objects.filter(
+            created_at__range=(start_date, end_date)
+        ).values('product__name').annotate(
+            total_movement=Sum('quantity')
+        ).order_by('-total_movement')[:10]
+
+        return Response({
+            'movement_trends': movements,
+            'top_products': top_products
+        })

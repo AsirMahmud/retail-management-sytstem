@@ -1,10 +1,11 @@
 export interface Category {
     id: number;
     name: string;
+    slug: string;
     description?: string;
     parent?: number;
-    created_at: string;
-    updated_at: string;
+    product_count?: number;
+    children?: Category[];
 }
 
 export interface Supplier {
@@ -28,16 +29,33 @@ export interface Product {
     sku: string;
     barcode?: string;
     description?: string;
-    category: number | Category;
-    supplier: number | Supplier;
-    cost_price: number;
-    selling_price: number;
+    category?: {
+        id: number;
+        name: string;
+        slug: string;
+        description?: string;
+        parent?: number;
+    } | null;
+    category_name?: string | null;
+    supplier?: {
+        id: number;
+        company_name: string;
+        contact_person: string;
+        email: string;
+        phone: string;
+    } | null;
+    supplier_name?: string | null;
+    cost_price: string;
+    selling_price: string;
     stock_quantity: number;
     minimum_stock: number;
-    image?: string;
+    image?: string | null;
     is_active: boolean;
-    created_at: string;
-    updated_at: string;
+    variations?: ProductVariation[];
+    images?: ProductImage[];
+    total_stock?: number;
+    created_at?: string;
+    updated_at?: string;
 }
 
 export interface ProductVariation {
@@ -117,4 +135,77 @@ export interface UpdateProductVariationDTO extends Partial<CreateProductVariatio
 
 export interface UpdateProductImageDTO extends Partial<CreateProductImageDTO> {
     id: number;
+}
+
+export interface InventoryAlert {
+    id: number;
+    product: number;
+    variation?: number;
+    alert_type: 'LOW' | 'OUT' | 'EXP';
+    message: string;
+    is_active: boolean;
+    created_at: string;
+    resolved_at?: string;
+}
+
+export interface DashboardMetrics {
+    total_products: number;
+    active_products: number;
+    low_stock_products: number;
+    out_of_stock_products: number;
+    total_inventory_value: number;
+}
+
+export interface StockMovements {
+    total_in: number;
+    total_out: number;
+    total_adjustments: number;
+}
+
+export interface CategoryDistribution {
+    name: string;
+    product_count: number;
+    total_value: number;
+}
+
+export interface MovementTrend {
+    date: string;
+    stock_in: number;
+    stock_out: number;
+}
+
+export interface DashboardOverview {
+    period: string;
+    date_range: {
+        start: string;
+        end: string;
+    };
+    metrics: DashboardMetrics;
+    stock_movements: StockMovements;
+    category_distribution: CategoryDistribution[];
+    recent_alerts: InventoryAlert[];
+    movement_trends: MovementTrend[];
+}
+
+export interface CategoryMetrics {
+    id: number;
+    name: string;
+    total_products: number;
+    active_products: number;
+    low_stock_products: number;
+    total_value: number;
+    avg_stock_level: number;
+}
+
+export interface StockMovementAnalysis {
+    movement_trends: {
+        period: string;
+        stock_in: number;
+        stock_out: number;
+        adjustments: number;
+    }[];
+    top_products: {
+        product__name: string;
+        total_movement: number;
+    }[];
 } 
