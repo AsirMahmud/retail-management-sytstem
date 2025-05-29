@@ -65,6 +65,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
+import { toast } from "sonner";
 
 const categoryFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -122,14 +123,30 @@ export default function CategoriesPage() {
     setEditDialogOpen(true);
   }
 
+  async function handleDeleteCategory() {
+    if (!selectedCategory) return;
+
+    try {
+      await deleteCategory.mutateAsync(selectedCategory.id);
+      toast.success("Category deleted successfully");
+      setDeleteDialogOpen(false);
+      setSelectedCategory(null);
+    } catch (error) {
+      toast.error("Failed to delete category");
+      console.error("Error deleting category:", error);
+    }
+  }
+
   async function handleEditSubmit(values: CategoryFormValues) {
     if (!editingCategory) return;
 
     try {
       // TODO: Implement update category mutation
+      toast.success("Category updated successfully");
       setEditDialogOpen(false);
       setEditingCategory(null);
     } catch (error) {
+      toast.error("Failed to update category");
       console.error("Failed to update category:", error);
     }
   }
@@ -443,31 +460,16 @@ export default function CategoriesPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Trash2 className="h-5 w-5 text-destructive" />
-              Delete Category
-            </AlertDialogTitle>
+            <AlertDialogTitle>Delete Category</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete the category "
-              <span className="font-semibold">{selectedCategory?.name}</span>"?
-              This action cannot be undone and will affect all products in this
-              category.
+              {selectedCategory?.name}"? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (selectedCategory) {
-                  deleteCategory.mutate(selectedCategory.id);
-                }
-                setDeleteDialogOpen(false);
-                setSelectedCategory(null);
-              }}
-              disabled={deleteCategory.isPending}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              {deleteCategory.isPending ? "Deleting..." : "Delete Category"}
+            <AlertDialogAction onClick={handleDeleteCategory}>
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

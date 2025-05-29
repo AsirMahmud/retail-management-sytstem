@@ -61,10 +61,9 @@ export interface Product {
 export interface ProductVariation {
     id: number;
     product: number;
-    variation_code: string;
-    attributes: Record<string, string>;
-    price_adjustment: number;
-    stock_quantity: number;
+    size: string;
+    color: string;
+    stock: number;
     is_active: boolean;
     created_at: string;
     updated_at: string;
@@ -102,6 +101,11 @@ export interface CreateProductDTO {
     minimum_stock: number;
     image?: File;
     is_active: boolean;
+    variations?: {
+        size: string;
+        color: string;
+        stock: number;
+    }[];
 }
 
 export interface CreateProductVariationDTO {

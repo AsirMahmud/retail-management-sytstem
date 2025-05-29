@@ -23,9 +23,9 @@ export default function RootLayout({
         <AuthProvider>
           <TaskProvider>
             <ThemeProvider attribute="class" defaultTheme="light">
-              <div className="flex min-h-screen bg-[#F1F5F9]">
+              <div className="flex min-h-screen  bg-[#F1F5F9]">
                 <SideNav />
-                <div className="flex-1 flex flex-col">
+                <div className="flex-1 mx-auto md:ml-[280px] flex flex-col">
                   <MainNav />
                   <main className="flex-1 p-4 md:p-6 overflow-auto">
                     {children}

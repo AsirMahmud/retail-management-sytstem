@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { authApi, type LoginCredentials } from "@/lib/api/auth";
 import axios from "axios";
 import Cookies from "js-cookie";
+import { jwtDecode } from "jwt-decode";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -21,12 +22,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
+  const isTokenExpired = (token: string): boolean => {
+    try {
+      const decoded = jwtDecode(token);
+      const currentTime = Date.now() / 1000;
+      return decoded.exp ? decoded.exp < currentTime : true;
+    } catch {
+      return true;
+    }
+  };
+
   useEffect(() => {
     const checkAuth = () => {
       const token = Cookies.get("token");
-      if (!token) {
+      if (!token || isTokenExpired(token)) {
         setIsAuthenticated(false);
         setIsLoading(false);
+        Cookies.remove("token");
+        delete axios.defaults.headers.common["Authorization"];
         // Redirect to login if not on login page
         if (!pathname?.startsWith("/login")) {
           router.push("/login");
@@ -39,9 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsAuthenticated(true);
 
       // If on login page, redirect to dashboard
-      if (pathname?.startsWith("/login")) {
-        router.push("/");
-      }
+
       setIsLoading(false);
     };
 
@@ -64,7 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       axios.defaults.headers.common["Authorization"] = `Bearer ${access}`;
       setIsAuthenticated(true);
 
-      router.push("/dashboard");
+      router.push("/");
     } catch (error) {
       throw new Error("Invalid credentials");
     }

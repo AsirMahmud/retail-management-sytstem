@@ -17,6 +17,7 @@ import {
   Users,
   LineChart,
   CheckSquare,
+  LogOut,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/contexts/auth-context";
 
 const mainNavItems = [
   {
@@ -140,6 +142,7 @@ export function SideNav() {
   >({});
   const pathname = usePathname();
   const router = useRouter();
+  const { logout } = useAuth();
 
   const toggleCollapsible = (title: string) => {
     setOpenCollapsibles((prev) => ({
@@ -159,15 +162,23 @@ export function SideNav() {
     return pathname === href;
   };
 
+  const handleLogout = () => {
+    // Add your logout logic here
+    logout();
+  };
+
   return (
     <>
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger asChild className="md:hidden absolute top-4 left-4 z-50">
+        <SheetTrigger
+          asChild
+          className="md:hidden absolute h-screen top-4 left-4 z-50"
+        >
           <Button variant="outline" size="icon">
             <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="bg-white p-0 sm:max-w-[280px]">
+        <SheetContent side="left" className="bg-white p-0 w-[280px]">
           <div className="flex flex-col h-full bg-white">
             <div className="flex h-14 items-center px-6 border-b">
               <Link
@@ -297,7 +308,7 @@ export function SideNav() {
         </SheetContent>
       </Sheet>
 
-      <div className="hidden md:flex flex-col w-64 border-r bg-white">
+      <div className="hidden md:flex flex-col w-[280px] h-screen fixed border-r bg-white">
         <div className="flex h-14 items-center px-6 border-b">
           <Link
             href="/"
@@ -405,16 +416,25 @@ export function SideNav() {
             ))}
           </nav>
         </ScrollArea>
-        <div className="p-4">
+        <div className="mt-auto p-4">
           <Separator className="my-2" />
-          <div className="flex items-center gap-3 rounded-md px-3 py-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F1F5F9]">
+          <div className="flex items-center gap-3 justify-center rounded-md px-3 py-2">
+            {/* <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F1F5F9]">
               <span className="text-sm font-medium text-[#1E3A8A]">JD</span>
             </div>
-            <div>
+            <div className="flex-1">
               <p className="text-sm font-medium">John Doe</p>
               <p className="text-xs text-muted-foreground">Store Manager</p>
-            </div>
+            </div> */}
+
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              className="hover:bg-[#F1F5F9] w-full p-2 hover:text-[#1E3A8A]"
+            >
+              Logout
+              <LogOut className="h-5 w-5" />
+            </Button>
           </div>
         </div>
       </div>

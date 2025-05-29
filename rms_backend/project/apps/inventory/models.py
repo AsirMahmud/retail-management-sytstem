@@ -50,16 +50,18 @@ class Product(models.Model):
 
 class ProductVariation(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variations')
-    variation_code = models.CharField(max_length=50, unique=True)
-    attributes = models.JSONField()  # Store variation attributes like size, color, etc.
-    price_adjustment = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    stock_quantity = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+    size = models.CharField(max_length=50, default='Standard')
+    color = models.CharField(max_length=50, default='Default')
+    stock = models.IntegerField(default=0, validators=[MinValueValidator(0)])
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        unique_together = ('product', 'size', 'color')
+
     def __str__(self):
-        return f"{self.product.name} - {self.variation_code}"
+        return f"{self.product.name} - {self.size} - {self.color}"
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')

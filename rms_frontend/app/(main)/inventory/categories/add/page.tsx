@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useCreateCategory } from "@/hooks/queries/useInventory";
+import { toast } from "sonner";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -38,8 +39,10 @@ export default function AddCategoryPage() {
   async function onSubmit(values: FormValues) {
     try {
       await createCategory.mutateAsync(values);
+      toast.success("Category created successfully");
       router.push("/inventory/categories");
     } catch (error) {
+      toast.error("Failed to create category");
       console.error("Failed to create category:", error);
     }
   }

@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { Label } from "@/components/ui/label"
+import { Label } from "@/components/ui/label";
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef } from "react";
 import {
   Search,
   Tag,
@@ -23,12 +23,12 @@ import {
   Footprints,
   History,
   Percent,
-} from "lucide-react"
+} from "lucide-react";
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -36,12 +36,12 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Slider } from "@/components/ui/slider"
-import { useToast } from "@/hooks/use-toast"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ReceiptModal } from "@/components/pos/receipt-modal"
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Slider } from "@/components/ui/slider";
+import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ReceiptModal } from "@/components/pos/receipt-modal";
 
 // Sample product data
 const products = [
@@ -460,7 +460,7 @@ const products = [
       { date: "2023-07-14", quantity: 2, revenue: 299.98 },
     ],
   },
-]
+];
 
 // Sample categories
 const categories = [
@@ -468,9 +468,17 @@ const categories = [
   { id: "shirts", name: "Shirts", icon: <Shirt className="h-5 w-5" /> },
   { id: "pants", name: "Pants", icon: <PantsIcon className="h-5 w-5" /> },
   { id: "suits", name: "Suits", icon: <Briefcase className="h-5 w-5" /> },
-  { id: "accessories", name: "Accessories", icon: <Watch className="h-5 w-5" /> },
-  { id: "footwear", name: "Footwear", icon: <Footprints className="h-5 w-5" /> },
-]
+  {
+    id: "accessories",
+    name: "Accessories",
+    icon: <Watch className="h-5 w-5" />,
+  },
+  {
+    id: "footwear",
+    name: "Footwear",
+    icon: <Footprints className="h-5 w-5" />,
+  },
+];
 
 // Sample customers
 const customers = [
@@ -534,121 +542,136 @@ const customers = [
       { date: "2023-05-12", amount: 259.98, items: 2, paid: true },
     ],
   },
-]
+];
 
 // Sample tags
 const productTags = [
   { id: "bestseller", name: "Bestseller", color: "bg-blue-100 text-blue-800" },
-  { id: "new arrival", name: "New Arrival", color: "bg-green-100 text-green-800" },
+  {
+    id: "new arrival",
+    name: "New Arrival",
+    color: "bg-green-100 text-green-800",
+  },
   { id: "discounted", name: "Discounted", color: "bg-red-100 text-red-800" },
   { id: "premium", name: "Premium", color: "bg-purple-100 text-purple-800" },
   { id: "seasonal", name: "Seasonal", color: "bg-yellow-100 text-yellow-800" },
-]
+];
 
 // Helper function to get tag color
 const getTagColor = (tagId) => {
-  const tag = productTags.find((t) => t.id === tagId)
-  return tag ? tag.color : "bg-gray-100 text-gray-800"
-}
+  const tag = productTags.find((t) => t.id === tagId);
+  return tag ? tag.color : "bg-gray-100 text-gray-800";
+};
 
 // Helper function to format currency
 const formatCurrency = (amount) => {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-  }).format(amount)
-}
+  }).format(amount);
+};
 
 // Cart item type
 type CartItem = {
-  id: number
-  productId: number
-  name: string
-  price: number
-  quantity: number
-  size: string
-  color: string
-  image: string
+  id: number;
+  productId: number;
+  name: string;
+  price: number;
+  quantity: number;
+  size: string;
+  color: string;
+  image: string;
   discount?: {
-    type: "percentage" | "fixed"
-    value: number
-  }
-}
+    type: "percentage" | "fixed";
+    value: number;
+  };
+};
 
 export function ModernPOS() {
-  const { toast } = useToast()
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("all")
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [priceRange, setPriceRange] = useState([0, 300])
-  const [cart, setCart] = useState<CartItem[]>([])
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
-  const [showNewCustomerForm, setShowNewCustomerForm] = useState(false)
-  const [newCustomer, setNewCustomer] = useState({ name: "", email: "", phone: "" })
-  const [paymentMethod, setPaymentMethod] = useState("card")
-  const [cashAmount, setCashAmount] = useState("")
-  const [showReceiptModal, setShowReceiptModal] = useState(false)
-  const [receiptData, setReceiptData] = useState<any>(null)
-  const [showCustomerSearch, setShowCustomerSearch] = useState(false)
-  const [customerSearchQuery, setCustomerSearchQuery] = useState("")
-  const [selectedSizes, setSelectedSizes] = useState<Record<number, string>>({})
-  const [selectedColors, setSelectedColors] = useState<Record<number, string>>({})
-  const [isFilterOpen, setIsFilterOpen] = useState(false)
-  const [showSplitPayment, setShowSplitPayment] = useState(false)
+  const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [priceRange, setPriceRange] = useState([0, 300]);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({
+    name: "",
+    email: "",
+    phone: "",
+  });
+  const [paymentMethod, setPaymentMethod] = useState("card");
+  const [cashAmount, setCashAmount] = useState("");
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [receiptData, setReceiptData] = useState<any>(null);
+  const [showCustomerSearch, setShowCustomerSearch] = useState(false);
+  const [customerSearchQuery, setCustomerSearchQuery] = useState("");
+  const [selectedSizes, setSelectedSizes] = useState<Record<number, string>>(
+    {}
+  );
+  const [selectedColors, setSelectedColors] = useState<Record<number, string>>(
+    {}
+  );
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [showSplitPayment, setShowSplitPayment] = useState(false);
   const [splitPayments, setSplitPayments] = useState([
     { method: "card", amount: "" },
     { method: "cash", amount: "" },
-  ])
-  const [showUpsellModal, setShowUpsellModal] = useState(false)
-  const [upsellProducts, setUpsellProducts] = useState<any[]>([])
-  const [barcodeMode, setBarcodeMode] = useState(false)
-  const barcodeInputRef = useRef<HTMLInputElement>(null)
-  const [showProductHistory, setShowProductHistory] = useState(false)
-  const [selectedProduct, setSelectedProduct] = useState<any>(null)
-  const [cartDiscount, setCartDiscount] = useState<{ type: "percentage" | "fixed"; value: number } | null>(null)
-  const [showDiscountModal, setShowDiscountModal] = useState(false)
-  const [applyDuePayment, setApplyDuePayment] = useState(false)
-  const [applyStoreCredit, setApplyStoreCredit] = useState(false)
-  const [salesHistory, setSalesHistory] = useState<any[]>([])
+  ]);
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
+  const [upsellProducts, setUpsellProducts] = useState<any[]>([]);
+  const [barcodeMode, setBarcodeMode] = useState(false);
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
+  const [showProductHistory, setShowProductHistory] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [cartDiscount, setCartDiscount] = useState<{
+    type: "percentage" | "fixed";
+    value: number;
+  } | null>(null);
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [applyDuePayment, setApplyDuePayment] = useState(false);
+  const [applyStoreCredit, setApplyStoreCredit] = useState(false);
+  const [salesHistory, setSalesHistory] = useState<any[]>([]);
 
   // Calculate cart totals
   const subtotal = cart.reduce((sum, item) => {
-    const itemTotal = item.price * item.quantity
+    const itemTotal = item.price * item.quantity;
     if (item.discount) {
       if (item.discount.type === "percentage") {
-        return sum + itemTotal * (1 - item.discount.value / 100)
+        return sum + itemTotal * (1 - item.discount.value / 100);
       } else {
-        return sum + (itemTotal - item.discount.value)
+        return sum + (itemTotal - item.discount.value);
       }
     }
-    return sum + itemTotal
-  }, 0)
+    return sum + itemTotal;
+  }, 0);
 
-  const taxRate = 0.0825 // 8.25% tax rate
+  const taxRate = 0.0825; // 8.25% tax rate
 
   // Apply cart-wide discount if any
-  let discountedSubtotal = subtotal
+  let discountedSubtotal = subtotal;
   if (cartDiscount) {
     if (cartDiscount.type === "percentage") {
-      discountedSubtotal = subtotal * (1 - cartDiscount.value / 100)
+      discountedSubtotal = subtotal * (1 - cartDiscount.value / 100);
     } else {
-      discountedSubtotal = subtotal - cartDiscount.value
+      discountedSubtotal = subtotal - cartDiscount.value;
     }
   }
 
-  const tax = discountedSubtotal * taxRate
-  let total = discountedSubtotal + tax
+  const tax = discountedSubtotal * taxRate;
+  let total = discountedSubtotal + tax;
 
   // Apply store credit if selected
   if (selectedCustomer && applyStoreCredit && selectedCustomer.credit > 0) {
     if (selectedCustomer.credit >= total) {
-      total = 0
+      total = 0;
     } else {
-      total -= selectedCustomer.credit
+      total -= selectedCustomer.credit;
     }
   }
 
-  const changeDue = cashAmount ? Number.parseFloat(cashAmount) - total : 0
+  const changeDue = cashAmount ? Number.parseFloat(cashAmount) - total : 0;
 
   // Handle completing payment
   const handleCompletePayment = () => {
@@ -657,40 +680,43 @@ export function ModernPOS() {
         title: "Empty Cart",
         description: "Please add items to the cart before completing payment.",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    if (paymentMethod === "cash" && (!cashAmount || Number.parseFloat(cashAmount) < total)) {
+    if (
+      paymentMethod === "cash" &&
+      (!cashAmount || Number.parseFloat(cashAmount) < total)
+    ) {
       toast({
         title: "Insufficient Cash",
         description: "Please enter a cash amount that covers the total.",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     if (paymentMethod === "split") {
       const totalSplitAmount = splitPayments.reduce((sum, payment) => {
-        return sum + (payment.amount ? Number.parseFloat(payment.amount) : 0)
-      }, 0)
+        return sum + (payment.amount ? Number.parseFloat(payment.amount) : 0);
+      }, 0);
 
       if (Math.abs(totalSplitAmount - total) > 0.01) {
         toast({
           title: "Invalid Split Payment",
           description: "The split payment amounts must equal the total amount.",
           variant: "destructive",
-        })
-        return
+        });
+        return;
       }
     }
 
     // Handle due payment
-    let isPaid = true
-    let updatedCustomer = selectedCustomer
+    let isPaid = true;
+    let updatedCustomer = selectedCustomer;
 
     if (applyDuePayment && selectedCustomer) {
-      isPaid = false
+      isPaid = false;
 
       // Update customer's due amount
       if (updatedCustomer) {
@@ -706,7 +732,7 @@ export function ModernPOS() {
             },
             ...updatedCustomer.purchaseHistory,
           ],
-        }
+        };
       }
     } else if (selectedCustomer) {
       // Add to customer's purchase history as paid
@@ -721,7 +747,7 @@ export function ModernPOS() {
           },
           ...updatedCustomer.purchaseHistory,
         ],
-      }
+      };
     }
 
     // Create receipt data
@@ -735,49 +761,51 @@ export function ModernPOS() {
       tax,
       total,
       paymentMethod,
-      cashAmount: paymentMethod === "cash" ? Number.parseFloat(cashAmount) : null,
+      cashAmount:
+        paymentMethod === "cash" ? Number.parseFloat(cashAmount) : null,
       changeDue: paymentMethod === "cash" ? changeDue : null,
       customer: updatedCustomer,
       splitPayments: paymentMethod === "split" ? splitPayments : null,
-      storeCredit: applyStoreCredit && selectedCustomer ? selectedCustomer.credit : 0,
+      storeCredit:
+        applyStoreCredit && selectedCustomer ? selectedCustomer.credit : 0,
       isPaid,
-    }
+    };
 
     // Add to sales history
-    setSalesHistory((prev) => [receipt, ...prev])
+    setSalesHistory((prev) => [receipt, ...prev]);
 
-    setReceiptData(receipt)
-    setShowReceiptModal(true)
+    setReceiptData(receipt);
+    setShowReceiptModal(true);
 
     // Update the selected customer with new purchase history
     if (updatedCustomer) {
-      setSelectedCustomer(updatedCustomer)
+      setSelectedCustomer(updatedCustomer);
     }
 
     // In a real app, you would save this transaction to your backend
-    console.log("Transaction completed:", receipt)
-  }
+    console.log("Transaction completed:", receipt);
+  };
 
   // Handle starting a new sale after receipt
   const handleNewSale = () => {
-    setCart([])
-    setSelectedCustomer(null)
-    setPaymentMethod("card")
-    setCashAmount("")
-    setShowReceiptModal(false)
-    setCartDiscount(null)
-    setApplyDuePayment(false)
-    setApplyStoreCredit(false)
+    setCart([]);
+    setSelectedCustomer(null);
+    setPaymentMethod("card");
+    setCashAmount("");
+    setShowReceiptModal(false);
+    setCartDiscount(null);
+    setApplyDuePayment(false);
+    setApplyStoreCredit(false);
     setSplitPayments([
       { method: "card", amount: "" },
       { method: "cash", amount: "" },
-    ])
-  }
+    ]);
+  };
 
   // Handle closing the receipt modal
   const handleCloseReceiptModal = () => {
-    setShowReceiptModal(false)
-  }
+    setShowReceiptModal(false);
+  };
 
   // Filter products based on search, category, tags, and price range
   const filteredProducts = products.filter((product) => {
@@ -785,56 +813,65 @@ export function ModernPOS() {
     const matchesSearch =
       searchQuery === "" ||
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.code.toLowerCase().includes(searchQuery.toLowerCase())
+      product.code.toLowerCase().includes(searchQuery.toLowerCase());
 
     // Filter by category
-    const matchesCategory = selectedCategory === "all" || product.category === selectedCategory
+    const matchesCategory =
+      selectedCategory === "all" || product.category === selectedCategory;
 
     // Filter by tags
-    const matchesTags = selectedTags.length === 0 || selectedTags.some((tag) => product.tags.includes(tag))
+    const matchesTags =
+      selectedTags.length === 0 ||
+      selectedTags.some((tag) => product.tags.includes(tag));
 
     // Filter by price range
-    const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1]
+    const matchesPrice =
+      product.price >= priceRange[0] && product.price <= priceRange[1];
 
-    return matchesSearch && matchesCategory && matchesTags && matchesPrice
-  })
+    return matchesSearch && matchesCategory && matchesTags && matchesPrice;
+  });
 
   // Filter customers based on search query
   const filteredCustomers = customers.filter((customer) => {
-    if (!customerSearchQuery) return true
+    if (!customerSearchQuery) return true;
 
     return (
       customer.name.toLowerCase().includes(customerSearchQuery.toLowerCase()) ||
-      customer.email.toLowerCase().includes(customerSearchQuery.toLowerCase()) ||
+      customer.email
+        .toLowerCase()
+        .includes(customerSearchQuery.toLowerCase()) ||
       customer.phone.includes(customerSearchQuery)
-    )
-  })
+    );
+  });
 
   // Handle adding product to cart
   const handleAddToCart = (product, size, color) => {
     // Check if we have stock for this variant
-    const stockKey = `${size}-${color}`
-    const stockAvailable = product.stock[stockKey] || 0
+    const stockKey = `${size}-${color}`;
+    const stockAvailable = product.stock[stockKey] || 0;
 
     if (stockAvailable <= 0) {
       toast({
         title: "Out of Stock",
         description: `${product.name} in size ${size} and selected color is out of stock.`,
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     // Check if item already in cart
     const existingItemIndex = cart.findIndex(
-      (item) => item.productId === product.id && item.size === size && item.color === color,
-    )
+      (item) =>
+        item.productId === product.id &&
+        item.size === size &&
+        item.color === color
+    );
 
     if (existingItemIndex >= 0) {
       // Update quantity if already in cart
-      const updatedCart = [...cart]
-      updatedCart[existingItemIndex].quantity += 1
-      setCart(updatedCart)
+      const updatedCart = [...cart];
+      updatedCart[existingItemIndex].quantity += 1;
+      setCart(updatedCart);
     } else {
       // Add new item to cart
       const newItem: CartItem = {
@@ -846,57 +883,59 @@ export function ModernPOS() {
         size,
         color,
         image: product.image,
-      }
-      setCart([...cart, newItem])
+      };
+      setCart([...cart, newItem]);
     }
 
     toast({
       title: "Added to Cart",
       description: `${product.name} (${size}, ${color}) added to cart.`,
-    })
+    });
 
     // Check if we should show upsell recommendations
     if (
       product.category === "shirts" &&
       !cart.some((item) => {
-        const p = products.find((p) => p.id === item.productId)
-        return p && p.category === "accessories"
+        const p = products.find((p) => p.id === item.productId);
+        return p && p.category === "accessories";
       })
     ) {
       // Recommend accessories with shirts
       const accessoryRecommendations = products.filter(
-        (p) => p.category === "accessories" && (p.name.includes("Tie") || p.name.includes("Belt")),
-      )
+        (p) =>
+          p.category === "accessories" &&
+          (p.name.includes("Tie") || p.name.includes("Belt"))
+      );
 
       if (accessoryRecommendations.length > 0) {
-        setUpsellProducts(accessoryRecommendations.slice(0, 2))
-        setShowUpsellModal(true)
+        setUpsellProducts(accessoryRecommendations.slice(0, 2));
+        setShowUpsellModal(true);
       }
     }
-  }
+  };
 
   // Handle updating cart item quantity
   const handleUpdateQuantity = (itemId, change) => {
     const updatedCart = cart.map((item) => {
       if (item.id === itemId) {
-        const newQuantity = item.quantity + change
-        return newQuantity > 0 ? { ...item, quantity: newQuantity } : item
+        const newQuantity = item.quantity + change;
+        return newQuantity > 0 ? { ...item, quantity: newQuantity } : item;
       }
-      return item
-    })
-    setCart(updatedCart)
-  }
+      return item;
+    });
+    setCart(updatedCart);
+  };
 
   // Handle removing item from cart
   const handleRemoveItem = (itemId) => {
-    setCart(cart.filter((item) => item.id !== itemId))
-  }
+    setCart(cart.filter((item) => item.id !== itemId));
+  };
 
   // Handle clearing cart
   const handleClearCart = () => {
-    setCart([])
-    setCartDiscount(null)
-  }
+    setCart([]);
+    setCartDiscount(null);
+  };
 
   // Handle adding item discount
   const handleItemDiscount = (itemId, discountType, discountValue) => {
@@ -908,37 +947,38 @@ export function ModernPOS() {
             type: discountType,
             value: Number(discountValue),
           },
-        }
+        };
       }
-      return item
-    })
-    setCart(updatedCart)
-  }
+      return item;
+    });
+    setCart(updatedCart);
+  };
 
   // Handle removing item discount
   const handleRemoveItemDiscount = (itemId) => {
     const updatedCart = cart.map((item) => {
       if (item.id === itemId) {
-        const { discount, ...rest } = item
-        return rest
+        const { discount, ...rest } = item;
+        return rest;
       }
-      return item
-    })
-    setCart(updatedCart)
-  }
+      return item;
+    });
+    setCart(updatedCart);
+  };
 
   // Handle adding new customer
   const handleAddNewCustomer = () => {
     if (!newCustomer.name || (!newCustomer.email && !newCustomer.phone)) {
       toast({
         title: "Missing Information",
-        description: "Please provide at least a name and either email or phone.",
+        description:
+          "Please provide at least a name and either email or phone.",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    const newCustomerId = customers.length + 1
+    const newCustomerId = customers.length + 1;
     const customerToAdd = {
       id: newCustomerId,
       name: newCustomer.name,
@@ -948,99 +988,99 @@ export function ModernPOS() {
       credit: 0,
       due: 0,
       purchaseHistory: [],
-    }
+    };
 
-    setSelectedCustomer(customerToAdd)
-    setShowNewCustomerForm(false)
-    setNewCustomer({ name: "", email: "", phone: "" })
+    setSelectedCustomer(customerToAdd);
+    setShowNewCustomerForm(false);
+    setNewCustomer({ name: "", email: "", phone: "" });
 
     toast({
       title: "Customer Added",
       description: `${newCustomer.name} has been added as a customer.`,
-    })
-  }
+    });
+  };
 
   // Handle selecting a customer
   const handleSelectCustomer = (customer) => {
-    setSelectedCustomer(customer)
-    setShowCustomerSearch(false)
-  }
+    setSelectedCustomer(customer);
+    setShowCustomerSearch(false);
+  };
 
   // Handle viewing product history
   const handleViewProductHistory = (product) => {
-    setSelectedProduct(product)
-    setShowProductHistory(true)
-  }
+    setSelectedProduct(product);
+    setShowProductHistory(true);
+  };
 
   // Handle applying cart discount
   const handleApplyCartDiscount = (type, value) => {
     setCartDiscount({
       type,
       value: Number(value),
-    })
-    setShowDiscountModal(false)
-  }
+    });
+    setShowDiscountModal(false);
+  };
 
   // Handle barcode scan
   const handleBarcodeScan = (e) => {
     if (e.key === "Enter" && searchQuery) {
       // Find product by code (barcode)
-      const product = products.find((p) => p.code === searchQuery)
+      const product = products.find((p) => p.code === searchQuery);
 
       if (product) {
         // Add first available variant to cart
-        const size = product.sizes[0]
-        const color = product.colors[0]
-        handleAddToCart(product, size, color)
-        setSearchQuery("")
+        const size = product.sizes[0];
+        const color = product.colors[0];
+        handleAddToCart(product, size, color);
+        setSearchQuery("");
       } else {
         toast({
           title: "Product Not Found",
           description: `No product found with code: ${searchQuery}`,
           variant: "destructive",
-        })
+        });
       }
     }
-  }
+  };
 
   // Toggle barcode mode
   const toggleBarcodeMode = () => {
-    setBarcodeMode(!barcodeMode)
+    setBarcodeMode(!barcodeMode);
     if (!barcodeMode) {
       setTimeout(() => {
-        barcodeInputRef.current?.focus()
-      }, 100)
+        barcodeInputRef.current?.focus();
+      }, 100);
     }
-  }
+  };
 
   // Handle split payment changes
   const handleSplitPaymentChange = (index, field, value) => {
-    const updatedPayments = [...splitPayments]
-    updatedPayments[index][field] = value
-    setSplitPayments(updatedPayments)
-  }
+    const updatedPayments = [...splitPayments];
+    updatedPayments[index][field] = value;
+    setSplitPayments(updatedPayments);
+  };
 
   // Add another split payment method
   const addSplitPaymentMethod = () => {
     if (splitPayments.length < 3) {
-      setSplitPayments([...splitPayments, { method: "card", amount: "" }])
+      setSplitPayments([...splitPayments, { method: "card", amount: "" }]);
     }
-  }
+  };
 
   // Remove a split payment method
   const removeSplitPaymentMethod = (index) => {
     if (splitPayments.length > 2) {
-      const updatedPayments = splitPayments.filter((_, i) => i !== index)
-      setSplitPayments(updatedPayments)
+      const updatedPayments = splitPayments.filter((_, i) => i !== index);
+      setSplitPayments(updatedPayments);
     }
-  }
+  };
 
   // Focus barcode input when barcode mode is activated
   useEffect(() => {
     if (barcodeMode) {
-      barcodeInputRef.current?.focus()
+      barcodeInputRef.current?.focus();
     }
-  }, [barcodeMode])
+  }, [barcodeMode]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
@@ -1056,17 +1096,28 @@ export function ModernPOS() {
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     ref={barcodeMode ? barcodeInputRef : null}
-                    placeholder={barcodeMode ? "Scan barcode..." : "Search by name, code, or scan barcode"}
+                    placeholder={
+                      barcodeMode
+                        ? "Scan barcode..."
+                        : "Search by name, code, or scan barcode"
+                    }
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={barcodeMode ? handleBarcodeScan : undefined}
                     className="pl-10"
                   />
                 </div>
-                <Button variant="outline" onClick={() => setIsFilterOpen(!isFilterOpen)}>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsFilterOpen(!isFilterOpen)}
+                >
                   <Filter className="h-4 w-4 mr-2" />
                   Filters
-                  {isFilterOpen ? <ChevronUp className="h-4 w-4 ml-2" /> : <ChevronDown className="h-4 w-4 ml-2" />}
+                  {isFilterOpen ? (
+                    <ChevronUp className="h-4 w-4 ml-2" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 ml-2" />
+                  )}
                 </Button>
               </div>
 
@@ -1078,7 +1129,13 @@ export function ModernPOS() {
                     <div>
                       <h3 className="text-sm font-medium mb-2">Price Range</h3>
                       <div className="px-2">
-                        <Slider defaultValue={priceRange} min={0} max={300} step={5} onValueChange={setPriceRange} />
+                        <Slider
+                          defaultValue={priceRange}
+                          min={0}
+                          max={300}
+                          step={5}
+                          onValueChange={setPriceRange}
+                        />
                         <div className="flex justify-between mt-2 text-sm text-muted-foreground">
                           <span>${priceRange[0]}</span>
                           <span>${priceRange[1]}</span>
@@ -1093,13 +1150,23 @@ export function ModernPOS() {
                         {productTags.map((tag) => (
                           <Badge
                             key={tag.id}
-                            variant={selectedTags.includes(tag.id) ? "default" : "outline"}
-                            className={`cursor-pointer ${selectedTags.includes(tag.id) ? "" : "hover:bg-gray-100"}`}
+                            variant={
+                              selectedTags.includes(tag.id)
+                                ? "default"
+                                : "outline"
+                            }
+                            className={`cursor-pointer ${
+                              selectedTags.includes(tag.id)
+                                ? ""
+                                : "hover:bg-gray-100"
+                            }`}
                             onClick={() => {
                               if (selectedTags.includes(tag.id)) {
-                                setSelectedTags(selectedTags.filter((t) => t !== tag.id))
+                                setSelectedTags(
+                                  selectedTags.filter((t) => t !== tag.id)
+                                );
                               } else {
-                                setSelectedTags([...selectedTags, tag.id])
+                                setSelectedTags([...selectedTags, tag.id]);
                               }
                             }}
                           >
@@ -1116,9 +1183,9 @@ export function ModernPOS() {
                         variant="ghost"
                         className="text-blue-600"
                         onClick={() => {
-                          setSelectedTags([])
-                          setPriceRange([0, 300])
-                          setSearchQuery("")
+                          setSelectedTags([]);
+                          setPriceRange([0, 300]);
+                          setSearchQuery("");
                         }}
                       >
                         Clear All Filters
@@ -1132,7 +1199,10 @@ export function ModernPOS() {
             {/* Product Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {filteredProducts.map((product) => (
-                <Card key={product.id} className="overflow-hidden flex flex-col">
+                <Card
+                  key={product.id}
+                  className="overflow-hidden flex flex-col"
+                >
                   <div className="relative h-48 bg-gray-100">
                     <img
                       src={product.image || "/placeholder.svg"}
@@ -1149,9 +1219,14 @@ export function ModernPOS() {
                     </div>
 
                     {/* Low stock indicator - fixed position */}
-                    {Object.values(product.stock).some((qty) => qty > 0 && qty < 5) && (
+                    {Object.values(product.stock).some(
+                      (qty) => qty > 0 && qty < 5
+                    ) && (
                       <div className="absolute top-2 right-2">
-                        <Badge variant="destructive" className="flex items-center">
+                        <Badge
+                          variant="destructive"
+                          className="flex items-center"
+                        >
                           <AlertCircle className="h-3 w-3 mr-1" />
                           Low Stock
                         </Badge>
@@ -1170,23 +1245,33 @@ export function ModernPOS() {
                   </div>
 
                   <CardContent className="p-4 flex-1 flex flex-col">
-                    <h3 className="font-medium text-sm mb-1 truncate">{product.name}</h3>
-                    <p className="text-lg font-bold mb-2">{formatCurrency(product.price)}</p>
+                    <h3 className="font-medium text-sm mb-1 truncate">
+                      {product.name}
+                    </h3>
+                    <p className="text-lg font-bold mb-2">
+                      {formatCurrency(product.price)}
+                    </p>
 
                     {/* Size selection */}
                     <div className="mb-3">
-                      <p className="text-xs text-muted-foreground mb-1">Size:</p>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Size:
+                      </p>
                       <div className="flex flex-wrap gap-1">
                         {product.sizes.map((size) => (
                           <Badge
                             key={size}
-                            variant={selectedSizes[product.id] === size ? "default" : "outline"}
+                            variant={
+                              selectedSizes[product.id] === size
+                                ? "default"
+                                : "outline"
+                            }
                             className="cursor-pointer"
                             onClick={() => {
                               setSelectedSizes({
                                 ...selectedSizes,
                                 [product.id]: size,
-                              })
+                              });
                             }}
                           >
                             {size}
@@ -1197,20 +1282,24 @@ export function ModernPOS() {
 
                     {/* Color selection */}
                     <div className="mb-3">
-                      <p className="text-xs text-muted-foreground mb-1">Color:</p>
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Color:
+                      </p>
                       <div className="flex flex-wrap gap-2">
                         {product.colors.map((color) => (
                           <button
                             key={color}
                             className={`h-6 w-6 rounded-full border-2 ${
-                              selectedColors[product.id] === color ? "border-blue-600" : "border-transparent"
+                              selectedColors[product.id] === color
+                                ? "border-blue-600"
+                                : "border-transparent"
                             }`}
                             style={{ backgroundColor: color }}
                             onClick={() => {
                               setSelectedColors({
                                 ...selectedColors,
                                 [product.id]: color,
-                              })
+                              });
                             }}
                             aria-label={`Select color ${color}`}
                           />
@@ -1222,9 +1311,11 @@ export function ModernPOS() {
                     <Button
                       className="w-full mt-auto"
                       onClick={() => {
-                        const size = selectedSizes[product.id] || product.sizes[0]
-                        const color = selectedColors[product.id] || product.colors[0]
-                        handleAddToCart(product, size, color)
+                        const size =
+                          selectedSizes[product.id] || product.sizes[0];
+                        const color =
+                          selectedColors[product.id] || product.colors[0];
+                        handleAddToCart(product, size, color);
                       }}
                     >
                       <Plus className="h-4 w-4 mr-2" />
@@ -1238,7 +1329,9 @@ export function ModernPOS() {
                 <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
                   <ShoppingBag className="h-12 w-12 text-gray-300 mb-4" />
                   <h3 className="text-lg font-medium">No products found</h3>
-                  <p className="text-muted-foreground">Try adjusting your search or filter criteria</p>
+                  <p className="text-muted-foreground">
+                    Try adjusting your search or filter criteria
+                  </p>
                 </div>
               )}
             </div>
@@ -1292,10 +1385,15 @@ export function ModernPOS() {
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{item.name}</p>
+                        <p className="font-medium text-sm truncate">
+                          {item.name}
+                        </p>
                         <div className="flex items-center text-xs text-muted-foreground">
                           <span>Size: {item.size}</span>
-                          <div className="h-3 w-3 rounded-full mx-2" style={{ backgroundColor: item.color }} />
+                          <div
+                            className="h-3 w-3 rounded-full mx-2"
+                            style={{ backgroundColor: item.color }}
+                          />
                           <span>{formatCurrency(item.price)}</span>
                         </div>
                       </div>
@@ -1334,7 +1432,10 @@ export function ModernPOS() {
                       <div className="flex-1">
                         {item.discount ? (
                           <div className="flex items-center">
-                            <Badge variant="outline" className="bg-red-50 text-red-600 mr-2">
+                            <Badge
+                              variant="outline"
+                              className="bg-red-50 text-red-600 mr-2"
+                            >
                               {item.discount.type === "percentage"
                                 ? `${item.discount.value}% OFF`
                                 : `$${item.discount.value} OFF`}
@@ -1351,7 +1452,11 @@ export function ModernPOS() {
                         ) : (
                           <Dialog>
                             <DialogTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-6 text-xs p-0">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 text-xs p-0"
+                              >
                                 <Percent className="h-3 w-3 mr-1" />
                                 Add Discount
                               </Button>
@@ -1359,39 +1464,69 @@ export function ModernPOS() {
                             <DialogContent className="sm:max-w-[425px]">
                               <DialogHeader>
                                 <DialogTitle>Apply Item Discount</DialogTitle>
-                                <DialogDescription>Apply a discount to this specific item.</DialogDescription>
+                                <DialogDescription>
+                                  Apply a discount to this specific item.
+                                </DialogDescription>
                               </DialogHeader>
                               <div className="grid gap-4 py-4">
                                 <Tabs defaultValue="percentage">
                                   <TabsList className="grid w-full grid-cols-2">
-                                    <TabsTrigger value="percentage">Percentage (%)</TabsTrigger>
-                                    <TabsTrigger value="fixed">Fixed Amount ($)</TabsTrigger>
+                                    <TabsTrigger value="percentage">
+                                      Percentage (%)
+                                    </TabsTrigger>
+                                    <TabsTrigger value="fixed">
+                                      Fixed Amount ($)
+                                    </TabsTrigger>
                                   </TabsList>
-                                  <TabsContent value="percentage" className="space-y-4 mt-4">
+                                  <TabsContent
+                                    value="percentage"
+                                    className="space-y-4 mt-4"
+                                  >
                                     <div className="space-y-2">
-                                      <Label htmlFor="percentage">Discount Percentage</Label>
+                                      <Label htmlFor="percentage">
+                                        Discount Percentage
+                                      </Label>
                                       <div className="flex items-center">
-                                        <Input id="percentage" type="number" min="0" max="100" defaultValue="10" />
+                                        <Input
+                                          id="percentage"
+                                          type="number"
+                                          min="0"
+                                          max="100"
+                                          defaultValue="10"
+                                        />
                                         <span className="ml-2">%</span>
                                       </div>
                                     </div>
                                     <Button
                                       className="w-full"
                                       onClick={(e) => {
-                                        const input = document.getElementById("percentage") as HTMLInputElement
-                                        handleItemDiscount(item.id, "percentage", input.value)
-                                        ;(e.target as HTMLElement)
+                                        const input = document.getElementById(
+                                          "percentage"
+                                        ) as HTMLInputElement;
+                                        handleItemDiscount(
+                                          item.id,
+                                          "percentage",
+                                          input.value
+                                        );
+                                        (e.target as HTMLElement)
                                           .closest("dialog")
-                                          ?.querySelector('button[data-state="closed"]')
-                                          ?.click()
+                                          ?.querySelector(
+                                            'button[data-state="closed"]'
+                                          )
+                                          ?.click();
                                       }}
                                     >
                                       Apply Percentage Discount
                                     </Button>
                                   </TabsContent>
-                                  <TabsContent value="fixed" className="space-y-4 mt-4">
+                                  <TabsContent
+                                    value="fixed"
+                                    className="space-y-4 mt-4"
+                                  >
                                     <div className="space-y-2">
-                                      <Label htmlFor="fixed">Discount Amount</Label>
+                                      <Label htmlFor="fixed">
+                                        Discount Amount
+                                      </Label>
                                       <div className="flex items-center">
                                         <span className="mr-2">$</span>
                                         <Input
@@ -1406,12 +1541,20 @@ export function ModernPOS() {
                                     <Button
                                       className="w-full"
                                       onClick={(e) => {
-                                        const input = document.getElementById("fixed") as HTMLInputElement
-                                        handleItemDiscount(item.id, "fixed", input.value)
-                                        ;(e.target as HTMLElement)
+                                        const input = document.getElementById(
+                                          "fixed"
+                                        ) as HTMLInputElement;
+                                        handleItemDiscount(
+                                          item.id,
+                                          "fixed",
+                                          input.value
+                                        );
+                                        (e.target as HTMLElement)
                                           .closest("dialog")
-                                          ?.querySelector('button[data-state="closed"]')
-                                          ?.click()
+                                          ?.querySelector(
+                                            'button[data-state="closed"]'
+                                          )
+                                          ?.click();
                                       }}
                                     >
                                       Apply Fixed Discount
@@ -1427,9 +1570,11 @@ export function ModernPOS() {
                         {formatCurrency(
                           item.discount
                             ? item.discount.type === "percentage"
-                              ? item.price * item.quantity * (1 - item.discount.value / 100)
+                              ? item.price *
+                                item.quantity *
+                                (1 - item.discount.value / 100)
                               : item.price * item.quantity - item.discount.value
-                            : item.price * item.quantity,
+                            : item.price * item.quantity
                         )}
                       </div>
                     </div>
@@ -1440,7 +1585,9 @@ export function ModernPOS() {
               <div className="h-full flex flex-col items-center justify-center p-4 text-center">
                 <ShoppingCart className="h-12 w-12 text-gray-300 mb-4" />
                 <h3 className="text-lg font-medium">Your cart is empty</h3>
-                <p className="text-muted-foreground">Add items to start a new order</p>
+                <p className="text-muted-foreground">
+                  Add items to start a new order
+                </p>
               </div>
             )}
           </ScrollArea>
@@ -1451,14 +1598,20 @@ export function ModernPOS() {
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
                 <Label htmlFor="customer">Customer</Label>
-                <Button variant="link" size="sm" onClick={() => setShowCustomerSearch(true)}>
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={() => setShowCustomerSearch(true)}
+                >
                   {selectedCustomer ? "Change" : "Select Customer"}
                 </Button>
               </div>
               {selectedCustomer ? (
                 <div className="flex items-center">
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{selectedCustomer.name}</p>
+                    <p className="font-medium text-sm truncate">
+                      {selectedCustomer.name}
+                    </p>
                     <p className="text-xs text-muted-foreground truncate">
                       {selectedCustomer.email || selectedCustomer.phone}
                     </p>
@@ -1480,7 +1633,11 @@ export function ModernPOS() {
                   </div>
                 </div>
               ) : (
-                <Button variant="outline" size="sm" onClick={() => setShowNewCustomerForm(true)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowNewCustomerForm(true)}
+                >
                   Add New Customer
                 </Button>
               )}
@@ -1496,7 +1653,9 @@ export function ModernPOS() {
                 <div className="flex justify-between">
                   <Label>Discount:</Label>
                   <span>
-                    {cartDiscount.type === "percentage" ? `${cartDiscount.value}%` : formatCurrency(cartDiscount.value)}
+                    {cartDiscount.type === "percentage"
+                      ? `${cartDiscount.value}%`
+                      : formatCurrency(cartDiscount.value)}
                   </span>
                 </div>
               )}
@@ -1536,7 +1695,11 @@ export function ModernPOS() {
                     value={cashAmount}
                     onChange={(e) => setCashAmount(e.target.value)}
                   />
-                  {changeDue > 0 && <p className="text-sm text-green-600">Change Due: {formatCurrency(changeDue)}</p>}
+                  {changeDue > 0 && (
+                    <p className="text-sm text-green-600">
+                      Change Due: {formatCurrency(changeDue)}
+                    </p>
+                  )}
                 </div>
               </TabsContent>
               <TabsContent value="split">
@@ -1544,25 +1707,41 @@ export function ModernPOS() {
                   {splitPayments.map((payment, index) => (
                     <div key={index} className="flex items-center gap-2">
                       <div className="flex-1">
-                        <Label htmlFor={`method-${index}`}>Method {index + 1}</Label>
+                        <Label htmlFor={`method-${index}`}>
+                          Method {index + 1}
+                        </Label>
                         <select
                           id={`method-${index}`}
                           className="w-full rounded-md border shadow-sm py-2 px-3 text-sm"
                           value={payment.method}
-                          onChange={(e) => handleSplitPaymentChange(index, "method", e.target.value)}
+                          onChange={(e) =>
+                            handleSplitPaymentChange(
+                              index,
+                              "method",
+                              e.target.value
+                            )
+                          }
                         >
                           <option value="card">Card</option>
                           <option value="cash">Cash</option>
                         </select>
                       </div>
                       <div className="flex-1">
-                        <Label htmlFor={`amount-${index}`}>Amount {index + 1}</Label>
+                        <Label htmlFor={`amount-${index}`}>
+                          Amount {index + 1}
+                        </Label>
                         <Input
                           id={`amount-${index}`}
                           type="number"
                           placeholder="Enter amount"
                           value={payment.amount}
-                          onChange={(e) => handleSplitPaymentChange(index, "amount", e.target.value)}
+                          onChange={(e) =>
+                            handleSplitPaymentChange(
+                              index,
+                              "amount",
+                              e.target.value
+                            )
+                          }
                         />
                       </div>
                       {splitPayments.length > 2 && (
@@ -1578,7 +1757,11 @@ export function ModernPOS() {
                     </div>
                   ))}
                   {splitPayments.length < 3 && (
-                    <Button variant="secondary" size="sm" onClick={addSplitPaymentMethod}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={addSplitPaymentMethod}
+                    >
                       Add Payment Method
                     </Button>
                   )}
@@ -1615,7 +1798,12 @@ export function ModernPOS() {
             )}
 
             {/* Complete Checkout Button */}
-            <Button className="w-full" size="lg" onClick={handleCompletePayment} disabled={cart.length === 0}>
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={handleCompletePayment}
+              disabled={cart.length === 0}
+            >
               Complete Checkout
             </Button>
           </div>
@@ -1627,7 +1815,9 @@ export function ModernPOS() {
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Select Customer</DialogTitle>
-            <DialogDescription>Search for an existing customer or add a new one.</DialogDescription>
+            <DialogDescription>
+              Search for an existing customer or add a new one.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="relative">
@@ -1649,8 +1839,12 @@ export function ModernPOS() {
                       onClick={() => handleSelectCustomer(customer)}
                     >
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{customer.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">{customer.email || customer.phone}</p>
+                        <p className="font-medium text-sm truncate">
+                          {customer.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {customer.email || customer.phone}
+                        </p>
                       </div>
                     </button>
                   ))}
@@ -1659,13 +1853,18 @@ export function ModernPOS() {
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <Search className="h-10 w-10 text-gray-300 mb-4" />
                   <h3 className="text-lg font-medium">No customers found</h3>
-                  <p className="text-muted-foreground">Try adjusting your search criteria</p>
+                  <p className="text-muted-foreground">
+                    Try adjusting your search criteria
+                  </p>
                 </div>
               )}
             </ScrollArea>
           </div>
           <div className="flex justify-end">
-            <Button variant="outline" onClick={() => setShowNewCustomerForm(true)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowNewCustomerForm(true)}
+            >
               Add New Customer
             </Button>
           </div>
@@ -1677,7 +1876,9 @@ export function ModernPOS() {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Add New Customer</DialogTitle>
-            <DialogDescription>Create a new customer profile.</DialogDescription>
+            <DialogDescription>
+              Create a new customer profile.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
@@ -1687,7 +1888,9 @@ export function ModernPOS() {
               <Input
                 id="name"
                 value={newCustomer.name}
-                onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                onChange={(e) =>
+                  setNewCustomer({ ...newCustomer, name: e.target.value })
+                }
                 className="col-span-3"
               />
             </div>
@@ -1699,7 +1902,9 @@ export function ModernPOS() {
                 id="email"
                 type="email"
                 value={newCustomer.email}
-                onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
+                onChange={(e) =>
+                  setNewCustomer({ ...newCustomer, email: e.target.value })
+                }
                 className="col-span-3"
               />
             </div>
@@ -1711,7 +1916,9 @@ export function ModernPOS() {
                 id="phone"
                 type="tel"
                 value={newCustomer.phone}
-                onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                onChange={(e) =>
+                  setNewCustomer({ ...newCustomer, phone: e.target.value })
+                }
                 className="col-span-3"
               />
             </div>
@@ -1725,14 +1932,20 @@ export function ModernPOS() {
       </Dialog>
 
       {/* Receipt Modal */}
-      <ReceiptModal open={showReceiptModal} data={receiptData} onNewSale={handleNewSale} />
+      <ReceiptModal
+        open={showReceiptModal}
+        data={receiptData}
+        onNewSale={handleNewSale}
+      />
 
       {/* Upsell Modal */}
       <Dialog open={showUpsellModal} onOpenChange={setShowUpsellModal}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Complete Your Look</DialogTitle>
-            <DialogDescription>Consider adding these accessories to your purchase.</DialogDescription>
+            <DialogDescription>
+              Consider adding these accessories to your purchase.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
             {upsellProducts.map((product) => (
@@ -1745,15 +1958,19 @@ export function ModernPOS() {
                   />
                 </div>
                 <CardContent className="p-4">
-                  <h3 className="font-medium text-sm mb-1 truncate">{product.name}</h3>
-                  <p className="text-lg font-bold mb-2">{formatCurrency(product.price)}</p>
+                  <h3 className="font-medium text-sm mb-1 truncate">
+                    {product.name}
+                  </h3>
+                  <p className="text-lg font-bold mb-2">
+                    {formatCurrency(product.price)}
+                  </p>
                   <Button
                     className="w-full mt-2"
                     onClick={() => {
-                      const size = product.sizes[0]
-                      const color = product.colors[0]
-                      handleAddToCart(product, size, color)
-                      setShowUpsellModal(false)
+                      const size = product.sizes[0];
+                      const color = product.colors[0];
+                      handleAddToCart(product, size, color);
+                      setShowUpsellModal(false);
                     }}
                   >
                     Add to Cart
@@ -1770,17 +1987,22 @@ export function ModernPOS() {
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle>Product Sales History</DialogTitle>
-            <DialogDescription>View the sales history for {selectedProduct?.name}.</DialogDescription>
+            <DialogDescription>
+              View the sales history for {selectedProduct?.name}.
+            </DialogDescription>
           </DialogHeader>
           <ScrollArea className="h-64">
-            {selectedProduct?.salesHistory && selectedProduct.salesHistory.length > 0 ? (
+            {selectedProduct?.salesHistory &&
+            selectedProduct.salesHistory.length > 0 ? (
               <div className="divide-y divide-gray-200">
                 {selectedProduct.salesHistory.map((sale, index) => (
                   <div key={index} className="py-2">
                     <div className="flex justify-between">
                       <p className="text-sm font-medium">{sale.date}</p>
                       <p className="text-sm">Quantity: {sale.quantity}</p>
-                      <p className="text-sm">Revenue: {formatCurrency(sale.revenue)}</p>
+                      <p className="text-sm">
+                        Revenue: {formatCurrency(sale.revenue)}
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -1789,7 +2011,9 @@ export function ModernPOS() {
               <div className="flex flex-col items-center justify-center py-8 text-center">
                 <History className="h-10 w-10 text-gray-300 mb-4" />
                 <h3 className="text-lg font-medium">No sales history found</h3>
-                <p className="text-muted-foreground">There is no sales data available for this product.</p>
+                <p className="text-muted-foreground">
+                  There is no sales data available for this product.
+                </p>
               </div>
             )}
           </ScrollArea>
@@ -1801,7 +2025,9 @@ export function ModernPOS() {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Apply Cart Discount</DialogTitle>
-            <DialogDescription>Apply a discount to the entire cart.</DialogDescription>
+            <DialogDescription>
+              Apply a discount to the entire cart.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <Tabs defaultValue="percentage">
@@ -1813,16 +2039,27 @@ export function ModernPOS() {
                 <div className="space-y-2">
                   <Label htmlFor="percentage">Discount Percentage</Label>
                   <div className="flex items-center">
-                    <Input id="percentage" type="number" min="0" max="100" defaultValue="10" />
+                    <Input
+                      id="percentage"
+                      type="number"
+                      min="0"
+                      max="100"
+                      defaultValue="10"
+                    />
                     <span className="ml-2">%</span>
                   </div>
                 </div>
                 <Button
                   className="w-full"
                   onClick={(e) => {
-                    const input = document.getElementById("percentage") as HTMLInputElement
-                    handleApplyCartDiscount("percentage", input.value)
-                    ;(e.target as HTMLElement).closest("dialog")?.querySelector('button[data-state="closed"]')?.click()
+                    const input = document.getElementById(
+                      "percentage"
+                    ) as HTMLInputElement;
+                    handleApplyCartDiscount("percentage", input.value);
+                    (e.target as HTMLElement)
+                      .closest("dialog")
+                      ?.querySelector('button[data-state="closed"]')
+                      ?.click();
                   }}
                 >
                   Apply Percentage Discount
@@ -1833,15 +2070,26 @@ export function ModernPOS() {
                   <Label htmlFor="fixed">Discount Amount</Label>
                   <div className="flex items-center">
                     <span className="mr-2">$</span>
-                    <Input id="fixed" type="number" min="0" max={subtotal} defaultValue="5" />
+                    <Input
+                      id="fixed"
+                      type="number"
+                      min="0"
+                      max={subtotal}
+                      defaultValue="5"
+                    />
                   </div>
                 </div>
                 <Button
                   className="w-full"
                   onClick={(e) => {
-                    const input = document.getElementById("fixed") as HTMLInputElement
-                    handleApplyCartDiscount("fixed", input.value)
-                    ;(e.target as HTMLElement).closest("dialog")?.querySelector('button[data-state="closed"]')?.click()
+                    const input = document.getElementById(
+                      "fixed"
+                    ) as HTMLInputElement;
+                    handleApplyCartDiscount("fixed", input.value);
+                    (e.target as HTMLElement)
+                      .closest("dialog")
+                      ?.querySelector('button[data-state="closed"]')
+                      ?.click();
                   }}
                 >
                   Apply Fixed Discount
@@ -1859,5 +2107,5 @@ export function ModernPOS() {
         </Button>
       </div>
     </div>
-  )
+  );
 }

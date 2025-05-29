@@ -54,6 +54,15 @@ const productFormSchema = z.object({
   stock_quantity: z.string().min(1, "Initial stock is required"),
   status: z.enum(["active", "inactive", "discontinued"]),
   minimum_stock: z.number().default(10),
+  variations: z
+    .array(
+      z.object({
+        size: z.string().min(1, "Size is required"),
+        color: z.string().min(1, "Color is required"),
+        stock: z.number().min(0, "Stock must be 0 or greater"),
+      })
+    )
+    .optional(),
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -137,6 +146,11 @@ export default function AddProductPage() {
         stock_quantity: parseInt(data.stock_quantity),
         minimum_stock: data.minimum_stock,
         is_active: data.status === "active",
+        variations: variants.map((variant) => ({
+          size: variant.size,
+          color: variant.color,
+          stock: variant.stock,
+        })),
       };
 
       console.log("Submitting product data:", productData);

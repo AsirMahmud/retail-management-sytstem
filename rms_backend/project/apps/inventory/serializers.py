@@ -61,7 +61,10 @@ class ProductVariationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProductVariation
-        fields = '__all__'
+        fields = ['size', 'color', 'stock', 'is_active', 'images']
+        extra_kwargs = {
+            'is_active': {'required': False, 'default': True}
+        }
 
 class ProductSerializer(serializers.ModelSerializer):
     variations = ProductVariationSerializer(many=True, read_only=True)
@@ -169,6 +172,33 @@ class ProductCreateSerializer(serializers.ModelSerializer):
             ProductImage.objects.create(product=product, **image_data)
             
         return product
+
+    def update(self, instance, validated_data):
+        variations_data = validated_data.pop('variations', None)
+        images_data = validated_data.pop('images', None)
+        
+        # Update product fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        # Handle variations if provided
+        if variations_data is not None:
+            # Delete existing variations
+            instance.variations.all().delete()
+            # Create new variations
+            for variation_data in variations_data:
+                ProductVariation.objects.create(product=instance, **variation_data)
+        
+        # Handle images if provided
+        if images_data is not None:
+            # Delete existing images
+            instance.images.all().delete()
+            # Create new images
+            for image_data in images_data:
+                ProductImage.objects.create(product=instance, **image_data)
+        
+        return instance
 
 class StockMovementSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
