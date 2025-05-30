@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from django.db.models import Sum, F, Q, Count
 from django.utils import timezone
 from datetime import datetime, timedelta
+from django.db import transaction
 from .models import Sale, SaleItem, Payment, Return, ReturnItem
 from .serializers import (
     SaleSerializer, SaleItemSerializer, PaymentSerializer,
@@ -48,26 +49,49 @@ class SaleViewSet(viewsets.ModelViewSet):
         
         return queryset
 
+    @transaction.atomic
     def create(self, request, *args, **kwargs):
-        items_data = request.data.pop('items', [])
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        # Create sale with items
-        sale = serializer.save(items=items_data)
+        try:
+            sale = serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @transaction.atomic
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
         
-        # Update product stock
-        for item_data in items_data:
-            product = Product.objects.get(id=item_data['product_id'])
-            if item_data.get('variation_id'):
-                variation = ProductVariation.objects.get(id=item_data['variation_id'])
-                variation.stock -= item_data['quantity']
-                variation.save()
-            else:
-                product.stock_quantity -= item_data['quantity']
-                product.save()
+        try:
+            sale = serializer.save()
+            return Response(serializer.data)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def add_payment(self, request, pk=None):
+        sale = self.get_object()
+        serializer = PaymentSerializer(data=request.data)
         
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        if serializer.is_valid():
+            payment = serializer.save(sale=sale)
+            return Response(PaymentSerializer(payment).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def create_return(self, request, pk=None):
+        sale = self.get_object()
+        serializer = ReturnSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            return_order = serializer.save(sale=sale)
+            return Response(ReturnSerializer(return_order).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=['get'])
     def customer_lookup(self, request):
@@ -245,4 +269,14 @@ class ReturnViewSet(viewsets.ModelViewSet):
         return_order.processed_date = timezone.now()
         return_order.save()
         
-        return Response(self.get_serializer(return_order).data) 
+        return Response(self.get_serializer(return_order).data)
+
+    @action(detail=True, methods=['post'])
+    def add_item(self, request, pk=None):
+        return_order = self.get_object()
+        serializer = ReturnItemSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            item = serializer.save(return_order=return_order)
+            return Response(ReturnItemSerializer(item).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST) 

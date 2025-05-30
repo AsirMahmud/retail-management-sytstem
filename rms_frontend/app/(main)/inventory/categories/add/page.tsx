@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useCreateCategory } from "@/hooks/queries/useInventory";
-import { toast } from "sonner";
+import { useToast } from "@/components/ui/use-toast";
+import { Toaster } from "@/components/ui/toaster";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -27,6 +28,7 @@ type FormValues = z.infer<typeof formSchema>;
 export default function AddCategoryPage() {
   const router = useRouter();
   const createCategory = useCreateCategory();
+  const { toast } = useToast();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -38,11 +40,28 @@ export default function AddCategoryPage() {
 
   async function onSubmit(values: FormValues) {
     try {
-      await createCategory.mutateAsync(values);
-      toast.success("Category created successfully");
+      const response = await createCategory.mutateAsync(values);
+
+      if (!response) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to create category",
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Category created successfully",
+      });
       router.push("/inventory/categories");
-    } catch (error) {
-      toast.error("Failed to create category");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error?.message || "Failed to create category",
+      });
       console.error("Failed to create category:", error);
     }
   }
@@ -98,6 +117,7 @@ export default function AddCategoryPage() {
           </div>
         </form>
       </Form>
+      <Toaster />
     </div>
   );
 }

@@ -6,30 +6,36 @@ from apps.customer.models import Customer
 import uuid
 from decimal import Decimal
 
+def generate_invoice_number():
+    return f"INV-{uuid.uuid4().hex[:8].upper()}"
+
+def generate_return_number():
+    return f"RET-{uuid.uuid4().hex[:8].upper()}"
+
 class Sale(models.Model):
-    PAYMENT_METHODS = [
+    PAYMENT_METHOD_CHOICES = [
         ('cash', 'Cash'),
         ('card', 'Card'),
         ('mobile_money', 'Mobile Money'),
-        ('credit', 'Credit'),
+        ('credit', 'Credit')
     ]
-
+    
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
-        ('refunded', 'Refunded'),
+        ('refunded', 'Refunded')
     ]
-
-    invoice_number = models.CharField(max_length=50, unique=True, default=lambda: f"INV-{uuid.uuid4().hex[:8].upper()}")
+    
+    invoice_number = models.CharField(max_length=50, unique=True, default=generate_invoice_number)
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
-    customer_phone = models.CharField(max_length=15, blank=True, null=True)
+    customer_phone = models.CharField(max_length=15, null=True, blank=True)
     date = models.DateTimeField(default=timezone.now)
-    subtotal = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
-    tax = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
-    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(0)])
-    total = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
-    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHODS)
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))])
+    tax = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))])
+    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(Decimal('0.00'))])
+    total = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))])
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -62,7 +68,7 @@ class Sale(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.invoice_number:
-            self.invoice_number = f"INV-{uuid.uuid4().hex[:8].upper()}"
+            self.invoice_number = generate_invoice_number()
         super().save(*args, **kwargs)
 
     def calculate_totals(self):
@@ -78,9 +84,9 @@ class SaleItem(models.Model):
     size = models.CharField(max_length=50)
     color = models.CharField(max_length=50)
     quantity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
-    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(0)])
-    total = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))])
+    discount = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(Decimal('0.00'))])
+    total = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))])
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -132,48 +138,55 @@ class SaleItem(models.Model):
         super().save(*args, **kwargs)
 
 class Payment(models.Model):
-    PAYMENT_STATUS = [
+    PAYMENT_METHOD_CHOICES = [
+        ('cash', 'Cash'),
+        ('card', 'Card'),
+        ('mobile_money', 'Mobile Money'),
+        ('credit', 'Credit')
+    ]
+    
+    STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('completed', 'Completed'),
         ('failed', 'Failed'),
-        ('refunded', 'Refunded'),
+        ('refunded', 'Refunded')
     ]
-
+    
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='payments')
-    amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
-    payment_method = models.CharField(max_length=20, choices=Sale.PAYMENT_METHODS)
-    status = models.CharField(max_length=20, choices=PAYMENT_STATUS, default='pending')
+    amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))])
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     transaction_id = models.CharField(max_length=100, blank=True)
     payment_date = models.DateTimeField(default=timezone.now)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Payment for {self.sale.invoice_number}"
+        return f"Payment {self.id} for Sale {self.sale.invoice_number}"
 
 class Return(models.Model):
-    RETURN_STATUS = [
+    STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
-        ('completed', 'Completed'),
+        ('completed', 'Completed')
     ]
-
+    
+    return_number = models.CharField(max_length=50, unique=True, default=generate_return_number)
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='returns')
-    return_number = models.CharField(max_length=50, unique=True, default=lambda: f"RET-{uuid.uuid4().hex[:8].upper()}")
     reason = models.TextField()
-    status = models.CharField(max_length=20, choices=RETURN_STATUS, default='pending')
-    refund_amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    refund_amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))])
     processed_date = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Return {self.return_number}"
+        return f"Return {self.return_number} for Sale {self.sale.invoice_number}"
 
     def save(self, *args, **kwargs):
         if not self.return_number:
-            self.return_number = f"RET-{uuid.uuid4().hex[:8].upper()}"
+            self.return_number = generate_return_number()
         super().save(*args, **kwargs)
 
 class ReturnItem(models.Model):
@@ -184,7 +197,7 @@ class ReturnItem(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Return Item for {self.sale_item.product.name}"
+        return f"Return Item {self.id} for Return {self.return_order.return_number}"
 
     def save(self, *args, **kwargs):
         # Create stock movement record when return is approved
