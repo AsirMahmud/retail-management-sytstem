@@ -42,6 +42,7 @@ import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ReceiptModal } from "@/components/pos/receipt-modal";
+import ProductGrid from "./ProductGrid";
 
 // Sample product data
 const products = [
@@ -1197,144 +1198,11 @@ export function ModernPOS() {
             </div>
 
             {/* Product Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filteredProducts.map((product) => (
-                <Card
-                  key={product.id}
-                  className="overflow-hidden flex flex-col"
-                >
-                  <div className="relative h-48 bg-gray-100">
-                    <img
-                      src={product.image || "/placeholder.svg"}
-                      alt={product.name}
-                      className="h-full w-full object-cover"
-                    />
-                    {/* Product tags - fixed position */}
-                    <div className="absolute top-2 left-2 flex flex-wrap gap-1 max-w-[80%]">
-                      {product.tags.slice(0, 2).map((tag) => (
-                        <Badge key={tag} className={getTagColor(tag)}>
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-
-                    {/* Low stock indicator - fixed position */}
-                    {Object.values(product.stock).some(
-                      (qty) => qty > 0 && qty < 5
-                    ) && (
-                      <div className="absolute top-2 right-2">
-                        <Badge
-                          variant="destructive"
-                          className="flex items-center"
-                        >
-                          <AlertCircle className="h-3 w-3 mr-1" />
-                          Low Stock
-                        </Badge>
-                      </div>
-                    )}
-
-                    {/* Sales history button - fixed position */}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute bottom-2 right-2 bg-white/80 hover:bg-white"
-                      onClick={() => handleViewProductHistory(product)}
-                    >
-                      <History className="h-4 w-4" />
-                    </Button>
-                  </div>
-
-                  <CardContent className="p-4 flex-1 flex flex-col">
-                    <h3 className="font-medium text-sm mb-1 truncate">
-                      {product.name}
-                    </h3>
-                    <p className="text-lg font-bold mb-2">
-                      {formatCurrency(product.price)}
-                    </p>
-
-                    {/* Size selection */}
-                    <div className="mb-3">
-                      <p className="text-xs text-muted-foreground mb-1">
-                        Size:
-                      </p>
-                      <div className="flex flex-wrap gap-1">
-                        {product.sizes.map((size) => (
-                          <Badge
-                            key={size}
-                            variant={
-                              selectedSizes[product.id] === size
-                                ? "default"
-                                : "outline"
-                            }
-                            className="cursor-pointer"
-                            onClick={() => {
-                              setSelectedSizes({
-                                ...selectedSizes,
-                                [product.id]: size,
-                              });
-                            }}
-                          >
-                            {size}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Color selection */}
-                    <div className="mb-3">
-                      <p className="text-xs text-muted-foreground mb-1">
-                        Color:
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {product.colors.map((color) => (
-                          <button
-                            key={color}
-                            className={`h-6 w-6 rounded-full border-2 ${
-                              selectedColors[product.id] === color
-                                ? "border-blue-600"
-                                : "border-transparent"
-                            }`}
-                            style={{ backgroundColor: color }}
-                            onClick={() => {
-                              setSelectedColors({
-                                ...selectedColors,
-                                [product.id]: color,
-                              });
-                            }}
-                            aria-label={`Select color ${color}`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Add to cart button - fixed at bottom */}
-                    <Button
-                      className="w-full mt-auto"
-                      onClick={() => {
-                        const size =
-                          selectedSizes[product.id] || product.sizes[0];
-                        const color =
-                          selectedColors[product.id] || product.colors[0];
-                        handleAddToCart(product, size, color);
-                      }}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add to Cart
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-
-              {filteredProducts.length === 0 && (
-                <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
-                  <ShoppingBag className="h-12 w-12 text-gray-300 mb-4" />
-                  <h3 className="text-lg font-medium">No products found</h3>
-                  <p className="text-muted-foreground">
-                    Try adjusting your search or filter criteria
-                  </p>
-                </div>
-              )}
-            </div>
+            <ProductGrid
+              searchQuery={searchQuery}
+              selectedCategory={selectedCategory}
+              priceRange={priceRange}
+            />
           </div>
         </div>
 

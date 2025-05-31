@@ -324,7 +324,7 @@ export default function ProductsPage() {
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
                   {categories
-                    .filter((category): category is string => !!category)e
+                    .filter((category): category is string => !!category)
                     .map((category) => (
                       <SelectItem key={category} value={category}>
                         {category}
