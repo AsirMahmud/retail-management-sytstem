@@ -1,6 +1,7 @@
 from django.db import models
 from django.core.validators import MinValueValidator
 from django.utils import timezone
+from pydantic import ValidationError
 from apps.inventory.models import Product, ProductVariation, StockMovement
 from apps.customer.models import Customer
 import uuid

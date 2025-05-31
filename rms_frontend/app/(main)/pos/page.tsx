@@ -1,7 +1,7 @@
 "use client";
 
 import { ModernPOS } from "@/components/pos/modern-pos";
-import { BottomNavigation } from "@/components/pos/bottom-navigation";
+import FloatingCart from "@/components/pos/FloatingCart";
 
 export default function POSPage() {
   const handleCategoryClick = () => {
@@ -29,10 +29,8 @@ export default function POSPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <div className="flex-1 pb-16">
-        <ModernPOS />
-      </div>
+    <div className="relative min-h-screen">
+      <ModernPOS />
     </div>
   );
 }

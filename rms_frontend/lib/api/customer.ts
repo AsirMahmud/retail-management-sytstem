@@ -16,12 +16,9 @@ export interface Customer {
 
 export interface CreateCustomerData {
     first_name?: string;
-    last_name?: string;
-    email?: string;
+
     phone: string;
-    address?: string;
-    gender?: 'M' | 'F' | 'O';
-    date_of_birth?: string;
+
 }
 
 export interface UpdateCustomerData extends Partial<CreateCustomerData> { }

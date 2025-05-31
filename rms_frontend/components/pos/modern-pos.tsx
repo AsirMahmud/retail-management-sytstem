@@ -41,13 +41,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ReceiptModal } from "@/components/pos/receipt-modal";
+
 import ProductGrid from "./ProductGrid";
 import CustomerSearchModal from "./CustomerSearchModal";
 import CustomerAddModal from "./CustomerAddModal";
 import CartAndCheckout from "./CartAndCheckout";
+import DiscountModal from "./DiscountModal";
 import { usePOSStore } from "@/store/pos-store";
 import { Product, ProductVariation } from "@/types/inventory";
+import ReceiptModal from "./ReceiptModal";
 
 // Sample product data
 const products = [
@@ -609,7 +611,6 @@ export function ModernPOS() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 300]);
-  const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
   const [newCustomer, setNewCustomer] = useState({
@@ -649,6 +650,18 @@ export function ModernPOS() {
   const [applyDuePayment, setApplyDuePayment] = useState(false);
   const [applyStoreCredit, setApplyStoreCredit] = useState(false);
   const [salesHistory, setSalesHistory] = useState<any[]>([]);
+
+  // Get cart and related functions from POS store
+  const {
+    cart,
+    handleAddToCart: addToCart,
+    handleUpdateQuantity: updateQuantity,
+    handleRemoveItem: removeItem,
+    handleClearCart: clearCart,
+    handleItemDiscount: itemDiscount,
+    handleRemoveItemDiscount: removeItemDiscount,
+    handleCompletePayment: completePayment,
+  } = usePOSStore();
 
   // Calculate cart totals
   const subtotal = cart.reduce((sum, item) => {
@@ -800,11 +813,13 @@ export function ModernPOS() {
 
     // In a real app, you would save this transaction to your backend
     console.log("Transaction completed:", receipt);
+
+    completePayment();
   };
 
   // Handle starting a new sale after receipt
   const handleNewSale = () => {
-    setCart([]);
+    clearCart();
     setSelectedCustomer(null);
     setPaymentMethod("card");
     setCashAmount("");
@@ -1204,12 +1219,13 @@ export function ModernPOS() {
               searchQuery={searchQuery}
               selectedCategory={selectedCategory}
               priceRange={priceRange}
+              onAddToCart={addToCart}
             />
           </div>
         </div>
 
         {/* Right Column - Cart & Checkout */}
-        <CartAndCheckout />
+        {cart.length > 0 && <CartAndCheckout />}
       </div>
 
       {/* Customer Search Modal */}
@@ -1217,6 +1233,9 @@ export function ModernPOS() {
 
       {/* New Customer Form Modal */}
       <CustomerAddModal />
+
+      {/* Discount Modal */}
+      <DiscountModal />
 
       {/* Receipt Modal */}
       <ReceiptModal
@@ -1256,11 +1275,7 @@ export function ModernPOS() {
                     onClick={() => {
                       const variation = product.variations?.[0];
                       if (variation) {
-                        handleAddToCart(
-                          product,
-                          variation.size,
-                          variation.color
-                        );
+                        addToCart(product, variation.size, variation.color);
                       }
                       setShowUpsellModal(false);
                     }}
@@ -1273,17 +1288,6 @@ export function ModernPOS() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Barcode Mode Toggle */}
-      <div className="fixed bottom-4 right-4 bg-white border rounded-md shadow-md p-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setBarcodeMode(!barcodeMode)}
-        >
-          {barcodeMode ? "Disable Barcode Mode" : "Enable Barcode Mode"}
-        </Button>
-      </div>
     </div>
   );
 }

@@ -1,8 +1,23 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useState } from "react";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Sample data - in a real app, this would come from your database
 const dailyData = [
@@ -20,14 +35,14 @@ const dailyData = [
   { date: "May 12", Revenue: 4800, Transactions: 48 },
   { date: "May 13", Revenue: 5200, Transactions: 52 },
   { date: "May 14", Revenue: 4700, Transactions: 47 },
-]
+];
 
 const weeklyData = [
   { date: "Week 1", Revenue: 22100, Transactions: 221 },
   { date: "Week 2", Revenue: 25800, Transactions: 258 },
   { date: "Week 3", Revenue: 27500, Transactions: 275 },
   { date: "Week 4", Revenue: 29800, Transactions: 298 },
-]
+];
 
 const monthlyData = [
   { date: "Jan", Revenue: 85000, Transactions: 850 },
@@ -35,12 +50,17 @@ const monthlyData = [
   { date: "Mar", Revenue: 92000, Transactions: 920 },
   { date: "Apr", Revenue: 88000, Transactions: 880 },
   { date: "May", Revenue: 105000, Transactions: 1050 },
-]
+];
 
 export function SalesOverviewChart() {
-  const [timeframe, setTimeframe] = useState("daily")
+  const [timeframe, setTimeframe] = useState("daily");
 
-  const data = timeframe === "daily" ? dailyData : timeframe === "weekly" ? weeklyData : monthlyData
+  const data =
+    timeframe === "daily"
+      ? dailyData
+      : timeframe === "weekly"
+      ? weeklyData
+      : monthlyData;
 
   return (
     <div className="space-y-4">
@@ -59,7 +79,13 @@ export function SalesOverviewChart() {
       <ResponsiveContainer width="100%" height={350}>
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="date" tickLine={false} axisLine={false} fontSize={12} tickMargin={10} />
+          <XAxis
+            dataKey="date"
+            tickLine={false}
+            axisLine={false}
+            fontSize={12}
+            tickMargin={10}
+          />
           <YAxis
             yAxisId="left"
             tickLine={false}
@@ -67,18 +93,34 @@ export function SalesOverviewChart() {
             fontSize={12}
             tickFormatter={(value) => `$${value}`}
           />
-          <YAxis yAxisId="right" orientation="right" tickLine={false} axisLine={false} fontSize={12} />
+          <YAxis
+            yAxisId="right"
+            orientation="right"
+            tickLine={false}
+            axisLine={false}
+            fontSize={12}
+          />
           <Tooltip
             formatter={(value, name) => {
-              if (name === "Revenue") return [`$${value}`, name]
-              return [value, name]
+              if (name === "Revenue") return [`$${value}`, name];
+              return [value, name];
             }}
           />
           <Legend />
-          <Bar yAxisId="left" dataKey="Revenue" fill="#1E3A8A" radius={[4, 4, 0, 0]} />
-          <Bar yAxisId="right" dataKey="Transactions" fill="#FFC107" radius={[4, 4, 0, 0]} />
+          <Bar
+            yAxisId="left"
+            dataKey="Revenue"
+            fill="#1E3A8A"
+            radius={[4, 4, 0, 0]}
+          />
+          <Bar
+            yAxisId="right"
+            dataKey="Transactions"
+            fill="#FFC107"
+            radius={[4, 4, 0, 0]}
+          />
         </BarChart>
       </ResponsiveContainer>
     </div>
-  )
+  );
 }

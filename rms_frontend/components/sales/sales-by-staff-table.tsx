@@ -1,8 +1,15 @@
-"use client"
+"use client";
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Progress } from "@/components/ui/progress"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
 
 // Sample data - in a real app, this would come from your database
 const staffSalesData = [
@@ -61,7 +68,7 @@ const staffSalesData = [
     conversion: 64,
     target: 70,
   },
-]
+];
 
 export function SalesByStaffTable() {
   return (
@@ -84,7 +91,9 @@ export function SalesByStaffTable() {
               <TableCell>
                 <div className="flex items-center gap-3">
                   <Avatar className="h-9 w-9">
-                    <AvatarFallback className="bg-[#F1F5F9] text-[#1E3A8A]">{staff.initials}</AvatarFallback>
+                    <AvatarFallback className="bg-[#F1F5F9] text-[#1E3A8A]">
+                      {staff.initials}
+                    </AvatarFallback>
                   </Avatar>
                   <span className="font-medium">{staff.name}</span>
                 </div>
@@ -97,7 +106,10 @@ export function SalesByStaffTable() {
               <TableCell>
                 <div className="flex items-center gap-2">
                   <div className="w-full max-w-32">
-                    <Progress value={(staff.conversion / staff.target) * 100} className="h-2" />
+                    <Progress
+                      value={(staff.conversion / staff.target) * 100}
+                      className="h-2"
+                    />
                   </div>
                   <span className="text-xs text-muted-foreground">
                     {staff.conversion}/{staff.target}%
@@ -109,5 +121,5 @@ export function SalesByStaffTable() {
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }

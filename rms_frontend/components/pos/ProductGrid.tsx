@@ -133,7 +133,7 @@ export default function ProductGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
       {filteredProducts.map((product) => {
         const sizes = getUniqueValues(product.variations, "size");
         const colors = getUniqueValues(product.variations, "color");
@@ -141,7 +141,7 @@ export default function ProductGrid({
 
         return (
           <Card key={product.id} className="overflow-hidden flex flex-col">
-            <div className="relative h-48 bg-gray-100">
+            <div className="relative h-32 bg-gray-100">
               <img
                 src={product.image || "/placeholder.svg?height=200&width=200"}
                 alt={product.name}
@@ -149,17 +149,20 @@ export default function ProductGrid({
               />
 
               {/* SKU Badge */}
-              <div className="absolute top-2 left-2">
-                <Badge variant="secondary" className="text-xs">
+              <div className="absolute top-1 left-1">
+                <Badge variant="secondary" className="text-[10px]">
                   {product.sku}
                 </Badge>
               </div>
 
               {/* Low stock indicator */}
               {isLowStock(product) && (
-                <div className="absolute top-2 right-2">
-                  <Badge variant="destructive" className="flex items-center">
-                    <AlertCircle className="h-3 w-3 mr-1" />
+                <div className="absolute top-1 right-1">
+                  <Badge
+                    variant="destructive"
+                    className="flex items-center text-[10px]"
+                  >
+                    <AlertCircle className="h-2 w-2 mr-0.5" />
                     Low Stock
                   </Badge>
                 </div>
@@ -169,32 +172,34 @@ export default function ProductGrid({
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute bottom-2 right-2 bg-white/80 hover:bg-white"
+                className="absolute bottom-1 right-1 bg-white/80 hover:bg-white h-6 w-6"
                 onClick={() => handleViewProductHistory(product)}
               >
-                <History className="h-4 w-4" />
+                <History className="h-3 w-3" />
               </Button>
             </div>
 
-            <CardContent className="p-4 flex-1 flex flex-col">
+            <CardContent className="p-2 flex-1 flex flex-col">
               <h3
-                className="font-medium text-sm mb-1 truncate"
+                className="font-medium text-xs mb-0.5 truncate"
                 title={product.name}
               >
                 {product.name}
               </h3>
-              <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+              <p className="text-[10px] text-muted-foreground mb-1 line-clamp-1">
                 {product.description}
               </p>
-              <p className="text-lg font-bold mb-2">
+              <p className="text-sm font-bold mb-1">
                 {formatCurrency(product.selling_price)}
               </p>
 
               {/* Size selection */}
               {sizes.length > 0 && (
-                <div className="mb-3">
-                  <p className="text-xs text-muted-foreground mb-1">Size:</p>
-                  <div className="flex flex-wrap gap-1">
+                <div className="mb-1.5">
+                  <p className="text-[10px] text-muted-foreground mb-0.5">
+                    Size:
+                  </p>
+                  <div className="flex flex-wrap gap-0.5">
                     {sizes.map((size) => (
                       <Badge
                         key={size}
@@ -203,7 +208,7 @@ export default function ProductGrid({
                             ? "default"
                             : "outline"
                         }
-                        className="cursor-pointer text-xs"
+                        className="cursor-pointer text-[10px] h-5"
                         onClick={() => {
                           setSelectedSizes({
                             ...selectedSizes,
@@ -220,15 +225,17 @@ export default function ProductGrid({
 
               {/* Color selection */}
               {colors.length > 0 && (
-                <div className="mb-3">
-                  <p className="text-xs text-muted-foreground mb-1">Color:</p>
-                  <div className="flex flex-wrap gap-2">
+                <div className="mb-1.5">
+                  <p className="text-[10px] text-muted-foreground mb-0.5">
+                    Color:
+                  </p>
+                  <div className="flex flex-wrap gap-1">
                     {colors.map((color) => (
                       <button
                         key={color}
-                        className={`h-6 w-6 rounded-full border-2 ${
+                        className={`h-4 w-4 rounded-full border ${
                           selectedColors[product.id] === color
-                            ? "border-blue-600 ring-2 ring-blue-200"
+                            ? "border-blue-600 ring-1 ring-blue-200"
                             : "border-gray-300"
                         }`}
                         style={{ backgroundColor: getColorValue(color) }}
@@ -247,8 +254,8 @@ export default function ProductGrid({
               )}
 
               {/* Stock indicator */}
-              <div className="mb-3">
-                <p className="text-xs text-muted-foreground">
+              <div className="mb-1.5">
+                <p className="text-[10px] text-muted-foreground">
                   Stock:{" "}
                   <span
                     className={
@@ -264,7 +271,7 @@ export default function ProductGrid({
 
               {/* Add to cart button */}
               <Button
-                className="w-full mt-auto"
+                className="w-full mt-auto h-7 text-xs"
                 disabled={currentStock === 0}
                 onClick={() => {
                   const size = selectedSizes[product.id] || sizes[0];
@@ -272,7 +279,7 @@ export default function ProductGrid({
                   handleAddToCart(product, size, color);
                 }}
               >
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="h-3 w-3 mr-1" />
                 {currentStock === 0 ? "Out of Stock" : "Add to Cart"}
               </Button>
             </CardContent>
@@ -281,10 +288,10 @@ export default function ProductGrid({
       })}
 
       {filteredProducts.length === 0 && (
-        <div className="col-span-full flex flex-col items-center justify-center py-12 text-center">
-          <ShoppingBag className="h-12 w-12 text-gray-300 mb-4" />
-          <h3 className="text-lg font-medium">No products found</h3>
-          <p className="text-muted-foreground">
+        <div className="col-span-full flex flex-col items-center justify-center py-8 text-center">
+          <ShoppingBag className="h-8 w-8 text-gray-300 mb-2" />
+          <h3 className="text-sm font-medium">No products found</h3>
+          <p className="text-xs text-muted-foreground">
             Try adjusting your search or filter criteria
           </p>
         </div>

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Customer, CreateCustomerData, createCustomer, searchCustomers } from '@/lib/api/customer';
 import { useToast } from '@/hooks/use-toast';
 import { Product } from '@/types/inventory';
+import { PaymentMethod } from '@/types/sales';
 
 interface CartItem {
     id: number;
@@ -46,6 +47,16 @@ interface POSState {
     handleItemDiscount: (itemId: number, discountType: "percentage" | "fixed", discountValue: number) => void;
     handleRemoveItemDiscount: (itemId: number) => void;
 
+    // Payment related state
+    paymentMethod: PaymentMethod;
+    setPaymentMethod: (method: PaymentMethod) => void;
+    showSplitPayment: boolean;
+    setShowSplitPayment: (show: boolean) => void;
+    splitPayments: { method: PaymentMethod; amount: string }[];
+    setSplitPayments: (payments: { method: PaymentMethod; amount: string }[]) => void;
+    cashAmount: string;
+    setCashAmount: (amount: string) => void;
+
     // UI state
     showCustomerSearch: boolean;
     setShowCustomerSearch: (show: boolean) => void;
@@ -56,14 +67,12 @@ interface POSState {
 
 const initialNewCustomer: CreateCustomerData = {
     first_name: '',
-    last_name: '',
-    email: '',
     phone: '',
-    address: '',
+
 };
 
 export const usePOSStore = create<POSState>((set, get) => ({
-    // Customer related state and functions
+    // Customer related state
     showNewCustomerForm: false,
     setShowNewCustomerForm: (show) => set({ showNewCustomerForm: show }),
 
@@ -114,7 +123,7 @@ export const usePOSStore = create<POSState>((set, get) => ({
 
     resetNewCustomer: () => set({ newCustomer: initialNewCustomer }),
 
-    // Cart related state and functions
+    // Cart related state
     cart: [],
     setCart: (cart) => set({ cart }),
 
@@ -199,6 +208,19 @@ export const usePOSStore = create<POSState>((set, get) => ({
         });
         set({ cart: updatedCart });
     },
+
+    // Payment related state
+    paymentMethod: "cash",
+    setPaymentMethod: (method) => set({ paymentMethod: method }),
+    showSplitPayment: false,
+    setShowSplitPayment: (show) => set({ showSplitPayment: show }),
+    splitPayments: [
+        { method: 'card' as PaymentMethod, amount: '' },
+        { method: 'cash' as PaymentMethod, amount: '' }
+    ],
+    setSplitPayments: (payments) => set({ splitPayments: payments }),
+    cashAmount: "",
+    setCashAmount: (amount) => set({ cashAmount: amount }),
 
     // UI state
     showCustomerSearch: false,

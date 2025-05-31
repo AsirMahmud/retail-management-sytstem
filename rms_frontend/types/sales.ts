@@ -1,4 +1,4 @@
-export type PaymentMethod = 'cash' | 'card' | 'mobile_money' | 'credit';
+export type PaymentMethod = 'cash' | 'card' | 'mobile_money' | 'credit' | 'mobile' | 'gift' | 'split';
 export type SaleStatus = 'pending' | 'completed' | 'cancelled' | 'refunded';
 export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
 export type ReturnStatus = 'pending' | 'approved' | 'rejected' | 'completed';

@@ -41,40 +41,15 @@ export default function CustomerAddModal() {
               className="col-span-3"
             />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="last_name" className="text-right">
-              Last Name
-            </Label>
-            <Input
-              id="last_name"
-              value={newCustomer.last_name || ""}
-              onChange={(e) =>
-                setNewCustomer({ ...newCustomer, last_name: e.target.value })
-              }
-              className="col-span-3"
-            />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="email" className="text-right">
-              Email
-            </Label>
-            <Input
-              id="email"
-              type="email"
-              value={newCustomer.email || ""}
-              onChange={(e) =>
-                setNewCustomer({ ...newCustomer, email: e.target.value })
-              }
-              className="col-span-3"
-            />
-          </div>
+
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="phone" className="text-right">
-              Phone
+              Phone*
             </Label>
             <Input
               id="phone"
               type="tel"
+              placeholder="+1234567890"
               value={newCustomer.phone}
               onChange={(e) =>
                 setNewCustomer({ ...newCustomer, phone: e.target.value })
@@ -83,22 +58,19 @@ export default function CustomerAddModal() {
               required
             />
           </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="address" className="text-right">
-              Address
-            </Label>
-            <Input
-              id="address"
-              value={newCustomer.address || ""}
-              onChange={(e) =>
-                setNewCustomer({ ...newCustomer, address: e.target.value })
-              }
-              className="col-span-3"
-            />
-          </div>
         </div>
-        <div className="flex justify-end">
-          <Button variant="default" onClick={handleAddNewCustomer}>
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowNewCustomerForm(false)}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="default"
+            onClick={handleAddNewCustomer}
+            disabled={!newCustomer.phone}
+          >
             Add Customer
           </Button>
         </div>

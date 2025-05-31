@@ -10,11 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { usePOSStore } from "@/store/pos-store";
 import { Customer } from "@/lib/api/customer";
+import { X } from "lucide-react";
 
 export default function CustomerSearchModal() {
   const {
-    showNewCustomerForm,
-    setShowNewCustomerForm,
+    showCustomerSearch,
+    setShowCustomerSearch,
     searchQuery,
     setSearchQuery,
     searchResults,
@@ -23,6 +24,15 @@ export default function CustomerSearchModal() {
     setSelectedCustomer,
   } = usePOSStore();
 
+  // Reset search when modal opens
+  useEffect(() => {
+    if (showCustomerSearch) {
+      setSearchQuery("");
+      handleSearch("");
+    }
+  }, [showCustomerSearch]);
+
+  // Handle search with debounce
   useEffect(() => {
     if (searchQuery) {
       const debounceTimer = setTimeout(() => {
@@ -34,30 +44,57 @@ export default function CustomerSearchModal() {
 
   const handleSelectCustomer = (customer: Customer) => {
     setSelectedCustomer(customer);
-    setShowNewCustomerForm(false);
+    setShowCustomerSearch(false);
+  };
+
+  const handleRemoveCustomer = () => {
+    setSelectedCustomer(null);
+    setShowCustomerSearch(false);
+  };
+
+  const handleClose = () => {
+    setShowCustomerSearch(false);
+    setSearchQuery("");
   };
 
   return (
-    <Dialog open={showNewCustomerForm} onOpenChange={setShowNewCustomerForm}>
+    <Dialog open={showCustomerSearch} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Search Customer</DialogTitle>
+          <DialogTitle>Customer Management</DialogTitle>
           <DialogDescription>
-            Search for an existing customer or add a new one.
+            Search for a customer or remove the current customer.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
+          {selectedCustomer && (
+            <div className="p-3 border rounded-lg bg-muted relative">
+              <div className="font-medium mb-2">Current Customer:</div>
+              <div className="text-sm">
+                {selectedCustomer.first_name} {selectedCustomer.last_name}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {selectedCustomer.phone}
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 h-6 w-6 text-red-600"
+                onClick={handleRemoveCustomer}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
           <div className="flex gap-2">
             <Input
               placeholder="Search by name, phone, or email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1"
+              autoFocus
             />
-            <Button
-              variant="outline"
-              onClick={() => setShowNewCustomerForm(false)}
-            >
+            <Button variant="outline" onClick={handleClose}>
               Cancel
             </Button>
           </div>
@@ -89,7 +126,11 @@ export default function CustomerSearchModal() {
               <div className="text-center text-muted-foreground py-4">
                 No customers found
               </div>
-            ) : null}
+            ) : (
+              <div className="text-center text-muted-foreground py-4">
+                Start typing to search customers
+              </div>
+            )}
           </div>
         </div>
       </DialogContent>

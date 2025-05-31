@@ -1,8 +1,15 @@
-"use client"
+"use client";
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 
 // Sample data - in a real app, this would come from your database
 const productSalesData = [
@@ -94,17 +101,19 @@ const productSalesData = [
     stock: 14,
     trend: "up",
   },
-]
+];
 
 interface SalesByProductTableProps {
-  limit?: number
+  limit?: number;
 }
 
 export function SalesByProductTable({ limit }: SalesByProductTableProps) {
-  const displayData = limit ? productSalesData.slice(0, limit) : productSalesData
+  const displayData = limit
+    ? productSalesData.slice(0, limit)
+    : productSalesData;
 
   // Find the highest sold value for progress bar calculation
-  const maxSold = Math.max(...productSalesData.map((product) => product.sold))
+  const maxSold = Math.max(...productSalesData.map((product) => product.sold));
 
   return (
     <div className="rounded-md border">
@@ -130,7 +139,10 @@ export function SalesByProductTable({ limit }: SalesByProductTableProps) {
               <TableCell>
                 <div className="flex items-center gap-2">
                   <div className="w-full max-w-24">
-                    <Progress value={(product.sold / maxSold) * 100} className="h-2" />
+                    <Progress
+                      value={(product.sold / maxSold) * 100}
+                      className="h-2"
+                    />
                   </div>
                   <span>{product.sold}</span>
                 </div>
@@ -138,13 +150,25 @@ export function SalesByProductTable({ limit }: SalesByProductTableProps) {
               <TableCell>${product.revenue.toFixed(2)}</TableCell>
               <TableCell>${product.profit.toFixed(2)}</TableCell>
               <TableCell>
-                <Badge variant={product.stock < 15 ? "destructive" : "outline"}>{product.stock}</Badge>
+                <Badge variant={product.stock < 15 ? "destructive" : "outline"}>
+                  {product.stock}
+                </Badge>
               </TableCell>
               <TableCell>
                 <Badge
-                  variant={product.trend === "up" ? "success" : product.trend === "down" ? "destructive" : "outline"}
+                  variant={
+                    product.trend === "up"
+                      ? "success"
+                      : product.trend === "down"
+                      ? "destructive"
+                      : "outline"
+                  }
                 >
-                  {product.trend === "up" ? "↑" : product.trend === "down" ? "↓" : "→"}
+                  {product.trend === "up"
+                    ? "↑"
+                    : product.trend === "down"
+                    ? "↓"
+                    : "→"}
                 </Badge>
               </TableCell>
             </TableRow>
@@ -152,5 +176,5 @@ export function SalesByProductTable({ limit }: SalesByProductTableProps) {
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }
