@@ -9,9 +9,9 @@ class Customer(models.Model):
         ('O', 'Other')
     ]
     
-    first_name = models.CharField(max_length=100, null=True, blank=True)
-    last_name = models.CharField(max_length=100, null=True, blank=True)
-    email = models.EmailField(unique=True, null=True, blank=True)
+    first_name = models.CharField(max_length=100, blank=True, default='')
+    last_name = models.CharField(max_length=100, blank=True, default='')
+    email = models.EmailField(blank=True, default='')
     phone = models.CharField(
         max_length=15,
         unique=True,
@@ -22,8 +22,8 @@ class Customer(models.Model):
             )
         ]
     )
-    address = models.TextField(null=True, blank=True)
-    gender = models.CharField(max_length=1, choices=GENDER_CHOICES, null=True, blank=True)
+    address = models.TextField(blank=True, default='')
+    gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True, default='')
     date_of_birth = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)

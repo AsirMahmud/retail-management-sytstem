@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle, ShoppingBag, History, Plus } from "lucide-react";
 import { useProducts } from "@/hooks/queries/useInventory";
 import { Product } from "@/types/inventory";
+import { usePOSStore } from "@/store/pos-store";
 
 interface ProductGridProps {
   searchQuery?: string;
@@ -25,6 +26,7 @@ export default function ProductGrid({
   const [selectedColors, setSelectedColors] = useState<Record<number, string>>(
     {}
   );
+  const { handleAddToCart } = usePOSStore();
 
   // Fetch products using the useProducts hook
   const { data: products, isLoading, error } = useProducts();
@@ -81,24 +83,6 @@ export default function ProductGrid({
   const handleViewProductHistory = (product: Product) => {
     console.log("View history for product:", product.id);
     // Implement your history viewing logic here
-  };
-
-  const handleAddToCart = (product: Product, size: string, color: string) => {
-    const variation = (product.variations || []).find(
-      (v) => v.size === size && v.color === color && v.is_active
-    );
-
-    if (variation && variation.stock > 0) {
-      console.log("Adding to cart:", {
-        productId: product.id,
-        size,
-        color,
-        price: product.selling_price,
-      });
-      // Implement your add to cart logic here
-    } else {
-      alert("This variation is out of stock");
-    }
   };
 
   const getCurrentVariationStock = (product: Product): number => {
