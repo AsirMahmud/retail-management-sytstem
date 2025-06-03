@@ -4,32 +4,32 @@ export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
 export type ReturnStatus = 'pending' | 'approved' | 'rejected' | 'completed';
 
 export interface SaleItem {
-    id: number;
-    product: number;
+    id?: number;
+    product_id: number;
     size: string;
     color: string;
     quantity: number;
     unit_price: number;
     discount: number;
-    total: number;
-    created_at: string;
+    total?: number;
+    created_at?: string;
 }
 
 export interface Sale {
-    id: number;
-    invoice_number: string;
-    customer: number | null;
+    id?: number;
+    invoice_number?: string;
+    customer?: number | null;
     customer_phone: string | null;
-    date: string;
+    date?: string;
     subtotal: number;
     tax: number;
     discount: number;
     total: number;
     payment_method: PaymentMethod;
-    status: SaleStatus;
-    notes: string;
-    created_at: string;
-    updated_at: string;
+    status?: SaleStatus;
+    notes?: string;
+    created_at?: string;
+    updated_at?: string;
     items: SaleItem[];
 }
 

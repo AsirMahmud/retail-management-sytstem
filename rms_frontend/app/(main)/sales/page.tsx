@@ -1,76 +1,98 @@
 "use client";
 
-import type { Metadata } from "next";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SalesOverviewChart } from "@/components/sales/sales-overview-chart";
-import { SalesHistoryTable } from "@/components/sales/sales-history-table";
-import { SalesByProductTable } from "@/components/sales/sales-by-product-table";
-import { SalesByStaffTable } from "@/components/sales/sales-by-staff-table";
-import { SalesSummaryCards } from "@/components/sales/sales-summary-cards";
-import { SalesFilterBar } from "@/components/sales/sales-filter-bar";
-import { useSales, useDashboardStats } from "@/hooks/queries/use-sales";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 
-export default function SalesPage() {
-  const [filters, setFilters] = useState({
-    start_date: "",
-    end_date: "",
-    status: "",
-    payment_method: "",
-    customer_phone: "",
-    search: "",
-    ordering: "-date",
-  });
+import { BarChart3, History } from "lucide-react";
+import SalesOverview from "@/components/sales/sales-overview";
+import SalesHistory from "@/components/sales/sales-history-table";
 
-  const { sales, isLoading: isLoadingSales } = useSales(filters);
-  const { data: dashboardStats, isLoading: isLoadingStats } =
-    useDashboardStats();
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Sales</h1>
-        <p className="text-muted-foreground">View and manage your sales data</p>
-      </div>
-
-      <SalesFilterBar onFilterChange={setFilters} />
-
-      <SalesSummaryCards stats={dashboardStats} isLoading={isLoadingStats} />
-
-      <SalesOverviewChart
-        data={dashboardStats?.sales_overview}
-        isLoading={isLoadingStats}
-      />
-
-      <Tabs defaultValue="products" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="products">Top Products</TabsTrigger>
-          <TabsTrigger value="history">Sales History</TabsTrigger>
-          <TabsTrigger value="staff">Staff Performance</TabsTrigger>
-        </TabsList>
-        <TabsContent value="products" className="space-y-4">
-          <SalesByProductTable
-            data={dashboardStats?.top_products}
-            isLoading={isLoadingStats}
-          />
-        </TabsContent>
-        <TabsContent value="history" className="space-y-4">
-          <SalesHistoryTable data={sales} isLoading={isLoadingSales} />
-        </TabsContent>
-        <TabsContent value="staff" className="space-y-4">
-          <SalesByStaffTable
-            data={dashboardStats?.staff_performance}
-            isLoading={isLoadingStats}
-          />
-        </TabsContent>
-      </Tabs>
-    </div>
+export default function SalesDashboard() {
+  const [activeView, setActiveView] = useState<"overview" | "history">(
+    "overview"
   );
+
+  if (activeView === "overview") {
+    return (
+      <div className="relative">
+        {/* Navigation */}
+        <div className="fixed top-6 left-6 z-50">
+          <div className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-xl shadow-lg p-2">
+            <div className="flex gap-1">
+              <Button
+                variant={activeView === "overview" ? "default" : "ghost"}
+                onClick={() => setActiveView("overview")}
+                size="sm"
+                className={
+                  activeView === "overview"
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                }
+              >
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Overview
+              </Button>
+              <Button
+                variant={activeView === "history" ? "default" : "ghost"}
+                onClick={() => setActiveView("history")}
+                size="sm"
+                className={
+                  activeView === "history"
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                }
+              >
+                <History className="w-4 h-4 mr-2" />
+                History
+              </Button>
+            </div>
+          </div>
+        </div>
+        <SalesOverview />
+      </div>
+    );
+  }
+
+  if (activeView === "history") {
+    return (
+      <div className="relative">
+        {/* Navigation */}
+        <div className="fixed top-6 left-6 z-50">
+          <div className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-xl shadow-lg p-2">
+            <div className="flex gap-1">
+              <Button
+                variant={activeView === "overview" ? "default" : "ghost"}
+                onClick={() => setActiveView("overview")}
+                size="sm"
+                className={
+                  activeView === "overview"
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                }
+              >
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Overview
+              </Button>
+              <Button
+                variant={activeView === "history" ? "default" : "ghost"}
+                onClick={() => setActiveView("history")}
+                size="sm"
+                className={
+                  activeView === "history"
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                }
+              >
+                <History className="w-4 h-4 mr-2" />
+                History
+              </Button>
+            </div>
+          </div>
+        </div>
+        <SalesHistory />
+      </div>
+    );
+  }
+
+  return null;
 }

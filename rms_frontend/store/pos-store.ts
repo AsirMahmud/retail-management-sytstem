@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { Customer, CreateCustomerData, createCustomer, searchCustomers } from '@/lib/api/customer';
-import { useToast } from '@/hooks/use-toast';
 import { Product } from '@/types/inventory';
-import { PaymentMethod } from '@/types/sales';
+import { PaymentMethod, SaleStatus } from '@/types/sales';
+import { createSale } from '@/lib/api/sales';
+import { Sale, SaleItem } from '@/types/sales';
 
 interface CartItem {
     id: number;
@@ -56,13 +57,32 @@ interface POSState {
     setSplitPayments: (payments: { method: PaymentMethod; amount: string }[]) => void;
     cashAmount: string;
     setCashAmount: (amount: string) => void;
+    currentSaleData: Partial<Sale> | null;
+    setCurrentSaleData: (data: Partial<Sale> | null) => void;
 
     // UI state
     showCustomerSearch: boolean;
     setShowCustomerSearch: (show: boolean) => void;
     showDiscountModal: boolean;
     setShowDiscountModal: (show: boolean) => void;
-    handleCompletePayment: () => void;
+    showReceiptModal: boolean;
+    setShowReceiptModal: (show: boolean) => void;
+    receiptData: {
+        id: string;
+        date: string;
+        items: CartItem[];
+        subtotal: number;
+        tax: number;
+        total: number;
+        paymentMethod: PaymentMethod;
+        cashAmount: number | null;
+        changeDue: number | null;
+        customer: Customer | null;
+        splitPayments: { method: PaymentMethod; amount: string }[] | null;
+        isPaid: boolean;
+    } | null;
+    setReceiptData: (data: POSState['receiptData']) => void;
+    handleCompletePayment: (toast: (props: { title: string; description: string; variant?: "default" | "destructive" }) => void) => Promise<Sale | undefined>;
 }
 
 const initialNewCustomer: CreateCustomerData = {
@@ -107,17 +127,8 @@ export const usePOSStore = create<POSState>((set, get) => ({
                 showNewCustomerForm: false,
                 newCustomer: initialNewCustomer
             });
-            useToast().toast({
-                title: "Success",
-                description: "Customer added successfully",
-            });
         } catch (error) {
             console.error('Error adding customer:', error);
-            useToast().toast({
-                title: "Error",
-                description: "Failed to add customer",
-                variant: "destructive",
-            });
         }
     },
 
@@ -214,36 +225,89 @@ export const usePOSStore = create<POSState>((set, get) => ({
     setPaymentMethod: (method) => set({ paymentMethod: method }),
     showSplitPayment: false,
     setShowSplitPayment: (show) => set({ showSplitPayment: show }),
-    splitPayments: [
-        { method: 'card' as PaymentMethod, amount: '' },
-        { method: 'cash' as PaymentMethod, amount: '' }
-    ],
+    splitPayments: [{ method: 'cash' as PaymentMethod, amount: '' }],
     setSplitPayments: (payments) => set({ splitPayments: payments }),
     cashAmount: "",
     setCashAmount: (amount) => set({ cashAmount: amount }),
+    currentSaleData: null,
+    setCurrentSaleData: (data) => set({ currentSaleData: data }),
 
     // UI state
     showCustomerSearch: false,
     setShowCustomerSearch: (show) => set({ showCustomerSearch: show }),
-
     showDiscountModal: false,
     setShowDiscountModal: (show) => set({ showDiscountModal: show }),
+    showReceiptModal: false,
+    setShowReceiptModal: (show) => set({ showReceiptModal: show }),
+    receiptData: null,
+    setReceiptData: (data) => set({ receiptData: data }),
 
-    handleCompletePayment: () => {
-        const { cart, selectedCustomer } = get();
-        if (cart.length === 0) return;
+    handleCompletePayment: async (toast) => {
+        const { cart, selectedCustomer, paymentMethod, cashAmount, splitPayments } = get();
+        if (cart.length === 0) {
+            toast({
+                title: "Empty Cart",
+                description: "Your cart is empty",
+                variant: "destructive",
+            });
+            return;
+        }
 
-        // TODO: Implement payment processing
-        console.log('Processing payment for:', {
-            items: cart,
-            customer: selectedCustomer,
-        });
+        try {
+            // Calculate totals
+            const subtotal = cart.reduce((sum, item) => {
+                const itemTotal = item.price * item.quantity;
+                if (item.discount) {
+                    if (item.discount.type === "percentage") {
+                        return sum + itemTotal * (1 - item.discount.value / 100);
+                    } else {
+                        return sum + (itemTotal - item.discount.value);
+                    }
+                }
+                return sum + itemTotal;
+            }, 0);
 
-        // Clear cart after successful payment
-        set({ cart: [], cartDiscount: null });
-        useToast().toast({
-            title: "Success",
-            description: "Payment processed successfully",
-        });
+            // Remove tax calculation completely
+            const tax = 0;
+            const total = subtotal;
+
+            // Create receipt data
+            const receipt = {
+                id: `INV-${Math.floor(100000 + Math.random() * 900000)}`,
+                date: new Date().toISOString(),
+                items: cart,
+                subtotal,
+                tax,
+                total,
+                paymentMethod,
+                cashAmount: paymentMethod === "cash" ? Number.parseFloat(cashAmount) : null,
+                changeDue: paymentMethod === "cash" ? Number.parseFloat(cashAmount) - total : null,
+                customer: selectedCustomer,
+                splitPayments: paymentMethod === "split" ? splitPayments : null,
+                isPaid: true,
+            };
+
+            // Set receipt data and show modal
+            set({ receiptData: receipt, showReceiptModal: true });
+
+            // Clear cart after successful payment
+            set({ cart: [], cartDiscount: null });
+
+            toast({
+                title: "Success",
+                description: "Payment processed successfully",
+            });
+
+            return receipt as unknown as Sale;
+        } catch (error) {
+            console.error('Error processing payment:', error);
+            const errorMessage = error instanceof Error ? error.message : "Failed to process payment";
+            toast({
+                title: "Error",
+                description: errorMessage,
+                variant: "destructive",
+            });
+            throw error;
+        }
     },
 })); 

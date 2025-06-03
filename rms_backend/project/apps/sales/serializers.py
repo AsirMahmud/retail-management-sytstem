@@ -29,9 +29,9 @@ class SaleItemSerializer(serializers.ModelSerializer):
         model = SaleItem
         fields = [
             'id', 'product', 'product_id', 'size', 'color',
-            'quantity', 'unit_price', 'discount', 'total', 'created_at'
+            'quantity', 'unit_price', 'discount', 'total', 'profit', 'loss', 'created_at'
         ]
-        read_only_fields = ['total']
+        read_only_fields = ['total', 'profit', 'loss']
 
     def validate(self, data):
         if data['quantity'] <= 0:
@@ -131,15 +131,26 @@ class SaleSerializer(serializers.ModelSerializer):
         decimal_places=2,
         min_value=Decimal('0.00')
     )
+    total_profit = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        read_only=True
+    )
+    total_loss = serializers.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        read_only=True
+    )
+    status = serializers.CharField(default='completed')
 
     class Meta:
         model = Sale
         fields = [
             'id', 'invoice_number', 'customer', 'customer_id', 'customer_phone', 'customer_name',
-            'date', 'subtotal', 'tax', 'discount', 'total',
+            'date', 'subtotal', 'tax', 'discount', 'total', 'total_profit', 'total_loss',
             'payment_method', 'status', 'notes', 'items', 'payments', 'returns'
         ]
-        read_only_fields = ['invoice_number', 'total']
+        read_only_fields = ['invoice_number', 'total', 'total_profit', 'total_loss']
 
     def validate(self, data):
         if 'items' not in data or not data['items']:

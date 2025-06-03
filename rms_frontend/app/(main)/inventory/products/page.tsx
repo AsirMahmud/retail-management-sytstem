@@ -204,7 +204,7 @@ export default function ProductsPage() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="cursor-pointer">
-                <Link href={`/inventory/products/${product.id}/edit`}>
+                <Link href={`/inventory/products/edit-product/${product.id}`}>
                   <Edit3 className="mr-2 h-4 w-4" />
                   Edit Product
                 </Link>

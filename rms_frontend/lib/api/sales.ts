@@ -19,27 +19,27 @@ export const getSales = async (params?: {
     search?: string;
     ordering?: string;
 }) => {
-    const response = await axios.get<Sale[]>('/sales/', { params });
+    const response = await axios.get<Sale[]>('/sales/sales/', { params });
     return response.data;
 };
 
 export const getSale = async (id: number) => {
-    const response = await axios.get<Sale>(`/sales/${id}/`);
+    const response = await axios.get<Sale>(`/sales/sales/${id}/`);
     return response.data;
 };
 
 export const createSale = async (data: Partial<Sale>) => {
-    const response = await axios.post<Sale>('/sales/', data);
+    const response = await axios.post<Sale>('/sales/sales/', data);
     return response.data;
 };
 
 export const updateSale = async (id: number, data: Partial<Sale>) => {
-    const response = await axios.patch<Sale>(`/sales/${id}/`, data);
+    const response = await axios.patch<Sale>(`/sales/sales/${id}/`, data);
     return response.data;
 };
 
 export const deleteSale = async (id: number) => {
-    await axios.delete(`/sales/${id}/`);
+    await axios.delete(`/sales/sales/${id}/`);
 };
 
 // Payments API
@@ -51,12 +51,12 @@ export const getPayments = async (params?: {
     search?: string;
     ordering?: string;
 }) => {
-    const response = await axios.get<Payment[]>('/payments/', { params });
+    const response = await axios.get<Payment[]>('/sales/payments/', { params });
     return response.data;
 };
 
 export const addPayment = async (saleId: number, data: Partial<Payment>) => {
-    const response = await axios.post<Payment>(`/sales/${saleId}/add_payment/`, data);
+    const response = await axios.post<Payment>(`/sales/sales/${saleId}/add_payment/`, data);
     return response.data;
 };
 
@@ -68,22 +68,22 @@ export const getReturns = async (params?: {
     search?: string;
     ordering?: string;
 }) => {
-    const response = await axios.get<Return[]>('/returns/', { params });
+    const response = await axios.get<Return[]>('/sales/returns/', { params });
     return response.data;
 };
 
 export const createReturn = async (saleId: number, data: Partial<Return>) => {
-    const response = await axios.post<Return>(`/sales/${saleId}/create_return/`, data);
+    const response = await axios.post<Return>(`/sales/sales/${saleId}/create_return/`, data);
     return response.data;
 };
 
 export const approveReturn = async (returnId: number) => {
-    const response = await axios.post<Return>(`/returns/${returnId}/approve/`);
+    const response = await axios.post<Return>(`/sales/returns/${returnId}/approve/`);
     return response.data;
 };
 
 export const rejectReturn = async (returnId: number) => {
-    const response = await axios.post<Return>(`/returns/${returnId}/reject/`);
+    const response = await axios.post<Return>(`/sales/returns/${returnId}/reject/`);
     return response.data;
 };
 

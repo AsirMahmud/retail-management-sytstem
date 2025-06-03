@@ -31,7 +31,7 @@ class Category(models.Model):
 
 class Product(models.Model):
     name = models.CharField(max_length=200)
-    sku = models.CharField(max_length=50, unique=True)
+    sku = models.CharField(max_length=50, unique=True, blank=True)
     barcode = models.CharField(max_length=50, unique=True, blank=True, null=True)
     description = models.TextField(blank=True)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
@@ -44,6 +44,15 @@ class Product(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if not self.sku and self.category:
+            # Generate SKU by combining category name, timestamp, and a random component
+            category_prefix = self.category.name[:3].upper()  # First 3 letters of category name
+            timestamp = timezone.now().strftime('%y%m%d')  # YYMMDD format
+            random_component = str(uuid.uuid4())[:4]  # First 4 characters of UUID
+            self.sku = f"{category_prefix}-{timestamp}-{random_component}"
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.name} ({self.sku})"

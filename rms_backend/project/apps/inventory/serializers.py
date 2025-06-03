@@ -126,6 +126,7 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True
     )
+    sku = serializers.CharField(read_only=True)
 
     class Meta:
         model = Product

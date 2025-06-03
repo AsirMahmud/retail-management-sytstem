@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/components/ui/use-toast";
 import {
   Package,
   Tag,
@@ -31,9 +32,53 @@ import { useDashboardOverview } from "@/hooks/queries/useInventory";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardCharts } from "@/components/inventory/dashboard-charts";
 import { StockAlerts } from "@/components/inventory/stock-alerts";
+import React from "react";
 
 export default function InventoryPage() {
   const { data: overview, isLoading } = useDashboardOverview("day");
+  const { toast } = useToast();
+
+  // Add toast notifications when data loads
+  React.useEffect(() => {
+    if (!isLoading && overview) {
+      // Show stock health status
+      const stockHealth =
+        (overview?.metrics?.total_products || 0) > 0
+          ? (((overview?.metrics?.total_products || 0) -
+              (overview?.metrics?.out_of_stock_products || 0)) /
+              (overview?.metrics?.total_products || 1)) *
+            100
+          : 0;
+
+      if (stockHealth <= 60) {
+        toast({
+          variant: "destructive",
+          title: "Critical Stock Health",
+          description: `Your inventory health is at ${stockHealth.toFixed(
+            1
+          )}%. Immediate action required.`,
+        });
+      }
+
+      // Show low stock warning
+      if (overview?.metrics?.low_stock_products > 0) {
+        toast({
+          variant: "default",
+          title: "Low Stock Alert",
+          description: `${overview.metrics.low_stock_products} items are running low on stock.`,
+        });
+      }
+
+      // Show out of stock warning
+      if (overview?.metrics?.out_of_stock_products > 0) {
+        toast({
+          variant: "destructive",
+          title: "Out of Stock Alert",
+          description: `${overview.metrics.out_of_stock_products} items are out of stock.`,
+        });
+      }
+    }
+  }, [isLoading, overview, toast]);
 
   if (isLoading) {
     return (

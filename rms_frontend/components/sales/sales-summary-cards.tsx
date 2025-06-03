@@ -9,38 +9,65 @@ import {
   Users,
   CreditCard,
 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Import the sales context
-import { useSales } from "@/context/sales-context";
+interface SalesSummaryCardsProps {
+  stats: {
+    total_revenue: number;
+    total_sales: number;
+    average_order_value: number;
+    unique_customers: number;
+    previous_period: {
+      total_revenue: number;
+      total_sales: number;
+      average_order_value: number;
+      unique_customers: number;
+    };
+  } | null;
+  isLoading: boolean;
+}
 
-export function SalesSummaryCards() {
-  // Use the sales context for real data
-  const { salesSummary } = useSales();
+export function SalesSummaryCards({
+  stats,
+  isLoading,
+}: SalesSummaryCardsProps) {
+  if (isLoading) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <Skeleton className="h-4 w-[100px]" />
+              <Skeleton className="h-4 w-4" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-[120px] mb-2" />
+              <Skeleton className="h-4 w-[80px]" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
-  // Sample previous period data for comparison
-  const previousPeriod = {
-    totalRevenue: salesSummary.totalRevenue * 0.9,
-    totalSales: salesSummary.totalSales * 0.92,
-    avgOrderValue: salesSummary.avgOrderValue * 0.97,
-    uniqueCustomers: salesSummary.uniqueCustomers * 0.95,
-  };
+  if (!stats) return null;
 
   // Calculate percentage changes
   const revenueChange =
-    ((salesSummary.totalRevenue - previousPeriod.totalRevenue) /
-      previousPeriod.totalRevenue) *
+    ((stats.total_revenue - stats.previous_period.total_revenue) /
+      stats.previous_period.total_revenue) *
     100;
   const salesChange =
-    ((salesSummary.totalSales - previousPeriod.totalSales) /
-      previousPeriod.totalSales) *
+    ((stats.total_sales - stats.previous_period.total_sales) /
+      stats.previous_period.total_sales) *
     100;
   const avgOrderChange =
-    ((salesSummary.avgOrderValue - previousPeriod.avgOrderValue) /
-      previousPeriod.avgOrderValue) *
+    ((stats.average_order_value - stats.previous_period.average_order_value) /
+      stats.previous_period.average_order_value) *
     100;
   const customersChange =
-    ((salesSummary.uniqueCustomers - previousPeriod.uniqueCustomers) /
-      previousPeriod.uniqueCustomers) *
+    ((stats.unique_customers - stats.previous_period.unique_customers) /
+      stats.previous_period.unique_customers) *
     100;
 
   return (
@@ -52,7 +79,7 @@ export function SalesSummaryCards() {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            ${salesSummary.totalRevenue.toFixed(2)}
+            ${stats.total_revenue.toFixed(2)}
           </div>
           <p className="text-xs text-muted-foreground">
             <span
@@ -79,7 +106,7 @@ export function SalesSummaryCards() {
           <ShoppingBag className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{salesSummary.totalSales}</div>
+          <div className="text-2xl font-bold">{stats.total_sales}</div>
           <p className="text-xs text-muted-foreground">
             <span
               className={
@@ -108,7 +135,7 @@ export function SalesSummaryCards() {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
-            ${salesSummary.avgOrderValue.toFixed(2)}
+            ${stats.average_order_value.toFixed(2)}
           </div>
           <p className="text-xs text-muted-foreground">
             <span
@@ -137,9 +164,7 @@ export function SalesSummaryCards() {
           <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">
-            {salesSummary.uniqueCustomers}
-          </div>
+          <div className="text-2xl font-bold">{stats.unique_customers}</div>
           <p className="text-xs text-muted-foreground">
             <span
               className={

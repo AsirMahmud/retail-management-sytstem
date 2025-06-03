@@ -10,110 +10,69 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Sample data - in a real app, this would come from your database
-const productSalesData = [
-  {
-    id: 1,
-    name: "Navy Slim Fit Suit",
-    category: "Suits",
-    sku: "SUIT-001",
-    sold: 42,
-    revenue: 12599.58,
-    profit: 5039.83,
-    stock: 18,
-    trend: "up",
-  },
-  {
-    id: 2,
-    name: "White Dress Shirt",
-    category: "Shirts",
-    sku: "SHIRT-001",
-    sold: 78,
-    revenue: 3899.22,
-    profit: 1949.61,
-    stock: 45,
-    trend: "up",
-  },
-  {
-    id: 3,
-    name: "Silk Tie",
-    category: "Accessories",
-    sku: "ACC-001",
-    sold: 56,
-    revenue: 1679.44,
-    profit: 1007.66,
-    stock: 32,
-    trend: "stable",
-  },
-  {
-    id: 4,
-    name: "Leather Oxford Shoes",
-    category: "Shoes",
-    sku: "SHOE-001",
-    sold: 35,
-    revenue: 8575.0,
-    profit: 3430.0,
-    stock: 12,
-    trend: "up",
-  },
-  {
-    id: 5,
-    name: "Casual Blazer",
-    category: "Suits",
-    sku: "SUIT-002",
-    sold: 29,
-    revenue: 4349.71,
-    profit: 1739.88,
-    stock: 8,
-    trend: "down",
-  },
-  {
-    id: 6,
-    name: "Cotton T-Shirt",
-    category: "Casual Wear",
-    sku: "CAS-001",
-    sold: 92,
-    revenue: 3679.08,
-    profit: 2207.45,
-    stock: 65,
-    trend: "up",
-  },
-  {
-    id: 7,
-    name: "Leather Belt",
-    category: "Accessories",
-    sku: "ACC-002",
-    sold: 48,
-    revenue: 3877.44,
-    profit: 2326.46,
-    stock: 22,
-    trend: "stable",
-  },
-  {
-    id: 8,
-    name: "Charcoal Suit",
-    category: "Suits",
-    sku: "SUIT-003",
-    sold: 37,
-    revenue: 12949.63,
-    profit: 5179.85,
-    stock: 14,
-    trend: "up",
-  },
-];
+interface ProductSalesData {
+  id: number;
+  name: string;
+  category: string;
+  sku: string;
+  sold: number;
+  revenue: number;
+  profit: number;
+  stock: number;
+  trend: "up" | "down" | "stable";
+}
 
 interface SalesByProductTableProps {
+  data: ProductSalesData[] | null;
+  isLoading: boolean;
   limit?: number;
 }
 
-export function SalesByProductTable({ limit }: SalesByProductTableProps) {
-  const displayData = limit
-    ? productSalesData.slice(0, limit)
-    : productSalesData;
+export function SalesByProductTable({
+  data,
+  isLoading,
+  limit,
+}: SalesByProductTableProps) {
+  if (isLoading) {
+    return (
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Product</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>SKU</TableHead>
+              <TableHead>Units Sold</TableHead>
+              <TableHead>Revenue</TableHead>
+              <TableHead>Profit</TableHead>
+              <TableHead>Stock</TableHead>
+              <TableHead>Trend</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <TableRow key={i}>
+                {Array.from({ length: 8 }).map((_, j) => (
+                  <TableCell key={j}>
+                    <Skeleton className="h-4 w-full" />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  const displayData = limit ? data.slice(0, limit) : data;
 
   // Find the highest sold value for progress bar calculation
-  const maxSold = Math.max(...productSalesData.map((product) => product.sold));
+  const maxSold = Math.max(...data.map((product) => product.sold));
 
   return (
     <div className="rounded-md border">
@@ -158,7 +117,7 @@ export function SalesByProductTable({ limit }: SalesByProductTableProps) {
                 <Badge
                   variant={
                     product.trend === "up"
-                      ? "success"
+                      ? "default"
                       : product.trend === "down"
                       ? "destructive"
                       : "outline"

@@ -36,6 +36,8 @@ class Sale(models.Model):
     tax = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))])
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(Decimal('0.00'))])
     total = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))])
+    total_profit = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(Decimal('0.00'))])
+    total_loss = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(Decimal('0.00'))])
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     notes = models.TextField(blank=True)
@@ -77,6 +79,8 @@ class Sale(models.Model):
         items = self.items.all()
         self.subtotal = sum(item.total for item in items)
         self.total = self.subtotal + self.tax - self.discount
+        self.total_profit = sum(item.profit for item in items)
+        self.total_loss = sum(item.loss for item in items)
         self.save()
 
 class SaleItem(models.Model):
@@ -88,6 +92,8 @@ class SaleItem(models.Model):
     unit_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))])
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(Decimal('0.00'))])
     total = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))])
+    profit = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(Decimal('0.00'))])
+    loss = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(Decimal('0.00'))])
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -114,9 +120,26 @@ class SaleItem(models.Model):
         if self.quantity > variation.stock:
             raise ValidationError(f"Not enough stock for {self.product.name} - Size: {self.size}, Color: {self.color}")
 
+    def calculate_profit_loss(self):
+        """Calculate profit or loss for this sale item"""
+        variation = self.get_variation()
+        if variation and self.product.cost_price:
+            cost_total = self.product.cost_price * self.quantity
+            selling_total = self.total
+            difference = selling_total - cost_total
+            
+            if difference >= 0:
+                return difference, Decimal('0.00')  # profit, loss
+            else:
+                return Decimal('0.00'), abs(difference)  # profit, loss
+        return Decimal('0.00'), Decimal('0.00')
+
     def save(self, *args, **kwargs):
         # Calculate total before saving
         self.total = (self.quantity * self.unit_price) - self.discount
+        
+        # Calculate profit and loss
+        self.profit, self.loss = self.calculate_profit_loss()
         
         # Create stock movement record and update stock when sale is completed
         if self.sale.status == 'completed':
@@ -135,6 +158,10 @@ class SaleItem(models.Model):
                 # Update variation stock
                 variation.stock -= self.quantity
                 variation.save()
+                
+                # Update product stock
+                self.product.stock_quantity -= self.quantity
+                self.product.save()
         
         super().save(*args, **kwargs)
 

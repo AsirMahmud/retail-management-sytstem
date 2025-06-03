@@ -90,7 +90,7 @@ export type UpdateSupplierDTO = Partial<CreateSupplierDTO> & { id: number };
 
 export interface CreateProductDTO {
     name: string;
-    sku: string;
+
     barcode?: string;
     description?: string;
     category?: number;

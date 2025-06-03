@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,9 +11,52 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search, Filter, Download } from "lucide-react";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { addDays } from "date-fns";
 
-export function SalesFilterBar() {
-  const [searchTerm, setSearchTerm] = useState("");
+interface SalesFilterBarProps {
+  onFilterChange: (filters: {
+    start_date?: string;
+    end_date?: string;
+    status?: string;
+    payment_method?: string;
+    customer_phone?: string;
+    search?: string;
+    ordering?: string;
+  }) => void;
+}
+
+export function SalesFilterBar({ onFilterChange }: SalesFilterBarProps) {
+  const [filters, setFilters] = useState({
+    search: "",
+    payment_method: "all",
+    status: "all",
+    start_date: "",
+    end_date: "",
+    ordering: "-date",
+  });
+
+  useEffect(() => {
+    onFilterChange(filters);
+  }, [filters, onFilterChange]);
+
+  const handleDateRangeChange = (
+    range: { from: Date; to: Date } | undefined
+  ) => {
+    if (range) {
+      setFilters((prev) => ({
+        ...prev,
+        start_date: range.from.toISOString(),
+        end_date: range.to.toISOString(),
+      }));
+    } else {
+      setFilters((prev) => ({
+        ...prev,
+        start_date: "",
+        end_date: "",
+      }));
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -23,11 +66,18 @@ export function SalesFilterBar() {
           <Input
             placeholder="Search sales..."
             className="pl-8"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={filters.search}
+            onChange={(e) =>
+              setFilters((prev) => ({ ...prev, search: e.target.value }))
+            }
           />
         </div>
-        <Select defaultValue="all">
+        <Select
+          value={filters.payment_method}
+          onValueChange={(value) =>
+            setFilters((prev) => ({ ...prev, payment_method: value }))
+          }
+        >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Payment Type" />
           </SelectTrigger>
@@ -38,9 +88,29 @@ export function SalesFilterBar() {
             <SelectItem value="due">Due Payment</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" size="icon">
-          <Filter className="h-4 w-4" />
-        </Button>
+        <Select
+          value={filters.status}
+          onValueChange={(value) =>
+            setFilters((prev) => ({ ...prev, status: value }))
+          }
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+        <DatePickerWithRange
+          onChange={handleDateRangeChange}
+          defaultDateRange={{
+            from: addDays(new Date(), -7),
+            to: new Date(),
+          }}
+        />
       </div>
       <div className="flex items-center gap-2">
         <Button variant="outline">

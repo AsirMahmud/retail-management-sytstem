@@ -38,14 +38,13 @@ import {
   useSuppliers,
 } from "@/hooks/queries/useInventory";
 import type { CreateProductDTO } from "@/types/inventory";
-import { toast } from "sonner";
+import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HydrationWrapper } from "@/components/hydration-wrapper";
 
 // Define the form schema using Zod
 const productFormSchema = z.object({
   name: z.string().min(1, "Product name is required"),
-  sku: z.string().min(1, "SKU is required"),
   description: z.string().optional(),
   category: z.string({ required_error: "Please select a category" }),
   supplier: z.string({ required_error: "Please select a supplier" }).optional(),
@@ -78,6 +77,7 @@ type Variant = {
 export default function AddProductPage() {
   const router = useRouter();
   const createProduct = useCreateProduct();
+  const { toast } = useToast();
   const { data: categories = [], isLoading: isLoadingCategories } =
     useCategories();
   const { data: suppliers = [], isLoading: isLoadingSuppliers } =
@@ -88,7 +88,6 @@ export default function AddProductPage() {
     resolver: zodResolver(productFormSchema),
     defaultValues: {
       name: "",
-      sku: "",
       description: "",
       category: undefined,
       supplier: undefined,
@@ -137,7 +136,6 @@ export default function AddProductPage() {
     try {
       const productData: CreateProductDTO = {
         name: data.name,
-        sku: data.sku,
         description: data.description || "",
         category: parseInt(data.category),
         supplier: data.supplier ? parseInt(data.supplier) : undefined,
@@ -153,16 +151,34 @@ export default function AddProductPage() {
         })),
       };
 
-      console.log("Submitting product data:", productData);
+      // Show loading toast
+      toast({
+        title: "Creating product...",
+        description: "Please wait while we create your product.",
+      });
+
       await createProduct.mutateAsync(productData);
 
-      toast.success("Product created successfully");
+      // Show success toast
+      toast({
+        title: "Product created successfully!",
+        description: `"${data.name}" has been added to your inventory.`,
+        variant: "default",
+      });
+
       router.push("/inventory/products");
     } catch (error) {
       console.error("Error creating product:", error);
-      toast.error(
-        error instanceof Error ? error.message : "Failed to create product"
-      );
+
+      // Show error toast
+      toast({
+        title: "Failed to create product",
+        description:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -209,19 +225,6 @@ export default function AddProductPage() {
                       <FormLabel>Product Name</FormLabel>
                       <FormControl>
                         <Input placeholder="Classic Oxford Shirt" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="sku"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>SKU</FormLabel>
-                      <FormControl>
-                        <Input placeholder="MEN-SHIRT-OXF-001" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

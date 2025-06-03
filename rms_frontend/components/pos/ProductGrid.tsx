@@ -18,7 +18,7 @@ interface ProductGridProps {
 export default function ProductGrid({
   searchQuery = "",
   selectedCategory = "all",
-  priceRange = [0, 1000],
+  priceRange = [0, 10000],
 }: ProductGridProps) {
   const [selectedSizes, setSelectedSizes] = useState<Record<number, string>>(
     {}
@@ -30,6 +30,44 @@ export default function ProductGrid({
 
   // Fetch products using the useProducts hook
   const { data: products, isLoading, error } = useProducts();
+
+  console.log("All products:", products);
+
+  // Filter products based on search query, category, and price range
+  const filteredProducts =
+    products?.filter((product) => {
+      const matchesSearch =
+        searchQuery === "" ||
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.sku.toLowerCase().includes(searchQuery.toLowerCase());
+
+      const matchesCategory =
+        selectedCategory === "all" ||
+        (product.category &&
+          product.category.id?.toString() === selectedCategory);
+
+      const productPrice = parseFloat(product.selling_price);
+      const matchesPrice =
+        !isNaN(productPrice) &&
+        productPrice >= priceRange[0] &&
+        productPrice <= priceRange[1];
+
+      console.log("Product filtering:", {
+        product: product.name,
+        matchesSearch,
+        matchesCategory,
+        matchesPrice,
+        category: product.category,
+        selectedCategory,
+        price: productPrice,
+        priceRange,
+        isActive: product.is_active,
+      });
+
+      return matchesSearch && matchesCategory && product.is_active;
+    }) || [];
+
+  console.log("Filtered products:", filteredProducts);
 
   const formatCurrency = (price: string): string => {
     return `$${Number.parseFloat(price).toFixed(2)}`;
@@ -94,25 +132,6 @@ export default function ProductGrid({
       getUniqueValues(product.variations, "color")[0];
     return getVariationStock(product, size, color);
   };
-
-  // Filter products based on search query, category, and price range
-  const filteredProducts =
-    products?.filter((product) => {
-      const matchesSearch =
-        searchQuery === "" ||
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.sku.toLowerCase().includes(searchQuery.toLowerCase());
-
-      const matchesCategory =
-        selectedCategory === "all" ||
-        (product.category && product.category.toString() === selectedCategory);
-
-      const matchesPrice =
-        Number(product.selling_price) >= priceRange[0] &&
-        Number(product.selling_price) <= priceRange[1];
-
-      return matchesSearch && matchesCategory && matchesPrice;
-    }) || [];
 
   if (isLoading) {
     return (

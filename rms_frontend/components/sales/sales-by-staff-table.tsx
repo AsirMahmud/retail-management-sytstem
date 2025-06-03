@@ -10,67 +10,59 @@ import {
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// Sample data - in a real app, this would come from your database
-const staffSalesData = [
-  {
-    id: 1,
-    name: "Alex Johnson",
-    initials: "AJ",
-    position: "Senior Sales Associate",
-    transactions: 87,
-    revenue: 28945.75,
-    avgTicket: 332.71,
-    conversion: 68,
-    target: 85,
-  },
-  {
-    id: 2,
-    name: "Sarah Williams",
-    initials: "SW",
-    position: "Sales Associate",
-    transactions: 65,
-    revenue: 19876.5,
-    avgTicket: 305.79,
-    conversion: 62,
-    target: 70,
-  },
-  {
-    id: 3,
-    name: "Michael Brown",
-    initials: "MB",
-    position: "Junior Sales Associate",
-    transactions: 42,
-    revenue: 12450.25,
-    avgTicket: 296.43,
-    conversion: 55,
-    target: 60,
-  },
-  {
-    id: 4,
-    name: "Emily Davis",
-    initials: "ED",
-    position: "Sales Manager",
-    transactions: 56,
-    revenue: 22780.0,
-    avgTicket: 406.79,
-    conversion: 75,
-    target: 80,
-  },
-  {
-    id: 5,
-    name: "James Wilson",
-    initials: "JW",
-    position: "Sales Associate",
-    transactions: 61,
-    revenue: 18450.75,
-    avgTicket: 302.47,
-    conversion: 64,
-    target: 70,
-  },
-];
+interface StaffSalesData {
+  id: number;
+  name: string;
+  initials: string;
+  position: string;
+  transactions: number;
+  revenue: number;
+  avgTicket: number;
+  conversion: number;
+  target: number;
+}
 
-export function SalesByStaffTable() {
+interface SalesByStaffTableProps {
+  data: StaffSalesData[] | null;
+  isLoading: boolean;
+}
+
+export function SalesByStaffTable({ data, isLoading }: SalesByStaffTableProps) {
+  if (isLoading) {
+    return (
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Staff</TableHead>
+              <TableHead>Position</TableHead>
+              <TableHead>Transactions</TableHead>
+              <TableHead>Revenue</TableHead>
+              <TableHead>Avg. Ticket</TableHead>
+              <TableHead>Conversion Rate</TableHead>
+              <TableHead>Target Progress</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <TableRow key={i}>
+                {Array.from({ length: 7 }).map((_, j) => (
+                  <TableCell key={j}>
+                    <Skeleton className="h-4 w-full" />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -86,7 +78,7 @@ export function SalesByStaffTable() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {staffSalesData.map((staff) => (
+          {data.map((staff) => (
             <TableRow key={staff.id}>
               <TableCell>
                 <div className="flex items-center gap-3">
