@@ -15,6 +15,9 @@ from datetime import timedelta
 import os
 from dotenv import load_dotenv
 
+import pymysql
+pymysql.install_as_MySQLdb()
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -31,7 +34,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-=i3-$(--y)2nbeogrplsh-c1z%
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["https://rawstitch.info"]
 
 
 # Application definition
@@ -178,7 +181,7 @@ AUTH_USER_MODEL = 'authentication.CustomUser'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://rawstitch.info/"
+    "https://rawstitch.info"
 ]
 
 CORS_ALLOW_CREDENTIALS = True
