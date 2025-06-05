@@ -271,7 +271,34 @@ export const usePOSStore = create<POSState>((set, get) => ({
             const tax = 0;
             const total = subtotal;
 
-            // Create receipt data
+            // Create sale data
+            const saleData: Partial<Sale> = {
+                customer: selectedCustomer?.id,
+                customer_phone: selectedCustomer?.phone,
+                subtotal,
+                tax,
+                discount: 0, // Cart discount is already applied to subtotal
+                total,
+                payment_method: paymentMethod,
+                items: cart.map(item => ({
+                    product_id: item.productId,
+                    size: item.size,
+                    color: item.color,
+                    quantity: item.quantity,
+                    unit_price: item.price,
+                    discount: item.discount ? (item.discount.type === 'percentage' ? item.discount.value : 0) : 0,
+                    total: item.price * item.quantity
+                }))
+            };
+
+            // Create sale through API
+            const sale = await createSale(saleData);
+
+            if (!sale.id) {
+                throw new Error('Sale ID not returned from API');
+            }
+
+            // Create receipt data for UI
             const receipt = {
                 id: `INV-${Math.floor(100000 + Math.random() * 900000)}`,
                 date: new Date().toISOString(),
@@ -298,7 +325,7 @@ export const usePOSStore = create<POSState>((set, get) => ({
                 description: "Payment processed successfully",
             });
 
-            return receipt as unknown as Sale;
+            return sale;
         } catch (error) {
             console.error('Error processing payment:', error);
             const errorMessage = error instanceof Error ? error.message : "Failed to process payment";
