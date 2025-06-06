@@ -1,24 +1,48 @@
 import axiosInstance from "./axios-config";
 
+export interface PurchaseHistoryItem {
+    name: string;
+    size: string;
+    price: string;
+    quantity: number;
+}
+
+export interface PurchaseHistory {
+    id: number;
+    date: string;
+    total_amount: string;
+    status: string;
+    payment_method: string;
+    sales_person: string;
+    items: PurchaseHistoryItem[];
+}
+
 export interface Customer {
     id: number;
-    first_name: string | null;
-    last_name: string | null;
+    first_name: string;
+    last_name: string;
     email: string | null;
     phone: string;
     address: string | null;
-    gender: 'M' | 'F' | 'O' | null;
+    gender: string | null;
     date_of_birth: string | null;
     created_at: string;
     updated_at: string;
     is_active: boolean;
+    total_sales: number;
+    sales_count: number;
+    last_sale_date: string | null;
+    purchase_history: PurchaseHistory[];
 }
 
 export interface CreateCustomerData {
     first_name?: string;
-
+    last_name?: string;
+    email?: string;
     phone: string;
-
+    address?: string;
+    gender?: string;
+    date_of_birth?: string;
 }
 
 export interface UpdateCustomerData extends Partial<CreateCustomerData> { }

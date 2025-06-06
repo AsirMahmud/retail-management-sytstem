@@ -1,89 +1,134 @@
-import { ArrowLeft, Calendar, Download, Mail, MapPin, Phone, ShoppingBag } from "lucide-react"
-import Link from "next/link"
+"use client";
+import { use } from "react";
+import {
+  ArrowLeft,
+  Calendar,
+  Download,
+  Mail,
+  MapPin,
+  Phone,
+  ShoppingBag,
+} from "lucide-react";
+import Link from "next/link";
+import { useCustomer } from "@/hooks/queries/use-customer";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { Customer } from "@/lib/api/customer";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 
-// This would come from your database in a real application
-const getCustomerData = (id: string) => {
-  // Sample customer data
-  return {
-    id,
-    name: "Robert Johnson",
-    email: "robert.johnson@example.com",
-    phone: "+1 (555) 123-4567",
-    address: "123 Main St, Anytown, CA 94321",
-    joinDate: "March 15, 2022",
-    totalSpent: "$4,250.75",
-    loyaltyPoints: 1250,
-    loyaltyTier: "VIP",
-    lastPurchase: "May 2, 2023",
-    purchaseHistory: [
-      {
-        id: "ORD-42578",
-        date: "May 2, 2023",
-        items: [
-          { name: "Classic Navy Blazer", size: "40R", price: "$295.00", quantity: 1 },
-          { name: "Oxford Dress Shirt", size: "M", size: "40R", price: "$295.00", quantity: 1 },
-          { name: "Oxford Dress Shirt", size: "M", price: "$85.00", quantity: 2 },
-        ],
-        total: "$465.00",
-        status: "Completed",
-      },
-      {
-        id: "ORD-38765",
-        date: "April 15, 2023",
-        items: [
-          { name: "Wool Dress Pants", size: "32x32", price: "$125.00", quantity: 1 },
-          { name: "Leather Belt", size: "32", price: "$75.00", quantity: 1 },
-          { name: "Silk Tie", size: "Standard", price: "$65.00", quantity: 1 },
-        ],
-        total: "$265.00",
-        status: "Completed",
-      },
-      {
-        id: "ORD-35421",
-        date: "March 22, 2023",
-        items: [
-          { name: "Cashmere Sweater", size: "L", price: "$195.00", quantity: 1 },
-          { name: "Wool Socks", size: "One Size", price: "$18.00", quantity: 3 },
-        ],
-        total: "$249.00",
-        status: "Completed",
-      },
-      {
-        id: "ORD-31254",
-        date: "February 10, 2023",
-        items: [
-          { name: "Winter Coat", size: "L", price: "$350.00", quantity: 1 },
-          { name: "Leather Gloves", size: "L", price: "$85.00", quantity: 1 },
-        ],
-        total: "$435.00",
-        status: "Completed",
-      },
-    ],
-    preferences: {
-      sizes: {
-        shirts: "M",
-        pants: "32x32",
-        jackets: "40R",
-        shoes: "10",
-      },
-      colors: ["Navy", "Charcoal", "White", "Burgundy"],
-      categories: ["Business Attire", "Casual Wear", "Accessories"],
-    },
-    notes: "Prefers classic styles. Allergic to wool. Birthday: July 15.",
-  }
+interface CustomerPreferences {
+  sizes: {
+    shirts: string;
+    pants: string;
+    jackets: string;
+    shoes: string;
+  };
+  colors: string[];
+  categories: string[];
 }
 
-export default function CustomerDetailPage({ params }: { params: { id: string } }) {
-  // In a real app, you would fetch customer data based on the ID
-  const customer = getCustomerData(params.id)
+interface CustomerWithDetails extends Customer {
+  preferences?: CustomerPreferences;
+  notes?: string;
+}
+
+export default function CustomerDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
+  const { data: customer, isLoading } = useCustomer(parseInt(id));
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-6 space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <Button variant="outline" size="icon" asChild>
+              <Link href="/customers">
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Skeleton className="h-8 w-48" />
+          </div>
+          <div className="flex space-x-2">
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-3">
+          <Card className="md:col-span-1">
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex flex-col items-center space-y-3">
+                <Skeleton className="h-24 w-24 rounded-full" />
+                <Skeleton className="h-6 w-32" />
+              </div>
+              <div className="space-y-3">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="flex items-center space-x-3">
+                    <Skeleton className="h-4 w-4" />
+                    <Skeleton className="h-4 w-48" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="md:col-span-2 space-y-6">
+            <Card>
+              <CardHeader>
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-4 w-48" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[...Array(3)].map((_, i) => (
+                    <Skeleton key={i} className="h-32 w-full" />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!customer) {
+    return (
+      <div className="container mx-auto py-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">Customer Not Found</h1>
+          <p className="text-muted-foreground mt-2">
+            The customer you're looking for doesn't exist or has been removed.
+          </p>
+          <Button className="mt-4" asChild>
+            <Link href="/customers">Back to Customers</Link>
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const customerWithDetails = customer as CustomerWithDetails;
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -116,22 +161,23 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
               <Avatar className="h-24 w-24">
                 <AvatarImage src="/placeholder.svg" />
                 <AvatarFallback className="text-2xl">
-                  {customer.name
+                  {`${customer.first_name || ""} ${customer.last_name || ""}`
                     .split(" ")
                     .map((n) => n[0])
                     .join("")}
                 </AvatarFallback>
               </Avatar>
               <div className="text-center">
-                <h2 className="text-xl font-bold">{customer.name}</h2>
-                <Badge className="mt-1 bg-[#1E3A8A]">{customer.loyaltyTier}</Badge>
+                <h2 className="text-xl font-bold">
+                  {customer.first_name} {customer.last_name}
+                </h2>
               </div>
             </div>
 
             <div className="space-y-3">
               <div className="flex items-center space-x-3">
                 <Mail className="h-4 w-4 text-muted-foreground" />
-                <span>{customer.email}</span>
+                <span>{customer.email || "No email"}</span>
               </div>
               <div className="flex items-center space-x-3">
                 <Phone className="h-4 w-4 text-muted-foreground" />
@@ -139,26 +185,43 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
               </div>
               <div className="flex items-center space-x-3">
                 <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span>{customer.address}</span>
+                <span>{customer.address || "No address"}</span>
               </div>
               <div className="flex items-center space-x-3">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span>Joined: {customer.joinDate}</span>
+                <span>
+                  Joined: {new Date(customer.created_at).toLocaleDateString()}
+                </span>
               </div>
             </div>
 
             <div className="pt-3 border-t space-y-3">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Total Spent:</span>
-                <span className="font-medium">{customer.totalSpent}</span>
+                <span className="text-muted-foreground">Status:</span>
+                <Badge variant={customer.is_active ? "default" : "destructive"}>
+                  {customer.is_active ? "Active" : "Inactive"}
+                </Badge>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Loyalty Points:</span>
-                <span className="font-medium">{customer.loyaltyPoints}</span>
+                <span className="text-muted-foreground">Total Sales:</span>
+                <span className="font-medium">
+                  {new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "USD",
+                  }).format(customer.total_sales)}
+                </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Last Purchase:</span>
-                <span className="font-medium">{customer.lastPurchase}</span>
+                <span className="text-muted-foreground">Sales Count:</span>
+                <span className="font-medium">{customer.sales_count}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Last Sale:</span>
+                <span className="font-medium">
+                  {customer.last_sale_date
+                    ? new Date(customer.last_sale_date).toLocaleDateString()
+                    : "No sales yet"}
+                </span>
               </div>
             </div>
           </CardContent>
@@ -175,21 +238,27 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
               <Card>
                 <CardHeader>
                   <CardTitle>Purchase History</CardTitle>
-                  <CardDescription>Customer's previous orders and transactions</CardDescription>
+                  <CardDescription>
+                    Customer's previous orders and transactions
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ScrollArea className="h-[500px] pr-4">
                     <div className="space-y-6">
-                      {customer.purchaseHistory.map((order) => (
+                      {customer.purchase_history.map((order) => (
                         <Card key={order.id} className="overflow-hidden">
                           <CardHeader className="bg-muted/50 py-3">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center space-x-2">
                                 <ShoppingBag className="h-4 w-4" />
-                                <CardTitle className="text-base">{order.id}</CardTitle>
+                                <CardTitle className="text-base">
+                                  Order #{order.id}
+                                </CardTitle>
                               </div>
                               <div className="flex items-center space-x-2">
-                                <span className="text-sm text-muted-foreground">{order.date}</span>
+                                <span className="text-sm text-muted-foreground">
+                                  {new Date(order.date).toLocaleDateString()}
+                                </span>
                                 <Badge variant="outline" className="ml-2">
                                   {order.status}
                                 </Badge>
@@ -199,23 +268,54 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
                           <CardContent className="py-3">
                             <div className="space-y-2">
                               {order.items.map((item, index) => (
-                                <div key={index} className="flex justify-between text-sm">
+                                <div
+                                  key={index}
+                                  className="flex justify-between text-sm"
+                                >
                                   <div>
-                                    <span className="font-medium">{item.name}</span>
-                                    <span className="text-muted-foreground"> ({item.size})</span>
-                                    <span className="text-muted-foreground"> × {item.quantity}</span>
+                                    <span className="font-medium">
+                                      {item.name}
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                      {" "}
+                                      ({item.size})
+                                    </span>
+                                    <span className="text-muted-foreground">
+                                      {" "}
+                                      × {item.quantity}
+                                    </span>
                                   </div>
                                   <span>{item.price}</span>
                                 </div>
                               ))}
                             </div>
+                            <Separator className="my-3" />
+                            <div className="space-y-2 text-sm">
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Payment Method:
+                                </span>
+                                <span>{order.payment_method}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                  Sales Person:
+                                </span>
+                                <span>{order.sales_person}</span>
+                              </div>
+                            </div>
                             <div className="flex justify-between pt-3 mt-3 border-t font-medium">
                               <span>Total</span>
-                              <span>{order.total}</span>
+                              <span>{order.total_amount}</span>
                             </div>
                           </CardContent>
                         </Card>
                       ))}
+                      {customer.purchase_history.length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          No purchase history available
+                        </div>
+                      )}
                     </div>
                   </ScrollArea>
                 </CardContent>
@@ -225,7 +325,9 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
               <Card>
                 <CardHeader>
                   <CardTitle>Customer Preferences</CardTitle>
-                  <CardDescription>Saved sizes, styles, and preferences</CardDescription>
+                  <CardDescription>
+                    Saved sizes, styles, and preferences
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
@@ -234,42 +336,66 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
                       <div className="grid grid-cols-2 gap-2">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Shirts:</span>
-                          <span>{customer.preferences.sizes.shirts}</span>
+                          <span>
+                            {customerWithDetails.preferences?.sizes?.shirts ||
+                              "Not set"}
+                          </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Pants:</span>
-                          <span>{customer.preferences.sizes.pants}</span>
+                          <span>
+                            {customerWithDetails.preferences?.sizes?.pants ||
+                              "Not set"}
+                          </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Jackets:</span>
-                          <span>{customer.preferences.sizes.jackets}</span>
+                          <span className="text-muted-foreground">
+                            Jackets:
+                          </span>
+                          <span>
+                            {customerWithDetails.preferences?.sizes?.jackets ||
+                              "Not set"}
+                          </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Shoes:</span>
-                          <span>{customer.preferences.sizes.shoes}</span>
+                          <span>
+                            {customerWithDetails.preferences?.sizes?.shoes ||
+                              "Not set"}
+                          </span>
                         </div>
                       </div>
                     </div>
-
                     <div>
                       <h3 className="font-medium mb-2">Preferred Colors</h3>
                       <div className="flex flex-wrap gap-2">
-                        {customer.preferences.colors.map((color) => (
-                          <Badge key={color} variant="secondary">
-                            {color}
-                          </Badge>
-                        ))}
+                        {customerWithDetails.preferences?.colors?.map(
+                          (color) => (
+                            <Badge key={color} variant="secondary">
+                              {color}
+                            </Badge>
+                          )
+                        ) || (
+                          <span className="text-muted-foreground">
+                            No preferences set
+                          </span>
+                        )}
                       </div>
                     </div>
-
                     <div>
                       <h3 className="font-medium mb-2">Preferred Categories</h3>
                       <div className="flex flex-wrap gap-2">
-                        {customer.preferences.categories.map((category) => (
-                          <Badge key={category} variant="outline">
-                            {category}
-                          </Badge>
-                        ))}
+                        {customerWithDetails.preferences?.categories?.map(
+                          (category) => (
+                            <Badge key={category} variant="secondary">
+                              {category}
+                            </Badge>
+                          )
+                        ) || (
+                          <span className="text-muted-foreground">
+                            No preferences set
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -280,77 +406,20 @@ export default function CustomerDetailPage({ params }: { params: { id: string } 
               <Card>
                 <CardHeader>
                   <CardTitle>Customer Notes</CardTitle>
-                  <CardDescription>Additional information and notes about this customer</CardDescription>
+                  <CardDescription>
+                    Additional information and notes about the customer
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p>{customer.notes}</p>
-
-                  <Separator className="my-4" />
-
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-medium">Communication History</h3>
-                    <div className="space-y-3">
-                      <div className="bg-muted/50 p-3 rounded-md">
-                        <div className="flex justify-between mb-1">
-                          <span className="text-sm font-medium">Email Follow-up</span>
-                          <span className="text-xs text-muted-foreground">April 10, 2023</span>
-                        </div>
-                        <p className="text-sm">
-                          Sent follow-up email about summer collection. Customer expressed interest in new blazers.
-                        </p>
-                      </div>
-                      <div className="bg-muted/50 p-3 rounded-md">
-                        <div className="flex justify-between mb-1">
-                          <span className="text-sm font-medium">In-store Visit</span>
-                          <span className="text-xs text-muted-foreground">March 5, 2023</span>
-                        </div>
-                        <p className="text-sm">
-                          Customer visited store to browse formal wear. Mentioned upcoming wedding in July.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {customerWithDetails.notes || "No notes available"}
+                  </p>
                 </CardContent>
               </Card>
             </TabsContent>
           </Tabs>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Recommended Products</CardTitle>
-              <CardDescription>Based on purchase history and preferences</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="border rounded-md p-3 flex flex-col">
-                  <div className="h-24 bg-muted rounded-md mb-3 flex items-center justify-center">
-                    <img src="/placeholder.svg?height=96&width=96&text=Product" alt="Product" className="h-20 w-20" />
-                  </div>
-                  <h4 className="font-medium text-sm">Premium Wool Suit</h4>
-                  <p className="text-xs text-muted-foreground mt-1">Charcoal, 40R</p>
-                  <p className="text-sm font-medium mt-2">$599.99</p>
-                </div>
-                <div className="border rounded-md p-3 flex flex-col">
-                  <div className="h-24 bg-muted rounded-md mb-3 flex items-center justify-center">
-                    <img src="/placeholder.svg?height=96&width=96&text=Product" alt="Product" className="h-20 w-20" />
-                  </div>
-                  <h4 className="font-medium text-sm">Casual Linen Shirt</h4>
-                  <p className="text-xs text-muted-foreground mt-1">White, M</p>
-                  <p className="text-sm font-medium mt-2">$89.99</p>
-                </div>
-                <div className="border rounded-md p-3 flex flex-col">
-                  <div className="h-24 bg-muted rounded-md mb-3 flex items-center justify-center">
-                    <img src="/placeholder.svg?height=96&width=96&text=Product" alt="Product" className="h-20 w-20" />
-                  </div>
-                  <h4 className="font-medium text-sm">Leather Dress Shoes</h4>
-                  <p className="text-xs text-muted-foreground mt-1">Brown, Size 10</p>
-                  <p className="text-sm font-medium mt-2">$159.99</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>
-  )
+  );
 }

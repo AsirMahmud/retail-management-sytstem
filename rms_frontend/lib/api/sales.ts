@@ -89,7 +89,7 @@ export const rejectReturn = async (returnId: number) => {
 
 // Customer Lookup
 export const lookupCustomer = async (phone: string) => {
-    const response = await axios.get<CustomerLookupResponse>('/sales/customer_lookup/', {
+    const response = await axios.get<CustomerLookupResponse>('/sales/sales/customer_lookup/', {
         params: { phone }
     });
     return response.data;
@@ -97,6 +97,6 @@ export const lookupCustomer = async (phone: string) => {
 
 // Dashboard Stats
 export const getDashboardStats = async () => {
-    const response = await axios.get<DashboardStats>('/sales/dashboard_stats/');
+    const response = await axios.get<DashboardStats>('/sales/sales/dashboard_stats/');
     return response.data;
 };

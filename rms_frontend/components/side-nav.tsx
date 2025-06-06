@@ -49,9 +49,9 @@ const mainNavItems = [
     href: "/sales",
     subItems: [
       { title: "Overview", href: "/sales" },
-      { title: "Transactions", href: "/sales/transactions" },
-      { title: "Returns", href: "/sales/returns" },
-      { title: "Discounts", href: "/sales/discounts" },
+      { title: "Sales History", href: "/sales/sales-history" },
+      // { title: "Returns", href: "/sales/returns" },
+      // { title: "Discounts", href: "/sales/discounts" },
     ],
   },
   {
@@ -61,8 +61,6 @@ const mainNavItems = [
     subItems: [
       { title: "All Customers", href: "/customers" },
       { title: "Add Customer", href: "/customers/add" },
-      { title: "Loyalty Program", href: "/customers/loyalty" },
-      { title: "Customer Groups", href: "/customers/groups" },
     ],
   },
   {
@@ -109,22 +107,22 @@ const mainNavItems = [
       { title: "Notes", href: "/tasks/notes" },
     ],
   },
-  {
-    title: "Reports",
-    icon: BarChart,
-    href: "/reports",
-    subItems: [
-      { title: "Templates", href: "/reports" },
-      { title: "Custom Reports", href: "/reports/custom" },
-      { title: "Scheduled Reports", href: "/reports/scheduled" },
-      { title: "Analytics", href: "/reports/analytics" },
-    ],
-  },
-  {
-    title: "Calendar",
-    icon: Calendar,
-    href: "/calendar",
-  },
+  // {
+  //   title: "Reports",
+  //   icon: BarChart,
+  //   href: "/reports",
+  //   subItems: [
+  //     { title: "Templates", href: "/reports" },
+  //     { title: "Custom Reports", href: "/reports/custom" },
+  //     { title: "Scheduled Reports", href: "/reports/scheduled" },
+  //     { title: "Analytics", href: "/reports/analytics" },
+  //   ],
+  // },
+  // {
+  //   title: "Calendar",
+  //   icon: Calendar,
+  //   href: "/calendar",
+  // },
 ];
 
 const utilityNavItems = [

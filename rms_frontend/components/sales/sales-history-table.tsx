@@ -48,257 +48,90 @@ import {
   FileText,
   TrendingUp,
 } from "lucide-react";
+import { useSales } from "@/hooks/queries/use-sales";
+import { Sale, SaleStatus, PaymentMethod } from "@/types/sales";
 
-// Extended sample data
-const salesHistory = [
-  {
-    id: 24,
-    invoice_number: "INV-C53D6D8A",
-    customer: {
-      id: 6,
-      first_name: "asdfs",
-      phone: "0124464664",
-    },
-    date: "2025-05-31T13:17:33.970571Z",
-    subtotal: "2000.00",
-    tax: "165.00",
-    discount: "0.00",
-    total: "2165.00",
-    payment_method: "cash",
-    status: "completed",
-    items: [
-      {
-        product: {
-          name: "Mereclrene",
-          sku: "SHI-250531-ef18",
-          category_name: "Shirt",
-        },
-        size: "XS",
-        color: "Black",
-        quantity: 1,
-        unit_price: "2000.00",
-        total: "2000.00",
-        profit: "1000.00",
-      },
-    ],
-  },
-  {
-    id: 23,
-    invoice_number: "INV-40FFAB25",
-    customer: {
-      id: 6,
-      first_name: "asdfs",
-      phone: "0124464664",
-    },
-    date: "2025-05-31T12:46:50.425063Z",
-    subtotal: "49.99",
-    tax: "4.12",
-    discount: "0.00",
-    total: "54.11",
-    payment_method: "cash",
-    status: "completed",
-    items: [
-      {
-        product: {
-          name: "Classic Oxford Shirt",
-          sku: "MEN-SHIRT-OXF-001",
-          category_name: "Pant",
-        },
-        size: "S",
-        color: "White",
-        quantity: 1,
-        unit_price: "49.99",
-        total: "49.99",
-        profit: "20.00",
-      },
-    ],
-  },
-  {
-    id: 17,
-    invoice_number: "INV-1605A9C0",
-    customer: {
-      id: 6,
-      first_name: "asdfs",
-      phone: "0124464664",
-    },
-    date: "2025-05-31T12:37:43.598005Z",
-    subtotal: "6199.96",
-    tax: "511.50",
-    discount: "0.00",
-    total: "6711.46",
-    payment_method: "cash",
-    status: "completed",
-    items: [
-      {
-        product: {
-          name: "Classic Oxford Shirt",
-          sku: "MEN-SHIRT-OXF-001",
-          category_name: "Pant",
-        },
-        size: "S",
-        color: "White",
-        quantity: 2,
-        unit_price: "49.99",
-        total: "99.98",
-        profit: "40.00",
-      },
-      {
-        product: {
-          name: "Denim Jacket",
-          sku: "SHI-250531-6606",
-          category_name: "Shirt",
-        },
-        size: "M",
-        color: "Black",
-        quantity: 3,
-        unit_price: "2000.00",
-        total: "6000.00",
-        profit: "3000.00",
-      },
-    ],
-  },
-  {
-    id: 16,
-    invoice_number: "INV-A0387568",
-    customer: {
-      id: 5,
-      first_name: "Customer",
-      phone: "+8801816295333",
-    },
-    date: "2025-05-31T10:50:06.685646Z",
-    subtotal: "49.99",
-    tax: "4.12",
-    discount: "0.00",
-    total: "54.11",
-    payment_method: "cash",
-    status: "completed",
-    items: [
-      {
-        product: {
-          name: "Classic Oxford Shirt",
-          sku: "MEN-SHIRT-OXF-001",
-          category_name: "Pant",
-        },
-        size: "S",
-        color: "White",
-        quantity: 1,
-        unit_price: "49.99",
-        total: "49.99",
-        profit: "20.00",
-      },
-    ],
-  },
-  {
-    id: 13,
-    invoice_number: "INV-BC101318",
-    customer: {
-      id: 5,
-      first_name: "Customer",
-      phone: "+8801816295333",
-    },
-    date: "2025-05-31T10:37:46.250238Z",
-    subtotal: "49.99",
-    tax: "4.12",
-    discount: "0.00",
-    total: "54.11",
-    payment_method: "cash",
-    status: "pending",
-    items: [
-      {
-        product: {
-          name: "Classic Oxford Shirt",
-          sku: "MEN-SHIRT-OXF-001",
-          category_name: "Pant",
-        },
-        size: "S",
-        color: "White",
-        quantity: 1,
-        unit_price: "49.99",
-        total: "49.99",
-        profit: "0.00",
-      },
-    ],
-  },
-];
+interface Customer {
+  id: number;
+  first_name: string;
+  last_name: string;
+  phone?: string;
+}
+
+interface Sale {
+  id: number;
+  invoice_number: string;
+  customer?: Customer;
+  date: string;
+  subtotal: string;
+  tax: string;
+  discount: string;
+  total: string;
+  payment_method: string;
+  status: SaleStatus;
+  items: Array<{
+    id: number;
+    product: {
+      id: number;
+      name: string;
+      sku: string;
+    };
+    size: string;
+    color: string;
+    quantity: number;
+    unit_price: string;
+    total: string;
+    profit: string;
+  }>;
+}
 
 export default function SalesHistory() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [paymentFilter, setPaymentFilter] = useState("all");
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [statusFilter, setStatusFilter] = useState<SaleStatus | "all">("all");
+  const [paymentFilter, setPaymentFilter] = useState<PaymentMethod | "all">(
+    "all"
+  );
   const [sortBy, setSortBy] = useState("date");
-  const [sortOrder, setSortOrder] = useState("desc");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [selectedOrder, setSelectedOrder] = useState<Sale | null>(null);
 
-  const filteredSales = useMemo(() => {
-    const filtered = salesHistory.filter((sale) => {
-      const matchesSearch =
-        sale.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sale.customer?.first_name
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        sale.customer?.phone?.includes(searchTerm);
+  const { sales, isLoading, error } = useSales({
+    status: statusFilter !== "all" ? statusFilter : undefined,
+    payment_method: paymentFilter !== "all" ? paymentFilter : undefined,
+    search: searchTerm || undefined,
+    ordering: sortOrder === "desc" ? `-${sortBy}` : sortBy,
+  });
 
-      const matchesStatus =
-        statusFilter === "all" || sale.status === statusFilter;
-      const matchesPayment =
-        paymentFilter === "all" || sale.payment_method === paymentFilter;
+  const getStatusBadge = (status: SaleStatus) => {
+    const statusConfig = {
+      completed: {
+        color:
+          "bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-emerald-200",
+        label: "Completed",
+      },
+      pending: {
+        color:
+          "bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200",
+        label: "Pending",
+      },
+      cancelled: {
+        color: "bg-red-100 text-red-800 hover:bg-red-100 border-red-200",
+        label: "Cancelled",
+      },
+      refunded: {
+        color: "bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-200",
+        label: "Refunded",
+      },
+    };
 
-      return matchesSearch && matchesStatus && matchesPayment;
-    });
+    const config = statusConfig[status];
 
-    // Sort the filtered results
-    filtered.sort((a, b) => {
-      let aValue, bValue;
-
-      switch (sortBy) {
-        case "date":
-          aValue = new Date(a.date).getTime();
-          bValue = new Date(b.date).getTime();
-          break;
-        case "total":
-          aValue = Number.parseFloat(a.total);
-          bValue = Number.parseFloat(b.total);
-          break;
-        case "customer":
-          aValue = a.customer?.first_name || "";
-          bValue = b.customer?.first_name || "";
-          break;
-        default:
-          aValue = a.invoice_number;
-          bValue = b.invoice_number;
-      }
-
-      if (sortOrder === "asc") {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
-    });
-
-    return filtered;
-  }, [searchTerm, statusFilter, paymentFilter, sortBy, sortOrder]);
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "completed":
-        return (
-          <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-emerald-200">
-            Completed
-          </Badge>
-        );
-      case "pending":
-        return (
-          <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200">
-            Pending
-          </Badge>
-        );
-      default:
-        return <Badge variant="secondary">{status}</Badge>;
-    }
+    return <Badge className={`${config.color}`}>{config.label}</Badge>;
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -322,6 +155,29 @@ export default function SalesHistory() {
       setSortOrder("desc");
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
+        <div className="animate-pulse space-y-8">
+          <div className="h-12 bg-gray-200 rounded w-1/4"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-32 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
+        <div className="text-red-500">Error loading sales history</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -373,7 +229,12 @@ export default function SalesHistory() {
                   />
                 </div>
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <Select
+                value={statusFilter}
+                onValueChange={(value: SaleStatus | "all") =>
+                  setStatusFilter(value)
+                }
+              >
                 <SelectTrigger className="w-48 h-12 bg-gray-50 border-gray-200">
                   <SelectValue placeholder="Filter by Status" />
                 </SelectTrigger>
@@ -381,9 +242,16 @@ export default function SalesHistory() {
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="refunded">Refunded</SelectItem>
                 </SelectContent>
               </Select>
-              <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+              <Select
+                value={paymentFilter}
+                onValueChange={(value: PaymentMethod | "all") =>
+                  setPaymentFilter(value)
+                }
+              >
                 <SelectTrigger className="w-48 h-12 bg-gray-50 border-gray-200">
                   <SelectValue placeholder="Payment Method" />
                 </SelectTrigger>
@@ -391,7 +259,8 @@ export default function SalesHistory() {
                   <SelectItem value="all">All Methods</SelectItem>
                   <SelectItem value="cash">Cash</SelectItem>
                   <SelectItem value="card">Card</SelectItem>
-                  <SelectItem value="online">Online</SelectItem>
+                  <SelectItem value="mobile_money">Mobile Money</SelectItem>
+                  <SelectItem value="credit">Credit</SelectItem>
                 </SelectContent>
               </Select>
               <Button
@@ -414,8 +283,7 @@ export default function SalesHistory() {
                   Transaction History
                 </CardTitle>
                 <CardDescription className="text-gray-600">
-                  Showing {filteredSales.length} of {salesHistory.length}{" "}
-                  transactions
+                  Showing {sales?.length || 0} transactions
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
@@ -441,7 +309,7 @@ export default function SalesHistory() {
                     <TableHead className="font-semibold text-gray-700">
                       <Button
                         variant="ghost"
-                        onClick={() => handleSort("invoice")}
+                        onClick={() => handleSort("invoice_number")}
                         className="h-auto p-0 font-semibold text-gray-700 hover:text-gray-900"
                       >
                         Invoice
@@ -496,7 +364,7 @@ export default function SalesHistory() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredSales.map((sale) => (
+                  {sales?.map((sale) => (
                     <TableRow
                       key={sale.id}
                       className="hover:bg-gray-50 transition-colors border-gray-100"
@@ -515,15 +383,15 @@ export default function SalesHistory() {
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-gray-600">
-                        {formatDate(sale.date)}
+                        {formatDate(sale.date || "")}
                       </TableCell>
                       <TableCell>
                         <Badge
                           variant="outline"
                           className="bg-blue-50 text-blue-700 border-blue-200"
                         >
-                          {sale.items.length} item
-                          {sale.items.length !== 1 ? "s" : ""}
+                          {sale.items?.length || 0} item
+                          {sale.items?.length !== 1 ? "s" : ""}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -532,12 +400,14 @@ export default function SalesHistory() {
                         </span>
                       </TableCell>
                       <TableCell className="font-semibold text-gray-900">
-                        ${Number.parseFloat(sale.total).toFixed(2)}
+                        ${Number.parseFloat(sale.total || "0").toFixed(2)}
                       </TableCell>
                       <TableCell className="font-semibold text-emerald-600">
-                        ${calculateOrderProfit(sale.items).toFixed(2)}
+                        ${calculateOrderProfit(sale.items || []).toFixed(2)}
                       </TableCell>
-                      <TableCell>{getStatusBadge(sale.status)}</TableCell>
+                      <TableCell>
+                        {sale.status && getStatusBadge(sale.status)}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Dialog>
@@ -590,7 +460,7 @@ export default function SalesHistory() {
                                       </div>
                                       <div className="bg-green-50 p-4 rounded-lg">
                                         <div className="text-sm text-gray-600">
-                                          {formatDate(selectedOrder.date)}
+                                          {formatDate(selectedOrder.date || "")}
                                         </div>
                                       </div>
                                     </div>
@@ -602,7 +472,8 @@ export default function SalesHistory() {
                                         </span>
                                       </div>
                                       <div className="bg-purple-50 p-4 rounded-lg">
-                                        {getStatusBadge(selectedOrder.status)}
+                                        {selectedOrder.status &&
+                                          getStatusBadge(selectedOrder.status)}
                                       </div>
                                     </div>
                                   </div>
@@ -616,7 +487,7 @@ export default function SalesHistory() {
                                       </span>
                                     </div>
                                     <div className="space-y-3">
-                                      {selectedOrder.items.map(
+                                      {selectedOrder.items?.map(
                                         (item: any, index: number) => (
                                           <div
                                             key={index}
@@ -624,7 +495,7 @@ export default function SalesHistory() {
                                           >
                                             <div className="space-y-1">
                                               <div className="font-semibold text-gray-900">
-                                                {item.product.name}
+                                                {item.product?.name}
                                               </div>
                                               <div className="text-sm text-gray-600">
                                                 <span className="bg-gray-200 px-2 py-1 rounded mr-2">
@@ -638,14 +509,14 @@ export default function SalesHistory() {
                                                 </span>
                                               </div>
                                               <div className="text-xs text-gray-500 font-mono">
-                                                {item.product.sku}
+                                                {item.product?.sku}
                                               </div>
                                             </div>
                                             <div className="text-right space-y-1">
                                               <div className="font-semibold text-gray-900">
                                                 $
                                                 {Number.parseFloat(
-                                                  item.total
+                                                  item.total || "0"
                                                 ).toFixed(2)}
                                               </div>
                                               <div className="text-sm text-emerald-600 font-medium">
@@ -678,7 +549,7 @@ export default function SalesHistory() {
                                           <span className="font-medium">
                                             $
                                             {Number.parseFloat(
-                                              selectedOrder.subtotal
+                                              selectedOrder.subtotal || "0"
                                             ).toFixed(2)}
                                           </span>
                                         </div>
@@ -689,7 +560,7 @@ export default function SalesHistory() {
                                           <span className="font-medium">
                                             $
                                             {Number.parseFloat(
-                                              selectedOrder.tax
+                                              selectedOrder.tax || "0"
                                             ).toFixed(2)}
                                           </span>
                                         </div>
@@ -700,7 +571,7 @@ export default function SalesHistory() {
                                           <span className="font-medium">
                                             -$
                                             {Number.parseFloat(
-                                              selectedOrder.discount
+                                              selectedOrder.discount || "0"
                                             ).toFixed(2)}
                                           </span>
                                         </div>
@@ -721,7 +592,7 @@ export default function SalesHistory() {
                                           <span className="text-2xl font-bold text-gray-900">
                                             $
                                             {Number.parseFloat(
-                                              selectedOrder.total
+                                              selectedOrder.total || "0"
                                             ).toFixed(2)}
                                           </span>
                                         </div>
@@ -732,7 +603,7 @@ export default function SalesHistory() {
                                           <span className="text-xl font-bold text-emerald-700">
                                             $
                                             {calculateOrderProfit(
-                                              selectedOrder.items
+                                              selectedOrder.items || []
                                             ).toFixed(2)}
                                           </span>
                                         </div>
@@ -771,9 +642,10 @@ export default function SalesHistory() {
                   </p>
                   <p className="text-3xl font-bold">
                     $
-                    {filteredSales
-                      .reduce(
-                        (sum, sale) => sum + Number.parseFloat(sale.total),
+                    {sales
+                      ?.reduce(
+                        (sum, sale) =>
+                          sum + Number.parseFloat(sale.total || "0"),
                         0
                       )
                       .toLocaleString()}
@@ -791,7 +663,7 @@ export default function SalesHistory() {
                   <p className="text-emerald-100 text-sm font-medium">
                     Total Orders
                   </p>
-                  <p className="text-3xl font-bold">{filteredSales.length}</p>
+                  <p className="text-3xl font-bold">{sales?.length || 0}</p>
                 </div>
                 <Package className="h-8 w-8 text-emerald-200" />
               </div>
@@ -807,9 +679,10 @@ export default function SalesHistory() {
                   </p>
                   <p className="text-3xl font-bold">
                     $
-                    {filteredSales
-                      .reduce(
-                        (sum, sale) => sum + calculateOrderProfit(sale.items),
+                    {sales
+                      ?.reduce(
+                        (sum, sale) =>
+                          sum + calculateOrderProfit(sale.items || []),
                         0
                       )
                       .toFixed(2)}
@@ -829,12 +702,13 @@ export default function SalesHistory() {
                   </p>
                   <p className="text-3xl font-bold">
                     $
-                    {filteredSales.length > 0
+                    {sales && sales.length > 0
                       ? (
-                          filteredSales.reduce(
-                            (sum, sale) => sum + Number.parseFloat(sale.total),
+                          sales.reduce(
+                            (sum, sale) =>
+                              sum + Number.parseFloat(sale.total || "0"),
                             0
-                          ) / filteredSales.length
+                          ) / sales.length
                         ).toFixed(2)
                       : "0.00"}
                   </p>

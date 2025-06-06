@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db.models import Sum, F, Q, Count
+from django.db.models import Sum, F, Q, Count, Avg
 from django.utils import timezone
 from datetime import datetime, timedelta
 from django.db import transaction
@@ -10,7 +10,7 @@ from .serializers import (
     SaleSerializer, SaleItemSerializer, PaymentSerializer,
     ReturnSerializer, ReturnItemSerializer
 )
-from apps.inventory.models import Product, ProductVariation
+from apps.inventory.models import Product, ProductVariation, StockMovement, InventoryAlert, Category
 from apps.customer.models import Customer
 
 class SaleViewSet(viewsets.ModelViewSet):
@@ -125,22 +125,107 @@ class SaleViewSet(viewsets.ModelViewSet):
         today = timezone.now().date()
         start_of_month = today.replace(day=1)
         
-        # Today's sales
+        # Today's sales with more detailed metrics
         today_sales = Sale.objects.filter(
             date__date=today,
             status='completed'
         ).aggregate(
             total_sales=Sum('total'),
-            total_transactions=Count('id')
+            total_transactions=Count('id'),
+            total_profit=Sum(F('total') - F('subtotal')),
+            total_customers=Count('customer', distinct=True),
+            total_loss=Sum('total_loss'),
+            average_transaction_value=Avg('total'),
+            total_discount=Sum('discount')
         )
         
-        # Monthly sales
+        # Monthly sales with more detailed metrics
         monthly_sales = Sale.objects.filter(
             date__date__gte=start_of_month,
             status='completed'
         ).aggregate(
             total_sales=Sum('total'),
-            total_transactions=Count('id')
+            total_transactions=Count('id'),
+            total_profit=Sum(F('total') - F('subtotal')),
+            total_customers=Count('customer', distinct=True),
+            total_loss=Sum('total_loss'),
+            average_transaction_value=Avg('total'),
+            total_discount=Sum('discount')
+        )
+
+        # Customer analytics
+        customer_analytics = {
+            'new_customers_today': Customer.objects.filter(
+                created_at__date=today
+            ).count(),
+            'active_customers_today': Sale.objects.filter(
+                date__date=today,
+                status='completed'
+            ).values('customer').distinct().count(),
+            'customer_retention_rate': self._calculate_customer_retention_rate(),
+            'top_customers': Sale.objects.filter(
+                date__date__gte=start_of_month,
+                status='completed'
+            ).values(
+                'customer__first_name',
+                'customer__last_name',
+                'customer__phone'
+            ).annotate(
+                total_spent=Sum('total'),
+                visit_count=Count('id')
+            ).order_by('-total_spent')[:5]
+        }
+
+        # Format customer names
+        for customer in customer_analytics['top_customers']:
+            customer['customer__name'] = f"{customer['customer__first_name']} {customer['customer__last_name']}".strip()
+            del customer['customer__first_name']
+            del customer['customer__last_name']
+
+        # Payment method distribution
+        payment_method_distribution = Sale.objects.filter(
+            date__date__gte=start_of_month,
+            status='completed'
+        ).values('payment_method').annotate(
+            count=Count('id'),
+            total=Sum('total')
+        ).order_by('-total')
+
+        # Sales by hour distribution
+        sales_by_hour = []
+        for hour in range(24):
+            hour_sales = Sale.objects.filter(
+                date__date=today,
+                date__hour=hour,
+                status='completed'
+            ).aggregate(
+                count=Count('id'),
+                total=Sum('total')
+            )
+            sales_by_hour.append({
+                'hour': hour,
+                'count': hour_sales['count'] or 0,
+                'total': hour_sales['total'] or 0
+            })
+
+        # Inventory stats
+        inventory_stats = {
+            'total_products': Product.objects.count(),
+            'active_products': Product.objects.filter(is_active=True).count(),
+            'low_stock_products': Product.objects.filter(stock_quantity__lte=F('minimum_stock')).count(),
+            'out_of_stock_products': Product.objects.filter(stock_quantity=0).count(),
+            'total_inventory_value': Product.objects.aggregate(
+                total=Sum(F('stock_quantity') * F('cost_price'))
+            )['total'] or 0
+        }
+        
+        # Stock movements
+        stock_movements = StockMovement.objects.filter(
+            created_at__date__gte=start_of_month
+        ).aggregate(
+            total_in=Sum('quantity', filter=Q(movement_type='IN')),
+            total_out=Sum('quantity', filter=Q(movement_type='OUT')),
+            total_adjustments=Sum('quantity', filter=Q(movement_type='ADJ'))
         )
         
         # Top selling products
@@ -151,14 +236,102 @@ class SaleViewSet(viewsets.ModelViewSet):
             'product__name'
         ).annotate(
             total_quantity=Sum('quantity'),
-            total_revenue=Sum('total')
+            total_revenue=Sum('total'),
+            total_profit=Sum(F('total') - F('unit_price') * F('quantity'))
         ).order_by('-total_quantity')[:5]
-        
+
+        # Sales trend data
+        period = request.query_params.get('period', '7d')
+        if period == '7d':
+            start_date = today - timedelta(days=7)
+        elif period == '30d':
+            start_date = today - timedelta(days=30)
+        elif period == '90d':
+            start_date = today - timedelta(days=90)
+        else:
+            start_date = today - timedelta(days=7)
+
+        sales_trend = Sale.objects.filter(
+            date__date__gte=start_date,
+            date__date__lte=today,
+            status='completed'
+        ).values('date__date').annotate(
+            sales=Sum('total'),
+            profit=Sum(F('total') - F('subtotal')),
+            orders=Count('id')
+        ).order_by('date__date')
+
+        # Sales distribution by category
+        sales_distribution = SaleItem.objects.filter(
+            sale__date__date__gte=start_of_month,
+            sale__status='completed'
+        ).values(
+            'product__category__name'
+        ).annotate(
+            value=Sum('total'),
+            profit=Sum(F('total') - F('unit_price') * F('quantity'))
+        ).order_by('-value')
+
+        # Category distribution
+        category_distribution = Category.objects.annotate(
+            product_count=Count('products'),
+            total_value=Sum(F('products__stock_quantity') * F('products__cost_price'))
+        ).values('name', 'product_count', 'total_value')
+
+        # Recent alerts
+        recent_alerts = InventoryAlert.objects.filter(
+            is_active=True
+        ).order_by('-created_at')[:5]
+
+        # Stock movement trends
+        movement_trends = StockMovement.objects.filter(
+            created_at__date__gte=start_date,
+            created_at__date__lte=today
+        ).values('created_at__date').annotate(
+            stock_in=Sum('quantity', filter=Q(movement_type='IN')),
+            stock_out=Sum('quantity', filter=Q(movement_type='OUT'))
+        ).order_by('created_at__date')
+
         return Response({
             'today': today_sales,
             'monthly': monthly_sales,
-            'top_products': top_products
+            'customer_analytics': customer_analytics,
+            'payment_method_distribution': list(payment_method_distribution),
+            'sales_by_hour': sales_by_hour,
+            'inventory': inventory_stats,
+            'stock_movements': stock_movements,
+            'top_products': list(top_products),
+            'sales_trend': list(sales_trend),
+            'sales_distribution': list(sales_distribution),
+            'category_distribution': list(category_distribution),
+            'recent_alerts': list(recent_alerts),
+            'movement_trends': list(movement_trends)
         })
+
+    def _calculate_customer_retention_rate(self):
+        """Calculate customer retention rate for the current month"""
+        today = timezone.now().date()
+        start_of_month = today.replace(day=1)
+        
+        # Get total customers from previous month
+        last_month_start = (start_of_month - timedelta(days=1)).replace(day=1)
+        last_month_end = start_of_month - timedelta(days=1)
+        
+        previous_month_customers = Sale.objects.filter(
+            date__date__range=[last_month_start, last_month_end],
+            status='completed'
+        ).values('customer').distinct().count()
+        
+        if previous_month_customers == 0:
+            return 0
+        
+        # Get returning customers this month
+        returning_customers = Sale.objects.filter(
+            date__date__gte=start_of_month,
+            status='completed'
+        ).values('customer').distinct().count()
+        
+        return (returning_customers / previous_month_customers) * 100
 
 class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()

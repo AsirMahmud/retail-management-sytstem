@@ -19,7 +19,7 @@ export interface Sale {
     id?: number;
     invoice_number?: string;
     customer?: number | null;
-    customer_phone: string | null;
+    phone: string | null;
     date?: string;
     subtotal: number;
     tax: number;
@@ -82,14 +82,28 @@ export interface DashboardStats {
     today: {
         total_sales: number;
         total_transactions: number;
+        total_profit: number;
     };
     monthly: {
         total_sales: number;
         total_transactions: number;
+        total_profit: number;
     };
     top_products: Array<{
         product__name: string;
         total_quantity: number;
         total_revenue: number;
+        total_profit: number;
+    }>;
+    sales_trend: Array<{
+        date__date: string;
+        sales: number;
+        profit: number;
+        orders: number;
+    }>;
+    sales_distribution: Array<{
+        product__category__name: string;
+        value: number;
+        profit: number;
     }>;
 } 
