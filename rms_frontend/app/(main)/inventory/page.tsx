@@ -26,6 +26,11 @@ import {
   ArrowUpRight,
   Eye,
   Settings,
+  LineChart,
+  PieChart,
+  ArrowDownRight,
+  Clock,
+  Star,
 } from "lucide-react";
 import Link from "next/link";
 import { useDashboardOverview } from "@/hooks/queries/useInventory";
@@ -33,9 +38,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardCharts } from "@/components/inventory/dashboard-charts";
 import { StockAlerts } from "@/components/inventory/stock-alerts";
 import React from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
 
 export default function InventoryPage() {
-  const { data: overview, isLoading } = useDashboardOverview("day");
+  const { data: overview, isLoading } = useDashboardOverview("month");
   const { toast } = useToast();
 
   // Add toast notifications when data loads
@@ -285,11 +294,7 @@ export default function InventoryPage() {
               <div>
                 <p className="text-sm font-medium">In Stock</p>
                 <p className="text-2xl font-bold text-green-700 dark:text-green-400">
-                  {overview?.metrics?.total_products &&
-                  overview?.metrics?.out_of_stock_products
-                    ? overview.metrics.total_products -
-                      overview.metrics.out_of_stock_products
-                    : 0}
+                  {overview?.metrics?.stock_health?.healthy || 0}
                 </p>
               </div>
             </div>
@@ -301,7 +306,7 @@ export default function InventoryPage() {
               <div>
                 <p className="text-sm font-medium">Low Stock</p>
                 <p className="text-2xl font-bold text-orange-700 dark:text-orange-400">
-                  {overview?.metrics.low_stock_products}
+                  {overview?.metrics?.stock_health?.low || 0}
                 </p>
               </div>
             </div>
@@ -313,11 +318,138 @@ export default function InventoryPage() {
               <div>
                 <p className="text-sm font-medium">Out of Stock</p>
                 <p className="text-2xl font-bold text-red-700 dark:text-red-400">
-                  {overview?.metrics.out_of_stock_products}
+                  {overview?.metrics?.stock_health?.out || 0}
                 </p>
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Top Selling Products and Recent Movements */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="border-0 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-xl">Top Selling Products</CardTitle>
+            <CardDescription>
+              Most popular items by sales volume
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[300px]">
+              <div className="space-y-4">
+                {overview?.top_selling_products?.map(
+                  (product: any, index: number) => (
+                    <div key={product.id} className="flex items-center gap-4">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
+                        <span className="text-sm font-medium text-primary">
+                          #{index + 1}
+                        </span>
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <p className="text-sm font-medium leading-none">
+                          {product.name}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {product.total_sold} units sold
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">
+                          ${product.selling_price}
+                        </Badge>
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-xl">Recent Stock Movements</CardTitle>
+            <CardDescription>
+              Latest inventory updates and changes
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[300px]">
+              <div className="space-y-4">
+                {overview?.recent_movements?.map((movement: any) => (
+                  <div key={movement.id} className="flex items-center gap-4">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
+                      {movement.movement_type === "IN" ? (
+                        <ArrowDownRight className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <ArrowUpRight className="h-4 w-4 text-red-600" />
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {movement.product.name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {movement.quantity} units{" "}
+                        {movement.movement_type.toLowerCase()}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(movement.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Supplier Performance */}
+      <Card className="border-0 shadow-lg">
+        <CardHeader>
+          <CardTitle className="text-xl">Supplier Performance</CardTitle>
+          <CardDescription>
+            Top suppliers by inventory value and product count
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[300px]">
+            <div className="space-y-4">
+              {overview?.supplier_metrics?.map((supplier) => (
+                <div
+                  key={supplier.company_name}
+                  className="flex items-center gap-4"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
+                    <Users className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      {supplier.company_name}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {supplier.total_products} products
+                      {supplier.low_stock_count > 0 && (
+                        <span className="ml-2 text-orange-600">
+                          ({supplier.low_stock_count} low stock)
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">
+                      ${Number(supplier.total_value).toLocaleString()}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
         </CardContent>
       </Card>
 

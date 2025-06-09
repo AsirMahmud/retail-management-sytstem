@@ -19,6 +19,7 @@ import {
 } from "@/hooks/queries/useInventory";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { StockMovementAnalysis } from "@/types/inventory";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8"];
 
@@ -40,15 +41,21 @@ export function DashboardCharts() {
   const categoryData =
     overview?.category_distribution.map((category) => ({
       name: category.name,
-      value: category.total_value,
+      value: category.total_value || 0,
     })) || [];
 
   const movementData =
-    movementAnalysis?.movement_trends.map((trend) => ({
-      date: new Date(trend.period).toLocaleDateString(),
+    movementAnalysis?.daily_movements.map((trend) => ({
+      date: new Date(trend.date).toLocaleDateString(),
       stockIn: trend.stock_in || 0,
       stockOut: trend.stock_out || 0,
-      adjustments: trend.adjustments || 0,
+    })) || [];
+
+  const categoryMovementData =
+    movementAnalysis?.category_movements.map((category) => ({
+      name: category.product__category__name,
+      stockIn: category.stock_in || 0,
+      stockOut: category.stock_out || 0,
     })) || [];
 
   return (
@@ -82,12 +89,6 @@ export function DashboardCharts() {
                       dataKey="stockOut"
                       stroke="#FF8042"
                       name="Stock Out"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="adjustments"
-                      stroke="#00C49F"
-                      name="Adjustments"
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -134,23 +135,18 @@ export function DashboardCharts() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Top Products by Movement</CardTitle>
+          <CardTitle>Category Movement Analysis</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={movementAnalysis?.top_products.map((product) => ({
-                  name: product.product__name,
-                  value: product.total_movement,
-                }))}
-                layout="vertical"
-              >
+              <BarChart data={categoryMovementData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" />
                 <YAxis type="category" dataKey="name" width={150} />
                 <Tooltip />
-                <Bar dataKey="value" fill="#8884d8" />
+                <Bar dataKey="stockIn" fill="#0088FE" name="Stock In" />
+                <Bar dataKey="stockOut" fill="#FF8042" name="Stock Out" />
               </BarChart>
             </ResponsiveContainer>
           </div>

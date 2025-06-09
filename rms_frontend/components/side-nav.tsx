@@ -50,8 +50,6 @@ const mainNavItems = [
     subItems: [
       { title: "Overview", href: "/sales" },
       { title: "Sales History", href: "/sales/sales-history" },
-      // { title: "Returns", href: "/sales/returns" },
-      // { title: "Discounts", href: "/sales/discounts" },
     ],
   },
   {
@@ -76,56 +74,17 @@ const mainNavItems = [
     ],
   },
   {
-    title: "Staff",
-    icon: Users,
-    href: "/staff",
-    subItems: [
-      { title: "Directory", href: "/staff" },
-      { title: "Schedule", href: "/staff/schedule" },
-      { title: "Performance", href: "/staff/performance" },
-      { title: "Time Tracking", href: "/staff/time-tracking" },
-    ],
-  },
-  {
-    title: "Finances",
+    title: "Expenses",
     icon: DollarSign,
-    href: "/finances",
-    subItems: [
-      { title: "Overview", href: "/finances" },
-      { title: "Expenses", href: "/finances/expenses" },
-      { title: "Budgeting", href: "/finances/budgeting" },
-      { title: "Invoices", href: "/finances/invoices" },
-    ],
+    href: "/expenses",
   },
-  {
-    title: "Tasks & Notes",
-    icon: CheckSquare,
-    href: "/tasks",
-    subItems: [
-      { title: "Task Board", href: "/tasks" },
-      { title: "My Tasks", href: "/tasks/my-tasks" },
-      { title: "Notes", href: "/tasks/notes" },
-    ],
-  },
-  // {
-  //   title: "Reports",
-  //   icon: BarChart,
-  //   href: "/reports",
-  //   subItems: [
-  //     { title: "Templates", href: "/reports" },
-  //     { title: "Custom Reports", href: "/reports/custom" },
-  //     { title: "Scheduled Reports", href: "/reports/scheduled" },
-  //     { title: "Analytics", href: "/reports/analytics" },
-  //   ],
-  // },
-  // {
-  //   title: "Calendar",
-  //   icon: Calendar,
-  //   href: "/calendar",
-  // },
 ];
 
-const utilityNavItems = [
+const utilityNavItems: {
+  title: string;
+  icon: any;
+  href: string;
+}[] = [
   {
     title: "Settings",
     icon: Settings,
@@ -172,23 +131,30 @@ export function SideNav() {
           asChild
           className="md:hidden absolute h-screen top-4 left-4 z-50"
         >
-          <Button variant="outline" size="icon">
+          <Button
+            variant="outline"
+            size="icon"
+            className="bg-white/80 backdrop-blur-sm hover:bg-white"
+          >
             <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="bg-white p-0 w-[280px]">
-          <div className="flex flex-col h-full bg-white">
-            <div className="flex h-14 items-center px-6 border-b">
+        <SheetContent
+          side="left"
+          className="bg-gradient-to-b from-blue-50 to-white p-0 w-[280px] border-r border-blue-100"
+        >
+          <div className="flex flex-col h-full">
+            <div className="flex h-16 items-center px-6 border-b border-blue-100 bg-white/50 backdrop-blur-sm">
               <Link
                 href="/"
-                className="flex items-center gap-2 font-semibold text-lg text-[#1E3A8A]"
+                className="flex items-center gap-2 font-semibold text-lg text-blue-900"
               >
-                <Store className="h-6 w-6" />
+                <Store className="h-6 w-6 text-blue-600" />
                 <span>MenWear Pro</span>
               </Link>
             </div>
             <ScrollArea className="flex-1">
-              <nav className="grid gap-2 p-4">
+              <nav className="grid gap-1 p-4">
                 {mainNavItems.map((item) =>
                   item.subItems ? (
                     <Collapsible
@@ -199,15 +165,22 @@ export function SideNav() {
                       <CollapsibleTrigger asChild>
                         <button
                           className={cn(
-                            "flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-[#F1F5F9] hover:text-[#1E3A8A]",
+                            "flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                             isActive(item.href)
-                              ? "bg-[#F1F5F9] text-[#1E3A8A]"
-                              : "text-muted-foreground"
+                              ? "bg-blue-100 text-blue-900 shadow-sm"
+                              : "text-gray-600 hover:bg-blue-50 hover:text-blue-900"
                           )}
                           onClick={() => setOpen(false)}
                         >
                           <div className="flex items-center gap-3">
-                            <item.icon className="h-5 w-5" />
+                            <item.icon
+                              className={cn(
+                                "h-5 w-5 transition-colors",
+                                isActive(item.href)
+                                  ? "text-blue-600"
+                                  : "text-gray-500"
+                              )}
+                            />
                             {item.title}
                           </div>
                           <svg
@@ -221,7 +194,7 @@ export function SideNav() {
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             className={cn(
-                              "h-4 w-4 transition-transform",
+                              "h-4 w-4 transition-transform duration-200",
                               openCollapsibles[item.title] ||
                                 isActive(item.href)
                                 ? "rotate-180"
@@ -240,10 +213,10 @@ export function SideNav() {
                               href={subItem.href}
                               onClick={() => setOpen(false)}
                               className={cn(
-                                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-[#F1F5F9] hover:text-[#1E3A8A]",
+                                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
                                 isSubItemActive(subItem.href)
-                                  ? "bg-[#F1F5F9] text-[#1E3A8A]"
-                                  : "text-muted-foreground"
+                                  ? "bg-blue-50 text-blue-900"
+                                  : "text-gray-600 hover:bg-blue-50/50 hover:text-blue-900"
                               )}
                             >
                               {subItem.title}
@@ -258,66 +231,76 @@ export function SideNav() {
                       href={item.href}
                       onClick={() => setOpen(false)}
                       className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-[#F1F5F9] hover:text-[#1E3A8A]",
+                        "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                         isActive(item.href)
-                          ? "bg-[#F1F5F9] text-[#1E3A8A]"
-                          : "text-muted-foreground"
+                          ? "bg-blue-100 text-blue-900 shadow-sm"
+                          : "text-gray-600 hover:bg-blue-50 hover:text-blue-900"
                       )}
                     >
-                      <item.icon className="h-5 w-5" />
+                      <item.icon
+                        className={cn(
+                          "h-5 w-5 transition-colors",
+                          isActive(item.href)
+                            ? "text-blue-600"
+                            : "text-gray-500"
+                        )}
+                      />
                       {item.title}
                     </Link>
                   )
                 )}
               </nav>
-              <Separator className="my-2 mx-4" />
-              <nav className="grid gap-2 p-4">
+              <Separator className="my-2 mx-4 bg-blue-100" />
+              <nav className="grid gap-1 p-4">
                 {utilityNavItems.map((item) => (
                   <Link
                     key={item.title}
                     href={item.href}
                     onClick={() => setOpen(false)}
                     className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-[#F1F5F9] hover:text-[#1E3A8A]",
+                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                       isActive(item.href)
-                        ? "bg-[#F1F5F9] text-[#1E3A8A]"
-                        : "text-muted-foreground"
+                        ? "bg-blue-100 text-blue-900 shadow-sm"
+                        : "text-gray-600 hover:bg-blue-50 hover:text-blue-900"
                     )}
                   >
-                    <item.icon className="h-5 w-5" />
+                    <item.icon
+                      className={cn(
+                        "h-5 w-5 transition-colors",
+                        isActive(item.href) ? "text-blue-600" : "text-gray-500"
+                      )}
+                    />
                     {item.title}
                   </Link>
                 ))}
               </nav>
             </ScrollArea>
-            <div className="p-4">
-              <Separator className="my-2" />
-              <div className="flex items-center gap-3 rounded-md px-3 py-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F1F5F9]">
-                  <span className="text-sm font-medium text-[#1E3A8A]">JD</span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium">John Doe</p>
-                  <p className="text-xs text-muted-foreground">Store Manager</p>
-                </div>
-              </div>
+            <div className="p-4 bg-white/50 backdrop-blur-sm border-t border-blue-100">
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                className="w-full p-2.5 text-gray-600 hover:text-blue-900 hover:bg-blue-50 border-blue-100 transition-all duration-200 rounded-lg flex items-center justify-center gap-2"
+              >
+                <LogOut className="h-5 w-5" />
+                Logout
+              </Button>
             </div>
           </div>
         </SheetContent>
       </Sheet>
 
-      <div className="hidden md:flex flex-col w-[280px] h-screen fixed border-r bg-white">
-        <div className="flex h-14 items-center px-6 border-b">
+      <div className="hidden md:flex flex-col w-[280px] h-screen fixed border-r bg-gradient-to-b from-blue-50 to-white">
+        <div className="flex h-16 items-center px-6 border-b border-blue-100 bg-white/50 backdrop-blur-sm">
           <Link
             href="/"
-            className="flex items-center gap-2 font-semibold text-lg text-[#1E3A8A]"
+            className="flex items-center gap-2 font-semibold text-lg text-blue-900"
           >
-            <Store className="h-6 w-6" />
+            <Store className="h-6 w-6 text-blue-600" />
             <span>MenWear Pro</span>
           </Link>
         </div>
         <ScrollArea className="flex-1">
-          <nav className="grid gap-2 p-4">
+          <nav className="grid gap-1 p-4">
             {mainNavItems.map((item) =>
               item.subItems ? (
                 <Collapsible
@@ -328,14 +311,21 @@ export function SideNav() {
                   <CollapsibleTrigger asChild>
                     <button
                       className={cn(
-                        "flex w-full items-center justify-between gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-[#F1F5F9] hover:text-[#1E3A8A]",
+                        "flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                         isActive(item.href)
-                          ? "bg-[#F1F5F9] text-[#1E3A8A]"
-                          : "text-muted-foreground"
+                          ? "bg-blue-100 text-blue-900 shadow-sm"
+                          : "text-gray-600 hover:bg-blue-50 hover:text-blue-900"
                       )}
                     >
                       <div className="flex items-center gap-3">
-                        <item.icon className="h-5 w-5" />
+                        <item.icon
+                          className={cn(
+                            "h-5 w-5 transition-colors",
+                            isActive(item.href)
+                              ? "text-blue-600"
+                              : "text-gray-500"
+                          )}
+                        />
                         {item.title}
                       </div>
                       <svg
@@ -349,7 +339,7 @@ export function SideNav() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         className={cn(
-                          "h-4 w-4 transition-transform",
+                          "h-4 w-4 transition-transform duration-200",
                           openCollapsibles[item.title] || isActive(item.href)
                             ? "rotate-180"
                             : ""
@@ -366,10 +356,10 @@ export function SideNav() {
                           key={subItem.title}
                           href={subItem.href}
                           className={cn(
-                            "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-[#F1F5F9] hover:text-[#1E3A8A]",
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
                             isSubItemActive(subItem.href)
-                              ? "bg-[#F1F5F9] text-[#1E3A8A]"
-                              : "text-muted-foreground"
+                              ? "bg-blue-50 text-blue-900"
+                              : "text-gray-600 hover:bg-blue-50/50 hover:text-blue-900"
                           )}
                         >
                           {subItem.title}
@@ -383,57 +373,56 @@ export function SideNav() {
                   key={item.title}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-[#F1F5F9] hover:text-[#1E3A8A]",
+                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                     isActive(item.href)
-                      ? "bg-[#F1F5F9] text-[#1E3A8A]"
-                      : "text-muted-foreground"
+                      ? "bg-blue-100 text-blue-900 shadow-sm"
+                      : "text-gray-600 hover:bg-blue-50 hover:text-blue-900"
                   )}
                 >
-                  <item.icon className="h-5 w-5" />
+                  <item.icon
+                    className={cn(
+                      "h-5 w-5 transition-colors",
+                      isActive(item.href) ? "text-blue-600" : "text-gray-500"
+                    )}
+                  />
                   {item.title}
                 </Link>
               )
             )}
           </nav>
-          <Separator className="my-2 mx-4" />
-          <nav className="grid gap-2 p-4">
+          <Separator className="my-2 mx-4 bg-blue-100" />
+          <nav className="grid gap-1 p-4">
             {utilityNavItems.map((item) => (
               <Link
                 key={item.title}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium hover:bg-[#F1F5F9] hover:text-[#1E3A8A]",
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
                   isActive(item.href)
-                    ? "bg-[#F1F5F9] text-[#1E3A8A]"
-                    : "text-muted-foreground"
+                    ? "bg-blue-100 text-blue-900 shadow-sm"
+                    : "text-gray-600 hover:bg-blue-50 hover:text-blue-900"
                 )}
               >
-                <item.icon className="h-5 w-5" />
+                <item.icon
+                  className={cn(
+                    "h-5 w-5 transition-colors",
+                    isActive(item.href) ? "text-blue-600" : "text-gray-500"
+                  )}
+                />
                 {item.title}
               </Link>
             ))}
           </nav>
         </ScrollArea>
-        <div className="mt-auto p-4">
-          <Separator className="my-2" />
-          <div className="flex items-center gap-3 justify-center rounded-md px-3 py-2">
-            {/* <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F1F5F9]">
-              <span className="text-sm font-medium text-[#1E3A8A]">JD</span>
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium">John Doe</p>
-              <p className="text-xs text-muted-foreground">Store Manager</p>
-            </div> */}
-
-            <Button
-              variant="outline"
-              onClick={handleLogout}
-              className="hover:bg-[#F1F5F9] w-full p-2 hover:text-[#1E3A8A]"
-            >
-              Logout
-              <LogOut className="h-5 w-5" />
-            </Button>
-          </div>
+        <div className="p-4 bg-white/50 backdrop-blur-sm border-t border-blue-100">
+          <Button
+            variant="outline"
+            onClick={handleLogout}
+            className="w-full p-2.5 text-gray-600 hover:text-blue-900 hover:bg-blue-50 border-blue-100 transition-all duration-200 rounded-lg flex items-center justify-center gap-2"
+          >
+            <LogOut className="h-5 w-5" />
+            Logout
+          </Button>
         </div>
       </div>
     </>

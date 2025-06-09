@@ -56,6 +56,7 @@ export interface Product {
     total_stock?: number;
     created_at?: string;
     updated_at?: string;
+    total_sold?: number;
 }
 
 export interface ProductVariation {
@@ -155,9 +156,16 @@ export interface InventoryAlert {
 export interface DashboardMetrics {
     total_products: number;
     active_products: number;
-    low_stock_products: number;
     out_of_stock_products: number;
+    low_stock_products: number;
     total_inventory_value: number;
+    stock_in: number;
+    stock_out: number;
+    stock_health: {
+        healthy: number;
+        low: number;
+        out: number;
+    };
 }
 
 export interface StockMovements {
@@ -178,6 +186,21 @@ export interface MovementTrend {
     stock_out: number;
 }
 
+export interface StockMovement {
+    id: number;
+    product: Product;
+    movement_type: 'IN' | 'OUT' | 'ADJ';
+    quantity: number;
+    created_at: string;
+}
+
+export interface SupplierMetrics {
+    company_name: string;
+    total_products: number;
+    total_value: number;
+    low_stock_count: number;
+}
+
 export interface DashboardOverview {
     period: string;
     date_range: {
@@ -189,6 +212,9 @@ export interface DashboardOverview {
     category_distribution: CategoryDistribution[];
     recent_alerts: InventoryAlert[];
     movement_trends: MovementTrend[];
+    top_selling_products: Product[];
+    recent_movements: StockMovement[];
+    supplier_metrics: SupplierMetrics[];
 }
 
 export interface CategoryMetrics {
@@ -202,14 +228,14 @@ export interface CategoryMetrics {
 }
 
 export interface StockMovementAnalysis {
-    movement_trends: {
-        period: string;
+    daily_movements: {
+        date: string;
         stock_in: number;
         stock_out: number;
-        adjustments: number;
     }[];
-    top_products: {
-        product__name: string;
-        total_movement: number;
+    category_movements: {
+        product__category__name: string;
+        stock_in: number;
+        stock_out: number;
     }[];
 } 

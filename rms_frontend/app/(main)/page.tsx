@@ -1,43 +1,47 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useDashboardStats } from "@/hooks/queries/use-sales";
-import { formatCurrency } from "@/lib/utils";
 import {
-  TrendingUp,
-  ShoppingCart,
-  DollarSign,
-  Package,
-  ArrowUpRight,
-  ArrowDownRight,
-  Sparkles,
-  Users,
-  AlertTriangle,
-  BarChart3,
-  LineChart,
-  PieChart,
-  Clock,
-  CreditCard,
-  UserPlus,
-  Percent,
-} from "lucide-react";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
-  LineChart as RechartsLineChart,
-  Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  PieChart as RechartsPieChart,
+  LineChart,
+  Line,
+  PieChart,
   Pie,
   Cell,
-  AreaChart,
-  Area,
+  Legend,
 } from "recharts";
-import { DashboardStats } from "@/types/dashboard";
+import {
+  DollarSign,
+  TrendingUp,
+  ShoppingCart,
+  Users,
+  Package,
+  Truck,
+  ArrowUpRight,
+  ArrowDownRight,
+  AlertTriangle,
+  TrendingDown,
+  RefreshCw,
+  Calendar,
+  Clock,
+} from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
+import { useDashboard } from "@/hooks/queries/use-dashboard";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { motion } from "framer-motion";
 
 const COLORS = [
   "#0088FE",
@@ -48,173 +52,224 @@ const COLORS = [
   "#82ca9d",
 ];
 
-export default function Home() {
-  const { data: stats, isLoading } = useDashboardStats();
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 },
+};
+
+export default function Dashboard() {
+  const { data: stats, isLoading, error, refetch } = useDashboard();
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-          <p className="text-muted-foreground">Loading dashboard...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-12 w-48" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <Skeleton key={i} className="h-32" />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {[...Array(2)].map((_, i) => (
+              <Skeleton key={i} className="h-[400px]" />
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
-  const statCards = [
-    {
-      title: "Today's Sales",
-      value: formatCurrency(stats?.today.total_sales || 0),
-      subtitle: `${stats?.today.total_transactions} transactions`,
-      icon: DollarSign,
-      gradient: "from-emerald-500 to-emerald-600",
-      bgGradient: "from-emerald-50 to-emerald-100",
-      change: "+12.5%",
-      isPositive: true,
-    },
-    {
-      title: "Today's Profit",
-      value: formatCurrency(stats?.today.total_profit || 0),
-      subtitle: `Loss: ${formatCurrency(stats?.today.total_loss || 0)}`,
-      icon: TrendingUp,
-      gradient: "from-blue-500 to-blue-600",
-      bgGradient: "from-blue-50 to-blue-100",
-      change: "+8.2%",
-      isPositive: true,
-    },
-    {
-      title: "Today's Customers",
-      value: stats?.today.total_customers || 0,
-      subtitle: `${stats?.customer_analytics.new_customers_today} new customers`,
-      icon: Users,
-      gradient: "from-purple-500 to-purple-600",
-      bgGradient: "from-purple-50 to-purple-100",
-      change: `${stats?.customer_analytics.customer_retention_rate.toFixed(
-        1
-      )}% retention`,
-      isPositive: true,
-    },
-    {
-      title: "Average Transaction",
-      value: formatCurrency(stats?.today.average_transaction_value || 0),
-      subtitle: `${stats?.today.total_discount} total discount`,
-      icon: CreditCard,
-      gradient: "from-orange-500 to-orange-600",
-      bgGradient: "from-orange-50 to-orange-100",
-      change: "+5.3%",
-      isPositive: true,
-    },
-  ];
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+        <div className="flex flex-col items-center space-y-4 p-8 bg-white rounded-lg shadow-lg">
+          <AlertTriangle className="h-12 w-12 text-red-500" />
+          <p className="text-red-500 text-lg font-medium">
+            Failed to load dashboard data
+          </p>
+          <Button onClick={() => refetch()} variant="outline" className="mt-4">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return null;
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">
-              Dashboard
-            </h1>
-            <p className="text-muted-foreground mt-2">
-              Welcome back! Here's what's happening with your business today.
-            </p>
-          </div>
-          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-            <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span>Live data</span>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {statCards.map((card, index) => (
-            <Card
-              key={index}
-              className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+    <motion.div
+      className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50"
+      variants={container}
+      initial="hidden"
+      animate="show"
+    >
+      <div className="max-w-7xl mx-auto p-6">
+        <motion.div className="mb-8" variants={item}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                <TrendingUp className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                  Dashboard
+                </h1>
+                <p className="text-gray-600 mt-1">
+                  Overview of your retail management system
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={() => refetch()}
+              variant="outline"
+              className="gap-2"
             >
-              <div
-                className={`absolute inset-0 bg-gradient-to-br ${card.bgGradient} opacity-50`}
-              ></div>
-              <CardHeader className="relative flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-slate-600">
-                  {card.title}
-                </CardTitle>
-                <div
-                  className={`p-2 rounded-lg bg-gradient-to-r ${card.gradient}`}
-                >
-                  <card.icon className="h-4 w-4 text-white" />
-                </div>
-              </CardHeader>
-              <CardContent className="relative">
-                <div className="text-2xl font-bold text-slate-900 mb-1">
-                  {card.value}
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-slate-600">{card.subtitle}</p>
-                  <div className="flex items-center space-x-1">
-                    {card.isPositive ? (
-                      <ArrowUpRight className="h-3 w-3 text-green-600" />
-                    ) : (
-                      <ArrowDownRight className="h-3 w-3 text-red-600" />
-                    )}
-                    <span
-                      className={`text-xs font-medium ${
-                        card.isPositive ? "text-green-600" : "text-red-600"
-                      }`}
-                    >
-                      {card.change}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              <RefreshCw className="h-4 w-4" />
+              Refresh Data
+            </Button>
+          </div>
+        </motion.div>
 
-        {/* Charts and Tables */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Sales Trend Chart */}
-          <Card className="border-0 shadow-lg overflow-hidden">
+        {/* Key Metrics */}
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+          variants={item}
+        >
+          <Card className="bg-gradient-to-br from-blue-50 to-indigo-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700">
+                Today's Sales
+              </CardTitle>
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+                <DollarSign className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">
+                {formatCurrency(stats.today.sales)}
+              </div>
+              <div className="flex items-center text-xs text-blue-600 font-medium mt-1">
+                <ArrowUpRight className="h-4 w-4 mr-1" />
+                <span>Today's revenue</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-emerald-50 to-teal-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700">
+                Today's Profit
+              </CardTitle>
+              <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center">
+                <TrendingUp className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">
+                {formatCurrency(stats.today.profit)}
+              </div>
+              <div className="flex items-center text-xs text-emerald-600 font-medium mt-1">
+                <ArrowUpRight className="h-4 w-4 mr-1" />
+                <span>Net profit today</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-purple-50 to-indigo-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700">
+                Total Customers
+              </CardTitle>
+              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full flex items-center justify-center">
+                <Users className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">
+                {stats.counts.customers}
+              </div>
+              <div className="flex items-center text-xs text-purple-600 font-medium mt-1">
+                <span>Registered customers</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-orange-50 to-amber-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700">
+                Total Products
+              </CardTitle>
+              <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center">
+                <Package className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">
+                {stats.counts.products}
+              </div>
+              <div className="flex items-center text-xs text-orange-600 font-medium mt-1">
+                <span>Active products</span>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Charts Row 1 */}
+        <motion.div
+          className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8"
+          variants={item}
+        >
+          {/* Sales Trend */}
+          <Card className="border-0 shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
             <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg font-semibold text-slate-900">
-                  Sales Trend
-                </CardTitle>
-                <div className="flex items-center space-x-2 text-sm text-slate-600">
-                  <div className="flex items-center space-x-1">
-                    <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
-                    <span>Sales</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <div className="h-2 w-2 bg-emerald-500 rounded-full"></div>
-                    <span>Profit</span>
-                  </div>
+                <div>
+                  <CardTitle className="text-lg font-semibold text-slate-900">
+                    Sales Trend
+                  </CardTitle>
+                  <CardDescription>
+                    Daily sales over the last 30 days
+                  </CardDescription>
                 </div>
+                <Calendar className="h-5 w-5 text-slate-400" />
               </div>
-              <p className="text-sm text-slate-600">Last 7 days performance</p>
             </CardHeader>
             <CardContent className="p-6">
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <RechartsLineChart data={stats?.sales_trend}>
+                  <LineChart data={stats.sales_trend}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                     <XAxis
                       dataKey="date__date"
-                      tickFormatter={(date) =>
-                        new Date(date).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })
-                      }
                       stroke="#64748b"
                       fontSize={12}
+                      tickFormatter={(value) =>
+                        new Date(value).toLocaleDateString()
+                      }
                     />
                     <YAxis stroke="#64748b" fontSize={12} />
                     <Tooltip
                       formatter={(value) => formatCurrency(value as number)}
-                      labelFormatter={(date) =>
-                        new Date(date).toLocaleDateString()
+                      labelFormatter={(label) =>
+                        new Date(label).toLocaleDateString()
                       }
                       contentStyle={{
                         backgroundColor: "white",
@@ -225,53 +280,56 @@ export default function Home() {
                     />
                     <Line
                       type="monotone"
-                      dataKey="sales"
+                      dataKey="total"
                       stroke="#3b82f6"
-                      strokeWidth={3}
-                      name="Sales"
+                      strokeWidth={2}
                       dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
-                      activeDot={{ r: 6, stroke: "#3b82f6", strokeWidth: 2 }}
+                      activeDot={{
+                        r: 6,
+                        stroke: "#3b82f6",
+                        strokeWidth: 2,
+                      }}
                     />
-                    <Line
-                      type="monotone"
-                      dataKey="profit"
-                      stroke="#10b981"
-                      strokeWidth={3}
-                      name="Profit"
-                      dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
-                      activeDot={{ r: 6, stroke: "#10b981", strokeWidth: 2 }}
-                    />
-                  </RechartsLineChart>
+                  </LineChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
 
-          {/* Sales by Hour */}
-          <Card className="border-0 shadow-lg overflow-hidden">
+          {/* Expense Trend */}
+          <Card className="border-0 shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
             <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
-              <CardTitle className="text-lg font-semibold text-slate-900">
-                Sales by Hour
-              </CardTitle>
-              <p className="text-sm text-slate-600">
-                Today's sales distribution by hour
-              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-semibold text-slate-900">
+                    Expense Trend
+                  </CardTitle>
+                  <CardDescription>
+                    Daily expenses over the last 30 days
+                  </CardDescription>
+                </div>
+                <TrendingDown className="h-5 w-5 text-red-400" />
+              </div>
             </CardHeader>
             <CardContent className="p-6">
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={stats?.sales_by_hour}>
+                  <LineChart data={stats.expense_trend}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                     <XAxis
-                      dataKey="hour"
-                      tickFormatter={(hour) => `${hour}:00`}
+                      dataKey="date"
                       stroke="#64748b"
                       fontSize={12}
+                      tickFormatter={(value) =>
+                        new Date(value).toLocaleDateString()
+                      }
                     />
                     <YAxis stroke="#64748b" fontSize={12} />
                     <Tooltip
                       formatter={(value) => formatCurrency(value as number)}
-                      labelFormatter={(hour) => `${hour}:00`}
+                      labelFormatter={(label) =>
+                        new Date(label).toLocaleDateString()
+                      }
                       contentStyle={{
                         backgroundColor: "white",
                         border: "none",
@@ -279,149 +337,223 @@ export default function Home() {
                         boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                       }}
                     />
-                    <Area
+                    <Line
                       type="monotone"
-                      dataKey="total"
-                      stroke="#3b82f6"
-                      fill="#3b82f6"
-                      fillOpacity={0.2}
+                      dataKey="amount"
+                      stroke="#ef4444"
+                      strokeWidth={2}
+                      dot={{ fill: "#ef4444", strokeWidth: 2, r: 4 }}
+                      activeDot={{
+                        r: 6,
+                        stroke: "#ef4444",
+                        strokeWidth: 2,
+                      }}
                     />
-                  </AreaChart>
+                  </LineChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
 
-        {/* Additional Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Payment Method Distribution */}
-          <Card className="border-0 shadow-lg overflow-hidden">
+        {/* Charts Row 2 */}
+        <motion.div
+          className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8"
+          variants={item}
+        >
+          {/* Top Products */}
+          <Card className="border-0 shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
             <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
-              <CardTitle className="text-lg font-semibold text-slate-900">
-                Payment Methods
-              </CardTitle>
-              <p className="text-sm text-slate-600">
-                Distribution by payment method
-              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-semibold text-slate-900">
+                    Top Selling Products
+                  </CardTitle>
+                  <CardDescription>
+                    Most sold products this month
+                  </CardDescription>
+                </div>
+                <ShoppingCart className="h-5 w-5 text-blue-400" />
+              </div>
             </CardHeader>
             <CardContent className="p-6">
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <RechartsPieChart>
+                  <BarChart data={stats.top_products}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
+                    <YAxis stroke="#64748b" fontSize={12} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "white",
+                        border: "none",
+                        borderRadius: "8px",
+                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                      }}
+                    />
+                    <Bar
+                      dataKey="total_sales"
+                      fill="#3b82f6"
+                      radius={[4, 4, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Expense Categories */}
+          <Card className="border-0 shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-semibold text-slate-900">
+                    Expense Categories
+                  </CardTitle>
+                  <CardDescription>
+                    Expense distribution by category
+                  </CardDescription>
+                </div>
+                <TrendingDown className="h-5 w-5 text-red-400" />
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
                     <Pie
-                      data={stats?.payment_method_distribution}
-                      dataKey="total"
-                      nameKey="payment_method"
+                      data={stats.expense_categories}
                       cx="50%"
                       cy="50%"
-                      outerRadius={100}
-                      label={({
-                        cx,
-                        cy,
-                        midAngle,
-                        innerRadius,
-                        outerRadius,
-                        value,
-                        index,
-                      }) => {
-                        const RADIAN = Math.PI / 180;
-                        const radius =
-                          25 + innerRadius + (outerRadius - innerRadius);
-                        const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                        const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-                        return (
-                          <text
-                            x={x}
-                            y={y}
-                            fill="#64748b"
-                            textAnchor={x > cx ? "start" : "end"}
-                            dominantBaseline="central"
-                            className="text-xs"
-                          >
-                            {
-                              stats?.payment_method_distribution[index]
-                                .payment_method
-                            }{" "}
-                            ({formatCurrency(value)})
-                          </text>
-                        );
-                      }}
+                      labelLine={false}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="amount"
+                      label={({ name, percent }) =>
+                        `${name} ${(percent * 100).toFixed(0)}%`
+                      }
                     >
-                      {stats?.payment_method_distribution.map(
-                        (entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={COLORS[index % COLORS.length]}
-                          />
-                        )
-                      )}
+                      {stats.expense_categories.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={COLORS[index % COLORS.length]}
+                        />
+                      ))}
                     </Pie>
                     <Tooltip
                       formatter={(value) => formatCurrency(value as number)}
+                      contentStyle={{
+                        backgroundColor: "white",
+                        border: "none",
+                        borderRadius: "8px",
+                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                      }}
                     />
-                  </RechartsPieChart>
+                    <Legend />
+                  </PieChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>
 
-          {/* Top Customers */}
-          <Card className="border-0 shadow-lg overflow-hidden">
+          {/* Low Stock Items */}
+          <Card className="border-0 shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
             <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
-              <CardTitle className="text-lg font-semibold text-slate-900">
-                Top Customers
-              </CardTitle>
-              <p className="text-sm text-slate-600">
-                Best performing customers this month
-              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-semibold text-slate-900">
+                    Low Stock Items
+                  </CardTitle>
+                  <CardDescription>
+                    Products that need restocking
+                  </CardDescription>
+                </div>
+                <AlertTriangle className="h-5 w-5 text-orange-400" />
+              </div>
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-4">
-                {stats?.customer_analytics.top_customers.map(
-                  (customer, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 to-slate-100 rounded-xl hover:from-slate-100 hover:to-slate-200 transition-all duration-200"
-                    >
-                      <div className="flex items-center space-x-4">
-                        <div className="relative">
-                          <div className="p-2 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-lg">
-                            <Users className="h-4 w-4 text-white" />
-                          </div>
-                          <div className="absolute -top-1 -right-1 h-3 w-3 bg-emerald-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
-                            {index + 1}
-                          </div>
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-slate-900">
-                            {customer.customer__name || "Anonymous"}
-                          </p>
-                          <p className="text-xs text-slate-600">
-                            {customer.visit_count} visits
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-bold text-slate-900">
-                          {formatCurrency(customer.total_spent)}
-                        </div>
-                        <div className="text-xs text-slate-600">
-                          {customer.customer__phone}
-                        </div>
+                {stats.low_stock_items.map((item, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="flex items-center justify-between p-3 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <AlertTriangle className="h-5 w-5 text-red-500" />
+                      <div>
+                        <p className="font-medium text-gray-900">{item.name}</p>
+                        <p className="text-sm text-red-600">
+                          Only {item.stock_quantity} units left
+                        </p>
                       </div>
                     </div>
-                  )
-                )}
+                    <div className="text-sm text-gray-500">
+                      Min: {item.minimum_stock}
+                    </div>
+                  </motion.div>
+                ))}
               </div>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
 
-        {/* Rest of the existing components... */}
-        {/* (Keep the existing inventory status, category distribution, etc.) */}
+        {/* Recent Suppliers */}
+        <motion.div variants={item}>
+          <Card className="border-0 shadow-lg overflow-hidden hover:shadow-xl transition-shadow mb-8">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg font-semibold text-slate-900">
+                    Active Suppliers
+                  </CardTitle>
+                  <CardDescription>Your current suppliers</CardDescription>
+                </div>
+                <Truck className="h-5 w-5 text-blue-400" />
+              </div>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {stats.recent_suppliers.map((supplier, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="p-4 bg-white rounded-lg border border-gray-100 hover:shadow-md transition-all duration-300 hover:-translate-y-1"
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+                        <Truck className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {supplier.name}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {supplier.phone}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-3 space-y-1">
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Email:</span>{" "}
+                        {supplier.email}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <span className="font-medium">Address:</span>{" "}
+                        {supplier.address}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }
