@@ -1,4 +1,10 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import {
   LineChart,
   Line,
@@ -61,33 +67,67 @@ export function DashboardCharts() {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="movement" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="movement">Stock Movement</TabsTrigger>
-          <TabsTrigger value="distribution">Category Distribution</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 bg-white/70 backdrop-blur-sm border border-white/20 shadow-lg rounded-xl p-1">
+          <TabsTrigger
+            value="movement"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
+          >
+            Stock Movement
+          </TabsTrigger>
+          <TabsTrigger
+            value="distribution"
+            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
+          >
+            Category Distribution
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="movement">
-          <Card>
-            <CardHeader>
-              <CardTitle>Stock Movement Trends</CardTitle>
+          <Card className="border-0 shadow-lg overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
+              <CardTitle className="text-lg font-semibold text-slate-900">
+                Stock Movement Trends
+              </CardTitle>
+              <CardDescription>Track stock movements over time</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               <div className="h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={movementData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                    <XAxis dataKey="date" stroke="#64748b" fontSize={12} />
+                    <YAxis stroke="#64748b" fontSize={12} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "white",
+                        border: "none",
+                        borderRadius: "8px",
+                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                      }}
+                    />
                     <Line
                       type="monotone"
                       dataKey="stockIn"
-                      stroke="#0088FE"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
+                      activeDot={{
+                        r: 6,
+                        stroke: "#3b82f6",
+                        strokeWidth: 2,
+                      }}
                       name="Stock In"
                     />
                     <Line
                       type="monotone"
                       dataKey="stockOut"
-                      stroke="#FF8042"
+                      stroke="#f97316"
+                      strokeWidth={2}
+                      dot={{ fill: "#f97316", strokeWidth: 2, r: 4 }}
+                      activeDot={{
+                        r: 6,
+                        stroke: "#f97316",
+                        strokeWidth: 2,
+                      }}
                       name="Stock Out"
                     />
                   </LineChart>
@@ -97,11 +137,14 @@ export function DashboardCharts() {
           </Card>
         </TabsContent>
         <TabsContent value="distribution">
-          <Card>
-            <CardHeader>
-              <CardTitle>Category Distribution</CardTitle>
+          <Card className="border-0 shadow-lg overflow-hidden">
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
+              <CardTitle className="text-lg font-semibold text-slate-900">
+                Category Distribution
+              </CardTitle>
+              <CardDescription>Inventory value by category</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               <div className="h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -124,7 +167,14 @@ export function DashboardCharts() {
                         />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "white",
+                        border: "none",
+                        borderRadius: "8px",
+                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                      }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -133,20 +183,36 @@ export function DashboardCharts() {
         </TabsContent>
       </Tabs>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Category Movement Analysis</CardTitle>
+      <Card className="border-0 shadow-lg overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
+          <CardTitle className="text-lg font-semibold text-slate-900">
+            Category Movement Analysis
+          </CardTitle>
+          <CardDescription>Stock movements by category</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={categoryMovementData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis type="category" dataKey="name" width={150} />
-                <Tooltip />
-                <Bar dataKey="stockIn" fill="#0088FE" name="Stock In" />
-                <Bar dataKey="stockOut" fill="#FF8042" name="Stock Out" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis type="number" stroke="#64748b" fontSize={12} />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  width={150}
+                  stroke="#64748b"
+                  fontSize={12}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                  }}
+                />
+                <Bar dataKey="stockIn" fill="#3b82f6" name="Stock In" />
+                <Bar dataKey="stockOut" fill="#f97316" name="Stock Out" />
               </BarChart>
             </ResponsiveContainer>
           </div>

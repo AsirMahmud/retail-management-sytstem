@@ -6,6 +6,7 @@ from django.utils import timezone
 from decimal import Decimal
 from django.conf import settings
 from apps.supplier.models import Supplier  # Import Supplier from supplier app
+from django.db.models import Sum
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -52,6 +53,14 @@ class Product(models.Model):
             timestamp = timezone.now().strftime('%y%m%d')  # YYMMDD format
             random_component = str(uuid.uuid4())[:4]  # First 4 characters of UUID
             self.sku = f"{category_prefix}-{timestamp}-{random_component}"
+        
+        # Calculate total stock from variants
+        if self.id:  # Only calculate if the product already exists
+            total_variant_stock = self.variations.aggregate(
+                total=Sum('stock')
+            )['total'] or 0
+            self.stock_quantity = total_variant_stock
+        
         super().save(*args, **kwargs)
 
     def __str__(self):

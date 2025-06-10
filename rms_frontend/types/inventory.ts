@@ -5,6 +5,9 @@ export interface Category {
     description?: string;
     parent?: number;
     product_count?: number;
+    products_count?: number;
+    total_value?: number;
+    is_active?: boolean;
     children?: Category[];
 }
 
@@ -21,6 +24,8 @@ export interface Supplier {
     is_active: boolean;
     created_at: string;
     updated_at: string;
+    products_count?: number;
+    total_value?: number;
 }
 
 export interface Product {
@@ -91,14 +96,13 @@ export type UpdateSupplierDTO = Partial<CreateSupplierDTO> & { id: number };
 
 export interface CreateProductDTO {
     name: string;
-
     barcode?: string;
     description?: string;
     category?: number;
     supplier?: number;
     cost_price: number;
     selling_price: number;
-    stock_quantity: number;
+    stock_quantity?: number;
     minimum_stock: number;
     image?: File;
     is_active: boolean;

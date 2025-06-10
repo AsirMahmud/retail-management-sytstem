@@ -141,7 +141,8 @@ class ProductCreateSerializer(serializers.ModelSerializer):
             'barcode': {'required': False, 'allow_null': True, 'allow_blank': True},
             'image': {'required': False, 'allow_null': True},
             'minimum_stock': {'required': False},
-            'is_active': {'required': False}
+            'is_active': {'required': False},
+            'stock_quantity': {'read_only': True}  # Make stock_quantity read-only
         }
 
     def validate(self, data):
@@ -158,17 +159,38 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         if 'minimum_stock' in data and data['minimum_stock'] is None:
             data['minimum_stock'] = 10
 
+        # Validate variations for duplicates
+        variations_data = data.get('variations', [])
+        if variations_data:
+            seen_combinations = set()
+            for variation in variations_data:
+                combination = (variation['size'], variation['color'])
+                if combination in seen_combinations:
+                    raise serializers.ValidationError(
+                        f"Duplicate variation found: Size '{variation['size']}' and Color '{variation['color']}'"
+                    )
+                seen_combinations.add(combination)
+
         return data
 
     def create(self, validated_data):
         variations_data = validated_data.pop('variations', [])
         images_data = validated_data.pop('images', [])
         
+        # Create the product first
         product = Product.objects.create(**validated_data)
         
+        # Create variations and calculate total stock
+        total_stock = 0
         for variation_data in variations_data:
-            ProductVariation.objects.create(product=product, **variation_data)
+            variation = ProductVariation.objects.create(product=product, **variation_data)
+            total_stock += variation.stock
             
+        # Update product's total stock
+        product.stock_quantity = total_stock
+        product.save()
+            
+        # Create images
         for image_data in images_data:
             ProductImage.objects.create(product=product, **image_data)
             
@@ -181,15 +203,18 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         # Update product fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
-        instance.save()
         
         # Handle variations if provided
         if variations_data is not None:
             # Delete existing variations
             instance.variations.all().delete()
-            # Create new variations
+            # Create new variations and calculate total stock
+            total_stock = 0
             for variation_data in variations_data:
-                ProductVariation.objects.create(product=instance, **variation_data)
+                variation = ProductVariation.objects.create(product=instance, **variation_data)
+                total_stock += variation.stock
+            # Update product's total stock
+            instance.stock_quantity = total_stock
         
         # Handle images if provided
         if images_data is not None:
@@ -199,6 +224,7 @@ class ProductCreateSerializer(serializers.ModelSerializer):
             for image_data in images_data:
                 ProductImage.objects.create(product=instance, **image_data)
         
+        instance.save()
         return instance
 
 class StockMovementSerializer(serializers.ModelSerializer):

@@ -1,105 +1,143 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useStockAlerts } from "@/hooks/queries/useInventory";
-import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, Package } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { AlertTriangle, Package, TrendingDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Product } from "@/types/inventory";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useStockAlerts } from "@/hooks/queries/useInventory";
+import React from "react";
+
+interface StockAlert {
+  id: string;
+  name: string;
+  quantity: number;
+}
+
+interface AlertItem {
+  id: string;
+  name: string;
+  stock_quantity?: number;
+}
+
+interface AlertsData {
+  low_stock?: AlertItem[];
+  out_of_stock?: AlertItem[];
+}
 
 export function StockAlerts() {
-  const { data: alerts, isLoading } = useStockAlerts();
+  const { data: alertsData, isLoading } = useStockAlerts();
+
+  // Transform and combine alerts data
+  const alerts: StockAlert[] = React.useMemo(() => {
+    if (!alertsData) return [];
+
+    // Combine low stock and out of stock items
+    const lowStock = ((alertsData as AlertsData).low_stock || []).map(
+      (item: AlertItem) => ({
+        id: item.id,
+        name: item.name,
+        quantity: item.stock_quantity || 0,
+      })
+    );
+
+    const outOfStock = ((alertsData as AlertsData).out_of_stock || []).map(
+      (item: AlertItem) => ({
+        id: item.id,
+        name: item.name,
+        quantity: 0,
+      })
+    );
+
+    return [...lowStock, ...outOfStock];
+  }, [alertsData]);
 
   if (isLoading) {
     return (
-      <div className="grid gap-6 md:grid-cols-2">
-        <Skeleton className="h-[300px]" />
-        <Skeleton className="h-[300px]" />
-      </div>
+      <Card className="border-0 shadow-lg animate-pulse">
+        <CardHeader>
+          <div className="h-6 w-48 bg-gray-200 rounded" />
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex items-center gap-4">
+                <div className="h-10 w-10 bg-gray-200 rounded-full" />
+                <div className="space-y-2 flex-1">
+                  <div className="h-4 w-3/4 bg-gray-200 rounded" />
+                  <div className="h-3 w-1/2 bg-gray-200 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Low Stock Items</CardTitle>
-            <Badge variant="secondary" className="flex items-center gap-1">
-              <AlertTriangle className="h-3 w-3" />
-              {alerts?.low_stock.length || 0} Items
-            </Badge>
+    <Card className="border-0 shadow-lg overflow-hidden">
+      <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-lg font-semibold text-slate-900">
+              Stock Alerts
+            </CardTitle>
+            <CardDescription>Products requiring attention</CardDescription>
           </div>
-        </CardHeader>
-        <CardContent>
+          <Badge variant="destructive" className="px-3 py-1">
+            {alerts.length} Alerts
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="p-6">
+        <ScrollArea className="h-[300px] pr-4">
           <div className="space-y-4">
-            {alerts?.low_stock.map((product: Product) => (
-              <div
-                key={product.id}
-                className="flex items-center justify-between p-3 rounded-lg bg-orange-50 dark:bg-orange-950/20"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-orange-500/10 rounded-lg">
-                    <Package className="h-4 w-4 text-orange-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium">{product.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {product.stock_quantity} units remaining
-                    </p>
-                  </div>
-                </div>
-                <Badge variant="outline" className="text-orange-600">
-                  Min: {product.minimum_stock}
-                </Badge>
+            {alerts.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                No stock alerts at the moment
               </div>
-            ))}
-            {(!alerts?.low_stock || alerts.low_stock.length === 0) && (
-              <p className="text-center text-muted-foreground py-4">
-                No low stock items
-              </p>
+            ) : (
+              alerts.map((alert) => (
+                <div
+                  key={alert.id}
+                  className="flex items-center gap-4 p-4 rounded-lg bg-gradient-to-r from-red-50 to-rose-50 border border-red-100"
+                >
+                  <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-rose-500 rounded-full flex items-center justify-center">
+                    {alert.quantity === 0 ? (
+                      <Package className="h-5 w-5 text-white" />
+                    ) : (
+                      <AlertTriangle className="h-5 w-5 text-white" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {alert.name}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <TrendingDown className="h-3 w-3 text-red-500" />
+                      <p className="text-xs text-red-600">
+                        {alert.quantity === 0
+                          ? "Out of stock"
+                          : `${alert.quantity} units remaining`}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge
+                    variant={alert.quantity === 0 ? "destructive" : "secondary"}
+                    className="ml-auto"
+                  >
+                    {alert.quantity === 0 ? "Critical" : "Low Stock"}
+                  </Badge>
+                </div>
+              ))
             )}
           </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Out of Stock Items</CardTitle>
-            <Badge variant="destructive" className="flex items-center gap-1">
-              <AlertTriangle className="h-3 w-3" />
-              {alerts?.out_of_stock.length || 0} Items
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {alerts?.out_of_stock.map((product: Product) => (
-              <div
-                key={product.id}
-                className="flex items-center justify-between p-3 rounded-lg bg-red-50 dark:bg-red-950/20"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-red-500/10 rounded-lg">
-                    <Package className="h-4 w-4 text-red-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium">{product.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      SKU: {product.sku}
-                    </p>
-                  </div>
-                </div>
-                <Badge variant="destructive">Out of Stock</Badge>
-              </div>
-            ))}
-            {(!alerts?.out_of_stock || alerts.out_of_stock.length === 0) && (
-              <p className="text-center text-muted-foreground py-4">
-                No out of stock items
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        </ScrollArea>
+      </CardContent>
+    </Card>
   );
 }

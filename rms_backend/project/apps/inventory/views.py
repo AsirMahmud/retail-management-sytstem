@@ -20,6 +20,7 @@ from .serializers import (
     BulkPriceUpdateSerializer,
     BulkImageUploadSerializer
 )
+from rest_framework.exceptions import ValidationError
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -208,6 +209,36 @@ class ProductVariationViewSet(viewsets.ModelViewSet):
     queryset = ProductVariation.objects.all()
     serializer_class = ProductVariationSerializer
 
+    def perform_create(self, serializer):
+        variation = serializer.save()
+        # Update main product stock by recalculating from all variants
+        product = variation.product
+        total_variant_stock = product.variations.aggregate(
+            total=Sum('stock')
+        )['total'] or 0
+        product.stock_quantity = total_variant_stock
+        product.save()
+
+    def perform_update(self, serializer):
+        variation = serializer.save()
+        # Update main product stock by recalculating from all variants
+        product = variation.product
+        total_variant_stock = product.variations.aggregate(
+            total=Sum('stock')
+        )['total'] or 0
+        product.stock_quantity = total_variant_stock
+        product.save()
+
+    def perform_destroy(self, instance):
+        product = instance.product
+        instance.delete()
+        # Update main product stock by recalculating from remaining variants
+        total_variant_stock = product.variations.aggregate(
+            total=Sum('stock')
+        )['total'] or 0
+        product.stock_quantity = total_variant_stock
+        product.save()
+
     def get_queryset(self):
         queryset = ProductVariation.objects.all()
         product = self.request.query_params.get('product', None)
@@ -246,24 +277,36 @@ class StockMovementViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         movement = serializer.save(created_by=self.request.user)
         
-        # Update product stock
+        # Update variant stock if specified
+        if movement.variation:
+            if movement.movement_type == 'IN':
+                movement.variation.stock += movement.quantity
+            elif movement.movement_type == 'OUT':
+                if movement.variation.stock < movement.quantity:
+                    raise ValidationError(f"Not enough stock in variation. Available: {movement.variation.stock}")
+                movement.variation.stock -= movement.quantity
+            movement.variation.save()
+        
+        # Update main product stock by recalculating from all variants
         product = movement.product
-        if movement.movement_type == 'IN':
-            product.stock_quantity += movement.quantity
-        elif movement.movement_type == 'OUT':
-            product.stock_quantity -= movement.quantity
+        total_variant_stock = product.variations.aggregate(
+            total=Sum('stock')
+        )['total'] or 0
+        product.stock_quantity = total_variant_stock
         product.save()
 
         # Check for alerts
-        if product.stock_quantity <= product.reorder_level:
+        if product.stock_quantity <= product.minimum_stock:
             InventoryAlert.objects.create(
                 product=product,
+                variation=movement.variation,
                 alert_type='LOW',
                 message=f'Low stock alert: {product.name} has {product.stock_quantity} units remaining'
             )
         elif product.stock_quantity == 0:
             InventoryAlert.objects.create(
                 product=product,
+                variation=movement.variation,
                 alert_type='OUT',
                 message=f'Out of stock alert: {product.name} has no units remaining'
             )

@@ -2,8 +2,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useCategories, useDeleteCategory } from "@/hooks/queries/useInventory";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -20,18 +29,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  MoreHorizontal,
-  Plus,
+  PlusCircle,
   Search,
+  Tag,
+  Package,
+  DollarSign,
+  AlertTriangle,
+  MoreHorizontal,
   Edit3,
+  Eye,
   Trash2,
-  FolderOpen,
-  Filter,
-  SortAsc,
-  Grid3X3,
-  List,
+  Users,
+  TrendingUp,
 } from "lucide-react";
-import { useCategories, useDeleteCategory } from "@/hooks/queries/useInventory";
+import Link from "next/link";
+import { Skeleton } from "@/components/ui/skeleton";
+import type { Category } from "@/types/inventory";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,156 +55,100 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
-
-const categoryFormSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  description: z.string().optional(),
-});
-
-type CategoryFormValues = z.infer<typeof categoryFormSchema>;
 
 export default function CategoriesPage() {
   const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<{
-    id: number;
-    name: string;
-  } | null>(null);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<{
-    id: number;
-    name: string;
-    description?: string;
-  } | null>(null);
-  const [viewMode, setViewMode] = useState<"table" | "grid">("table");
-
   const { data: categories = [], isLoading } = useCategories();
   const deleteCategory = useDeleteCategory();
-
-  const form = useForm<CategoryFormValues>({
-    resolver: zodResolver(categoryFormSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-    },
-  });
-
-  const filteredCategories = categories.filter((category) =>
-    category.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(
+    null
   );
 
-  function handleDeleteClick(category: { id: number; name: string }) {
-    setSelectedCategory(category);
-    setDeleteDialogOpen(true);
-  }
-
-  function handleEditClick(category: {
-    id: number;
-    name: string;
-    description?: string;
-  }) {
-    setEditingCategory(category);
-    form.reset({
-      name: category.name,
-      description: category.description || "",
-    });
-    setEditDialogOpen(true);
-  }
-
-  async function handleDeleteCategory() {
-    if (!selectedCategory) return;
+  const handleDeleteCategory = async () => {
+    if (!categoryToDelete) return;
 
     try {
-      await deleteCategory.mutateAsync(selectedCategory.id);
+      await deleteCategory.mutateAsync(categoryToDelete.id);
       toast.success("Category deleted successfully");
-      setDeleteDialogOpen(false);
-      setSelectedCategory(null);
     } catch (error) {
       toast.error("Failed to delete category");
       console.error("Error deleting category:", error);
+    } finally {
+      setCategoryToDelete(null);
     }
-  }
+  };
 
-  async function handleEditSubmit(values: CategoryFormValues) {
-    if (!editingCategory) return;
+  // Filter categories based on search
+  const filteredCategories = categories.filter((category: Category) =>
+    category.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-    try {
-      // TODO: Implement update category mutation
-      toast.success("Category updated successfully");
-      setEditDialogOpen(false);
-      setEditingCategory(null);
-    } catch (error) {
-      toast.error("Failed to update category");
-      console.error("Failed to update category:", error);
-    }
-  }
+  // Calculate statistics
+  const totalCategories = categories.length;
+  const activeCategories = categories.filter(
+    (c: Category) => c.is_active
+  ).length;
+  const totalProducts = categories.reduce(
+    (sum: number, category: Category) => sum + (category.products_count || 0),
+    0
+  );
+  const totalValue = categories.reduce(
+    (sum: number, category: Category) => sum + (category.total_value || 0),
+    0
+  );
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-48" />
-            <Skeleton className="h-4 w-96" />
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-4 w-96" />
+            </div>
+            <Skeleton className="h-10 w-32" />
           </div>
-          <Skeleton className="h-10 w-32" />
-        </div>
 
-        <div className="flex items-center gap-4">
-          <Skeleton className="h-10 w-80" />
-          <Skeleton className="h-10 w-24" />
-          <Skeleton className="h-10 w-24" />
-        </div>
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-10 w-80" />
+          </div>
 
-        <div className="grid gap-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full" />
-          ))}
+          <div className="grid gap-4 md:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-24 w-full" />
+            ))}
+          </div>
+
+          <div className="grid gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 w-full" />
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
-  const CategoryCard = ({ category }: { category: any }) => (
-    <Card className="group hover:shadow-md transition-all duration-200 border-border/50 hover:border-border">
-      <CardHeader className="pb-3">
+  const CategoryCard = ({ category }: { category: Category }) => (
+    <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 bg-gradient-to-br from-white to-slate-50">
+      <CardHeader className="pb-4">
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10 text-primary">
-              <FolderOpen className="h-5 w-5" />
-            </div>
-            <div>
-              <CardTitle className="text-lg font-semibold group-hover:text-primary transition-colors">
-                {category.name}
-              </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                {category.description || "No description"}
-              </p>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+                <Tag className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-lg font-semibold group-hover:text-primary transition-colors line-clamp-1">
+                  {category.name}
+                </CardTitle>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Package className="h-3 w-3" />
+                  {category.products_count || 0} Products
+                </div>
+              </div>
             </div>
           </div>
           <DropdownMenu>
@@ -205,17 +162,22 @@ export default function CategoriesPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem
-                onClick={() => handleEditClick(category)}
-                className="cursor-pointer"
-              >
-                <Edit3 className="mr-2 h-4 w-4" />
-                Edit Category
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link href={`/inventory/categories/${category.id}`}>
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Details
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link href={`/inventory/edit-category/${category.id}`}>
+                  <Edit3 className="mr-2 h-4 w-4" />
+                  Edit Category
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive cursor-pointer"
-                onClick={() => handleDeleteClick(category)}
+                onClick={() => setCategoryToDelete(category)}
               >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Delete Category
@@ -224,317 +186,190 @@ export default function CategoriesPage() {
           </DropdownMenu>
         </div>
       </CardHeader>
-      <CardContent className="pt-0">
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">Products</p>
+            <p className="text-lg font-bold text-blue-600">
+              {category.products_count || 0}
+            </p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">Total Value</p>
+            <p className="text-lg font-bold text-green-600">
+              ${category.total_value?.toLocaleString() || 0}
+            </p>
+          </div>
+        </div>
+
         <div className="flex items-center justify-between">
-          <Badge variant="secondary" className="text-xs">
-            {Math.floor(Math.random() * 50)} products
-          </Badge>
-          <span className="text-xs text-muted-foreground">
-            Updated {Math.floor(Math.random() * 30)} days ago
-          </span>
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">Status</p>
+            <Badge
+              variant={category.is_active ? "default" : "secondary"}
+              className="ml-auto"
+            >
+              {category.is_active ? "Active" : "Inactive"}
+            </Badge>
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">Categories</h1>
-          <p className="text-muted-foreground">
-            Manage your product categories and organize your inventory
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Tag className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                  Categories
+                </h1>
+                <p className="text-gray-600 mt-1">
+                  Manage your product categories and organization
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={() => router.push("/inventory/add-category")}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Add Category
+            </Button>
+          </div>
         </div>
-        <Button
-          onClick={() => router.push("/inventory/categories/add")}
-          className="w-fit"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Category
-        </Button>
-      </div>
 
-      {/* Filters and Search */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex items-center gap-4 flex-1">
-          <div className="relative flex-1 max-w-md">
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Card className="bg-gradient-to-br from-blue-50 to-indigo-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700">
+                Total Categories
+              </CardTitle>
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+                <Tag className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">
+                {totalCategories}
+              </div>
+              <p className="text-xs text-blue-600 font-medium mt-1">
+                {activeCategories} Active Categories
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-emerald-50 to-teal-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700">
+                Total Products
+              </CardTitle>
+              <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center">
+                <Package className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">
+                {totalProducts}
+              </div>
+              <p className="text-xs text-emerald-600 font-medium mt-1">
+                Across all categories
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-orange-50 to-amber-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700">
+                Total Value
+              </CardTitle>
+              <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center">
+                <DollarSign className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">
+                ${totalValue.toLocaleString()}
+              </div>
+              <p className="text-xs text-orange-600 font-medium mt-1">
+                Inventory value
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-red-50 to-rose-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700">
+                Average Products
+              </CardTitle>
+              <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-rose-500 rounded-full flex items-center justify-center">
+                <Users className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">
+                {Math.round(totalProducts / (totalCategories || 1))}
+              </div>
+              <p className="text-xs text-red-600 font-medium mt-1">
+                Per category
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Search */}
+        <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search categories..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-9 bg-white/70 backdrop-blur-sm border-white/20 shadow-lg"
             />
           </div>
-          <Button variant="outline" size="sm">
-            <Filter className="mr-2 h-4 w-4" />
-            Filter
-          </Button>
-          <Button variant="outline" size="sm">
-            <SortAsc className="mr-2 h-4 w-4" />
-            Sort
-          </Button>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant={viewMode === "table" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("table")}
-          >
-            <List className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={viewMode === "grid" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setViewMode("grid")}
-          >
-            <Grid3X3 className="h-4 w-4" />
-          </Button>
+        {/* Categories Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredCategories.map((category) => (
+            <CategoryCard key={category.id} category={category} />
+          ))}
         </div>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog
+          open={!!categoryToDelete}
+          onOpenChange={() => setCategoryToDelete(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the
+                category and remove it from our servers.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteCategory}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
-
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Categories
-            </CardTitle>
-            <FolderOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{categories.length}</div>
-            <p className="text-xs text-muted-foreground">+2 from last month</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Active Categories
-            </CardTitle>
-            <Badge variant="secondary" className="h-4 w-4 rounded-full p-0" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{categories.length}</div>
-            <p className="text-xs text-muted-foreground">
-              All categories active
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Products</CardTitle>
-            <div className="h-4 w-4 rounded bg-primary/10" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">1,234</div>
-            <p className="text-xs text-muted-foreground">
-              Across all categories
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Content */}
-      <Tabs
-        value={viewMode}
-        onValueChange={(value) => setViewMode(value as "table" | "grid")}
-      >
-        <TabsContent value="table" className="space-y-4">
-          <Card>
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="font-semibold">Category</TableHead>
-                  <TableHead className="font-semibold">Description</TableHead>
-                  <TableHead className="font-semibold">Products</TableHead>
-                  <TableHead className="font-semibold">Status</TableHead>
-                  <TableHead className="w-[70px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCategories.map((category) => (
-                  <TableRow key={category.id} className="group">
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                          <FolderOpen className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <div className="font-medium">{category.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            ID: {category.id}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="max-w-md">
-                      <p className="text-sm text-muted-foreground truncate">
-                        {category.description || "No description provided"}
-                      </p>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">
-                        {Math.floor(Math.random() * 50)} items
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant="default"
-                        className="bg-green-100 text-green-800 hover:bg-green-100"
-                      >
-                        Active
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem
-                            onClick={() => handleEditClick(category)}
-                            className="cursor-pointer"
-                          >
-                            <Edit3 className="mr-2 h-4 w-4" />
-                            Edit Category
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive cursor-pointer"
-                            onClick={() => handleDeleteClick(category)}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete Category
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="grid" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredCategories.map((category) => (
-              <CategoryCard key={category.id} category={category} />
-            ))}
-          </div>
-        </TabsContent>
-      </Tabs>
-
-      {/* Empty State */}
-      {filteredCategories.length === 0 && !isLoading && (
-        <Card className="text-center py-12">
-          <CardContent>
-            <FolderOpen className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No categories found</h3>
-            <p className="text-muted-foreground mb-4">
-              {searchQuery
-                ? "No categories match your search criteria."
-                : "Get started by creating your first category."}
-            </p>
-            {!searchQuery && (
-              <Button onClick={() => router.push("/inventory/categories/add")}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Category
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Delete Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Category</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete the category "
-              {selectedCategory?.name}"? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteCategory}>
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Edit Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Edit3 className="h-5 w-5" />
-              Edit Category
-            </DialogTitle>
-            <DialogDescription>
-              Make changes to the category information below.
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(handleEditSubmit)}
-              className="space-y-4"
-            >
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter category name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter category description (optional)"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <DialogFooter className="gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setEditDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit">Save Changes</Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -133,495 +133,115 @@ export default function InventoryPage() {
       : 0;
 
   return (
-    <div className="space-y-8 p-6">
-      {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-            Inventory Management
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            Monitor your stock levels, manage products, and track inventory
-            performance
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm">
-            <Settings className="h-4 w-4 mr-2" />
-            Settings
-          </Button>
-          <Link href="/inventory/add-product">
-            <Button size="lg" className="shadow-lg">
-              <PlusCircle className="h-5 w-5 mr-2" />
-              Add New Product
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      {/* Key Metrics */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-0 shadow-md bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950/50 dark:to-blue-900/30">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">
-              Total Products
-            </CardTitle>
-            <div className="p-2 bg-blue-500/10 rounded-lg">
-              <Package className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      <div className="max-w-7xl mx-auto p-6">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+              <Package className="h-6 w-6 text-white" />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">
-              {overview?.metrics.total_products}
-            </div>
-            <div className="flex items-center gap-1 mt-2">
-              <TrendingUp className="h-3 w-3 text-green-600" />
-              <span className="text-xs text-green-600 font-medium">
-                {overview?.metrics.active_products} Active
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-md bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950/50 dark:to-green-900/30">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">
-              Total Value
-            </CardTitle>
-            <div className="p-2 bg-green-500/10 rounded-lg">
-              <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-green-900 dark:text-green-100">
-              ${overview?.metrics.total_inventory_value.toLocaleString()}
-            </div>
-            <div className="flex items-center gap-1 mt-2">
-              <TrendingUp className="h-3 w-3 text-green-600" />
-              <span className="text-xs text-green-600 font-medium">
-                Current Inventory Value
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-md bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950/50 dark:to-orange-900/30">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-300">
-              Low Stock Items
-            </CardTitle>
-            <div className="p-2 bg-orange-500/10 rounded-lg">
-              <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-orange-900 dark:text-orange-100">
-              {overview?.metrics.low_stock_products}
-            </div>
-            <div className="flex items-center gap-1 mt-2">
-              <TrendingDown className="h-3 w-3 text-orange-600" />
-              <span className="text-xs text-orange-600 font-medium">
-                Needs attention
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-md bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-950/50 dark:to-red-900/30">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-red-700 dark:text-red-300">
-              Out of Stock
-            </CardTitle>
-            <div className="p-2 bg-red-500/10 rounded-lg">
-              <Package className="h-4 w-4 text-red-600 dark:text-red-400" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-red-900 dark:text-red-100">
-              {overview?.metrics.out_of_stock_products}
-            </div>
-            <div className="flex items-center gap-1 mt-2">
-              <AlertTriangle className="h-3 w-3 text-red-600" />
-              <span className="text-xs text-red-600 font-medium">
-                Immediate action required
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Stock Health Overview */}
-      <Card className="border-0 shadow-lg">
-        <CardHeader>
-          <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-xl">Stock Health Overview</CardTitle>
-              <CardDescription>
-                Current inventory status and performance metrics
-              </CardDescription>
-            </div>
-            <Badge
-              variant={
-                stockHealth > 80
-                  ? "default"
-                  : stockHealth > 60
-                  ? "secondary"
-                  : "destructive"
-              }
-            >
-              {stockHealth > 80
-                ? "Healthy"
-                : stockHealth > 60
-                ? "Moderate"
-                : "Critical"}
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Stock Availability</span>
-              <span className="font-medium">{stockHealth.toFixed(1)}%</span>
-            </div>
-            <Progress value={stockHealth} className="h-2" />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-green-50 dark:bg-green-950/20">
-              <div className="p-2 bg-green-500/10 rounded-lg">
-                <TrendingUp className="h-5 w-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">In Stock</p>
-                <p className="text-2xl font-bold text-green-700 dark:text-green-400">
-                  {overview?.metrics?.stock_health?.healthy || 0}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-orange-50 dark:bg-orange-950/20">
-              <div className="p-2 bg-orange-500/10 rounded-lg">
-                <AlertTriangle className="h-5 w-5 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">Low Stock</p>
-                <p className="text-2xl font-bold text-orange-700 dark:text-orange-400">
-                  {overview?.metrics?.stock_health?.low || 0}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-red-50 dark:bg-red-950/20">
-              <div className="p-2 bg-red-500/10 rounded-lg">
-                <Package className="h-5 w-5 text-red-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">Out of Stock</p>
-                <p className="text-2xl font-bold text-red-700 dark:text-red-400">
-                  {overview?.metrics?.stock_health?.out || 0}
-                </p>
-              </div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                Inventory Management
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Monitor your stock levels, manage products, and track inventory
+                performance
+              </p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Top Selling Products and Recent Movements */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-xl">Top Selling Products</CardTitle>
-            <CardDescription>
-              Most popular items by sales volume
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[300px]">
-              <div className="space-y-4">
-                {overview?.top_selling_products?.map(
-                  (product: any, index: number) => (
-                    <div key={product.id} className="flex items-center gap-4">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
-                        <span className="text-sm font-medium text-primary">
-                          #{index + 1}
-                        </span>
-                      </div>
-                      <div className="flex-1 space-y-1">
-                        <p className="text-sm font-medium leading-none">
-                          {product.name}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {product.total_sold} units sold
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">
-                          ${product.selling_price}
-                        </Badge>
-                      </div>
-                    </div>
-                  )
-                )}
+        {/* Key Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="bg-gradient-to-br from-blue-50 to-indigo-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700">
+                Total Products
+              </CardTitle>
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+                <Package className="h-5 w-5 text-white" />
               </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">
+                {overview?.metrics.total_products}
+              </div>
+              <p className="text-xs text-blue-600 font-medium mt-1">
+                {overview?.metrics.active_products} Active Products
+              </p>
+            </CardContent>
+          </Card>
 
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-xl">Recent Stock Movements</CardTitle>
-            <CardDescription>
-              Latest inventory updates and changes
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[300px]">
-              <div className="space-y-4">
-                {overview?.recent_movements?.map((movement: any) => (
-                  <div key={movement.id} className="flex items-center gap-4">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
-                      {movement.movement_type === "IN" ? (
-                        <ArrowDownRight className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <ArrowUpRight className="h-4 w-4 text-red-600" />
-                      )}
-                    </div>
-                    <div className="flex-1 space-y-1">
-                      <p className="text-sm font-medium leading-none">
-                        {movement.product.name}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {movement.quantity} units{" "}
-                        {movement.movement_type.toLowerCase()}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(movement.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+          <Card className="bg-gradient-to-br from-emerald-50 to-teal-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700">
+                Total Value
+              </CardTitle>
+              <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center">
+                <DollarSign className="h-5 w-5 text-white" />
               </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">
+                ${overview?.metrics.total_inventory_value.toLocaleString()}
+              </div>
+              <p className="text-xs text-emerald-600 font-medium mt-1">
+                Current Inventory Value
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-orange-50 to-amber-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700">
+                Low Stock Items
+              </CardTitle>
+              <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">
+                {overview?.metrics.low_stock_products}
+              </div>
+              <p className="text-xs text-orange-600 font-medium mt-1">
+                Needs attention
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-red-50 to-rose-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700">
+                Out of Stock
+              </CardTitle>
+              <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-rose-500 rounded-full flex items-center justify-center">
+                <Package className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">
+                {overview?.metrics.out_of_stock_products}
+              </div>
+              <p className="text-xs text-red-600 font-medium mt-1">
+                Immediate action required
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Charts Section */}
+        <div className="mt-8">
+          <DashboardCharts />
+        </div>
+
+        {/* Stock Alerts */}
+        <div className="mt-8">
+          <StockAlerts />
+        </div>
       </div>
-
-      {/* Supplier Performance */}
-      <Card className="border-0 shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-xl">Supplier Performance</CardTitle>
-          <CardDescription>
-            Top suppliers by inventory value and product count
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[300px]">
-            <div className="space-y-4">
-              {overview?.supplier_metrics?.map((supplier) => (
-                <div
-                  key={supplier.company_name}
-                  className="flex items-center gap-4"
-                >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
-                    <Users className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium leading-none">
-                      {supplier.company_name}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {supplier.total_products} products
-                      {supplier.low_stock_count > 0 && (
-                        <span className="ml-2 text-orange-600">
-                          ({supplier.low_stock_count} low stock)
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">
-                      ${Number(supplier.total_value).toLocaleString()}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
-
-      {/* Stock Alerts */}
-      <StockAlerts />
-
-      {/* Charts */}
-      <DashboardCharts />
-
-      {/* Navigation Cards */}
-      <div className="grid gap-6 md:grid-cols-3">
-        <Link href="/inventory/products" className="group">
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-[1.02] bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950/50 dark:to-purple-900/30">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div className="p-3 bg-purple-500/10 rounded-xl">
-                  <Package className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-                </div>
-                <ArrowUpRight className="h-5 w-5 text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <h3 className="text-xl font-bold text-purple-900 dark:text-purple-100">
-                  Products
-                </h3>
-                <p className="text-sm text-purple-700 dark:text-purple-300">
-                  Manage your product inventory and stock levels
-                </p>
-              </div>
-              <div className="flex items-center gap-4 pt-2">
-                <div className="flex items-center gap-2">
-                  <Eye className="h-4 w-4 text-purple-600" />
-                  <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
-                    View All
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <PlusCircle className="h-4 w-4 text-purple-600" />
-                  <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
-                    Add New
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/inventory/categories" className="group">
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-[1.02] bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-indigo-950/50 dark:to-indigo-900/30">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div className="p-3 bg-indigo-500/10 rounded-xl">
-                  <Tag className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
-                </div>
-                <ArrowUpRight className="h-5 w-5 text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <h3 className="text-xl font-bold text-indigo-900 dark:text-indigo-100">
-                  Categories
-                </h3>
-                <p className="text-sm text-indigo-700 dark:text-indigo-300">
-                  Organize products into logical categories
-                </p>
-              </div>
-              <div className="flex items-center gap-4 pt-2">
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4 text-indigo-600" />
-                  <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
-                    Organize
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Settings className="h-4 w-4 text-indigo-600" />
-                  <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300">
-                    Manage
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/inventory/suppliers" className="group">
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 group-hover:scale-[1.02] bg-gradient-to-br from-teal-50 to-teal-100/50 dark:from-teal-950/50 dark:to-teal-900/30">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div className="p-3 bg-teal-500/10 rounded-xl">
-                  <Users className="h-8 w-8 text-teal-600 dark:text-teal-400" />
-                </div>
-                <ArrowUpRight className="h-5 w-5 text-teal-600 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <h3 className="text-xl font-bold text-teal-900 dark:text-teal-100">
-                  Suppliers
-                </h3>
-                <p className="text-sm text-teal-700 dark:text-teal-300">
-                  Track and manage your product suppliers
-                </p>
-              </div>
-              <div className="flex items-center gap-4 pt-2">
-                <div className="flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-teal-600" />
-                  <span className="text-sm font-medium text-teal-700 dark:text-teal-300">
-                    Track
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <ShoppingCart className="h-4 w-4 text-teal-600" />
-                  <span className="text-sm font-medium text-teal-700 dark:text-teal-300">
-                    Order
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
-
-      {/* Quick Actions */}
-      <Card className="border-0 shadow-lg">
-        <CardHeader>
-          <CardTitle className="text-xl">Quick Actions</CardTitle>
-          <CardDescription>
-            Frequently used inventory management tasks
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <Link href="/inventory/add-product">
-              <Button
-                variant="outline"
-                className="w-full h-16 flex-col gap-2 hover:bg-primary/5 hover:border-primary/20"
-              >
-                <PlusCircle className="h-5 w-5" />
-                <span className="font-medium">Add Product</span>
-              </Button>
-            </Link>
-            <Link href="/inventory/categories">
-              <Button
-                variant="outline"
-                className="w-full h-16 flex-col gap-2 hover:bg-primary/5 hover:border-primary/20"
-              >
-                <Tag className="h-5 w-5" />
-                <span className="font-medium">Manage Categories</span>
-              </Button>
-            </Link>
-            <Link href="/inventory/suppliers">
-              <Button
-                variant="outline"
-                className="w-full h-16 flex-col gap-2 hover:bg-primary/5 hover:border-primary/20"
-              >
-                <Users className="h-5 w-5" />
-                <span className="font-medium">Manage Suppliers</span>
-              </Button>
-            </Link>
-            <Link href="/inventory/reports">
-              <Button
-                variant="outline"
-                className="w-full h-16 flex-col gap-2 hover:bg-primary/5 hover:border-primary/20"
-              >
-                <BarChart3 className="h-5 w-5" />
-                <span className="font-medium">View Reports</span>
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
