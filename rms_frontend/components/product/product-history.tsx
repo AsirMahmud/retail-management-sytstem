@@ -1,24 +1,46 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DateRangePicker } from "@/components/ui/date-range-picker"
-import { Button } from "@/components/ui/button"
-import { Download, BarChart3 } from "lucide-react"
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { Button } from "@/components/ui/button";
+import { Download, BarChart3 } from "lucide-react";
 
 interface ProductHistoryProps {
-  productId?: string
-  showHeader?: boolean
+  productId?: string;
+  showHeader?: boolean;
 }
 
-export function ProductHistory({ productId, showHeader = true }: ProductHistoryProps) {
-  const [timeRange, setTimeRange] = useState("30days")
+export function ProductHistory({
+  productId,
+  showHeader = true,
+}: ProductHistoryProps) {
+  const [timeRange, setTimeRange] = useState("30days");
   const [dateRange, setDateRange] = useState({
     from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
     to: new Date(),
-  })
+  });
 
   // Mock data - in a real app, this would be fetched based on productId and date range
   const salesHistory = [
@@ -62,18 +84,26 @@ export function ProductHistory({ productId, showHeader = true }: ProductHistoryP
       discount: "0%",
       staff: "Michael Brown",
     },
-  ]
+  ];
 
   // Calculate totals
-  const totalQuantity = salesHistory.reduce((sum, item) => sum + item.quantity, 0)
-  const totalRevenue = salesHistory.reduce((sum, item) => sum + item.revenue, 0)
+  const totalQuantity = salesHistory.reduce(
+    (sum, item) => sum + item.quantity,
+    0
+  );
+  const totalRevenue = salesHistory.reduce(
+    (sum, item) => sum + item.revenue,
+    0
+  );
 
   return (
     <Card className="w-full">
       {showHeader && (
         <CardHeader>
           <CardTitle>Product Sales History</CardTitle>
-          <CardDescription>View detailed sales history for this product</CardDescription>
+          <CardDescription>
+            View detailed sales history for this product
+          </CardDescription>
         </CardHeader>
       )}
       <CardContent>
@@ -92,7 +122,12 @@ export function ProductHistory({ productId, showHeader = true }: ProductHistoryP
                 </SelectContent>
               </Select>
 
-              {timeRange === "custom" && <DateRangePicker value={dateRange} onChange={setDateRange} />}
+              {timeRange === "custom" && (
+                <DatePickerWithRange
+                  value={dateRange}
+                  onChange={setDateRange}
+                />
+              )}
             </div>
 
             <div className="flex items-center space-x-2">
@@ -142,5 +177,5 @@ export function ProductHistory({ productId, showHeader = true }: ProductHistoryP
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }
