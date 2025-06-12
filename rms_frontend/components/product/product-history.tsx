@@ -26,6 +26,7 @@ import {
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { Button } from "@/components/ui/button";
 import { Download, BarChart3 } from "lucide-react";
+import { DateRange } from "react-day-picker";
 
 interface ProductHistoryProps {
   productId?: string;
@@ -37,7 +38,7 @@ export function ProductHistory({
   showHeader = true,
 }: ProductHistoryProps) {
   const [timeRange, setTimeRange] = useState("30days");
-  const [dateRange, setDateRange] = useState({
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
     to: new Date(),
   });
