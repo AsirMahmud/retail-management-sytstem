@@ -8,11 +8,13 @@ import {
   MapPin,
   Phone,
   ShoppingBag,
+  CreditCard,
+  Package,
 } from "lucide-react";
 import Link from "next/link";
 import { useCustomer } from "@/hooks/queries/use-customer";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Customer } from "@/lib/api/customer";
+import type { Customer } from "@/types/customer";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -27,22 +29,14 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-
-interface CustomerPreferences {
-  sizes: {
-    shirts: string;
-    pants: string;
-    jackets: string;
-    shoes: string;
-  };
-  colors: string[];
-  categories: string[];
-}
-
-interface CustomerWithDetails extends Customer {
-  preferences?: CustomerPreferences;
-  notes?: string;
-}
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function CustomerDetailPage({
   params,
@@ -128,8 +122,6 @@ export default function CustomerDetailPage({
     );
   }
 
-  const customerWithDetails = customer as CustomerWithDetails;
-
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -159,7 +151,7 @@ export default function CustomerDetailPage({
           <CardContent className="space-y-6">
             <div className="flex flex-col items-center space-y-3">
               <Avatar className="h-24 w-24">
-                <AvatarImage src="/placeholder.svg" />
+                <AvatarImage src={`https://avatar.vercel.sh/${customer.id}`} />
                 <AvatarFallback className="text-2xl">
                   {`${customer.first_name || ""} ${customer.last_name || ""}`
                     .split(" ")
@@ -171,6 +163,10 @@ export default function CustomerDetailPage({
                 <h2 className="text-xl font-bold">
                   {customer.first_name} {customer.last_name}
                 </h2>
+                <p className="text-sm text-muted-foreground">
+                  Customer since{" "}
+                  {new Date(customer.created_at).toLocaleDateString()}
+                </p>
               </div>
             </div>
 
@@ -187,15 +183,19 @@ export default function CustomerDetailPage({
                 <MapPin className="h-4 w-4 text-muted-foreground" />
                 <span>{customer.address || "No address"}</span>
               </div>
-              <div className="flex items-center space-x-3">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span>
-                  Joined: {new Date(customer.created_at).toLocaleDateString()}
-                </span>
-              </div>
+              {customer.date_of_birth && (
+                <div className="flex items-center space-x-3">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <span>
+                    DOB: {new Date(customer.date_of_birth).toLocaleDateString()}
+                  </span>
+                </div>
+              )}
             </div>
 
-            <div className="pt-3 border-t space-y-3">
+            <Separator />
+
+            <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Status:</span>
                 <Badge variant={customer.is_active ? "default" : "destructive"}>
@@ -243,79 +243,91 @@ export default function CustomerDetailPage({
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-[500px] pr-4">
+                  <ScrollArea className="h-[600px] pr-4">
                     <div className="space-y-6">
-                      {customer.purchase_history.map((order) => (
-                        <Card key={order.id} className="overflow-hidden">
+                      {customer.purchase_history.map((purchase) => (
+                        <Card key={purchase.id} className="overflow-hidden">
                           <CardHeader className="bg-muted/50 py-3">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center space-x-2">
                                 <ShoppingBag className="h-4 w-4" />
-                                <CardTitle className="text-base">
-                                  Order #{order.id}
-                                </CardTitle>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <span className="text-sm text-muted-foreground">
-                                  {new Date(order.date).toLocaleDateString()}
+                                <span className="font-medium">
+                                  Order #{purchase.id}
                                 </span>
-                                <Badge variant="outline" className="ml-2">
-                                  {order.status}
+                              </div>
+                              <div className="flex items-center space-x-4">
+                                <Badge variant="outline">
+                                  {purchase.payment_method}
+                                </Badge>
+                                <Badge
+                                  variant={
+                                    purchase.status === "completed"
+                                      ? "default"
+                                      : "secondary"
+                                  }
+                                >
+                                  {purchase.status}
                                 </Badge>
                               </div>
                             </div>
+                            <div className="flex items-center justify-between text-sm text-muted-foreground mt-2">
+                              <span>
+                                {new Date(purchase.date).toLocaleDateString()}
+                              </span>
+                              <span className="font-medium">
+                                {new Intl.NumberFormat("en-US", {
+                                  style: "currency",
+                                  currency: "USD",
+                                }).format(parseFloat(purchase.total_amount))}
+                              </span>
+                            </div>
                           </CardHeader>
-                          <CardContent className="py-3">
-                            <div className="space-y-2">
-                              {order.items.map((item, index) => (
-                                <div
-                                  key={index}
-                                  className="flex justify-between text-sm"
-                                >
-                                  <div>
-                                    <span className="font-medium">
-                                      {item.name}
-                                    </span>
-                                    <span className="text-muted-foreground">
-                                      {" "}
-                                      ({item.size})
-                                    </span>
-                                    <span className="text-muted-foreground">
-                                      {" "}
-                                      × {item.quantity}
-                                    </span>
-                                  </div>
-                                  <span>{item.price}</span>
-                                </div>
-                              ))}
-                            </div>
-                            <Separator className="my-3" />
-                            <div className="space-y-2 text-sm">
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">
-                                  Payment Method:
-                                </span>
-                                <span>{order.payment_method}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">
-                                  Sales Person:
-                                </span>
-                                <span>{order.sales_person}</span>
-                              </div>
-                            </div>
-                            <div className="flex justify-between pt-3 mt-3 border-t font-medium">
-                              <span>Total</span>
-                              <span>{order.total_amount}</span>
-                            </div>
+                          <CardContent className="p-4">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Product</TableHead>
+                                  <TableHead>Size</TableHead>
+                                  <TableHead>Color</TableHead>
+                                  <TableHead className="text-right">
+                                    Quantity
+                                  </TableHead>
+                                  <TableHead className="text-right">
+                                    Price
+                                  </TableHead>
+                                  <TableHead className="text-right">
+                                    Total
+                                  </TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {purchase.items.map((item, index) => (
+                                  <TableRow key={index}>
+                                    <TableCell>{item.product_name}</TableCell>
+                                    <TableCell>{item.size}</TableCell>
+                                    <TableCell>{item.color}</TableCell>
+                                    <TableCell className="text-right">
+                                      {item.quantity}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {new Intl.NumberFormat("en-US", {
+                                        style: "currency",
+                                        currency: "USD",
+                                      }).format(parseFloat(item.unit_price))}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {new Intl.NumberFormat("en-US", {
+                                        style: "currency",
+                                        currency: "USD",
+                                      }).format(parseFloat(item.total))}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
                           </CardContent>
                         </Card>
                       ))}
-                      {customer.purchase_history.length === 0 && (
-                        <div className="text-center py-8 text-muted-foreground">
-                          No purchase history available
-                        </div>
-                      )}
                     </div>
                   </ScrollArea>
                 </CardContent>
@@ -325,96 +337,16 @@ export default function CustomerDetailPage({
               <Card>
                 <CardHeader>
                   <CardTitle>Customer Preferences</CardTitle>
-                  <CardDescription>
-                    Saved sizes, styles, and preferences
-                  </CardDescription>
+                  <CardDescription>Coming soon...</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="font-medium mb-2">Sizes</h3>
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Shirts:</span>
-                          <span>
-                            {customerWithDetails.preferences?.sizes?.shirts ||
-                              "Not set"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Pants:</span>
-                          <span>
-                            {customerWithDetails.preferences?.sizes?.pants ||
-                              "Not set"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">
-                            Jackets:
-                          </span>
-                          <span>
-                            {customerWithDetails.preferences?.sizes?.jackets ||
-                              "Not set"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Shoes:</span>
-                          <span>
-                            {customerWithDetails.preferences?.sizes?.shoes ||
-                              "Not set"}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="font-medium mb-2">Preferred Colors</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {customerWithDetails.preferences?.colors?.map(
-                          (color) => (
-                            <Badge key={color} variant="secondary">
-                              {color}
-                            </Badge>
-                          )
-                        ) || (
-                          <span className="text-muted-foreground">
-                            No preferences set
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="font-medium mb-2">Preferred Categories</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {customerWithDetails.preferences?.categories?.map(
-                          (category) => (
-                            <Badge key={category} variant="secondary">
-                              {category}
-                            </Badge>
-                          )
-                        ) || (
-                          <span className="text-muted-foreground">
-                            No preferences set
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
               </Card>
             </TabsContent>
             <TabsContent value="notes" className="mt-4">
               <Card>
                 <CardHeader>
                   <CardTitle>Customer Notes</CardTitle>
-                  <CardDescription>
-                    Additional information and notes about the customer
-                  </CardDescription>
+                  <CardDescription>Coming soon...</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    {customerWithDetails.notes || "No notes available"}
-                  </p>
-                </CardContent>
               </Card>
             </TabsContent>
           </Tabs>

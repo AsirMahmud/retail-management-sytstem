@@ -125,32 +125,32 @@ class SaleViewSet(viewsets.ModelViewSet):
         today = timezone.now().date()
         start_of_month = today.replace(day=1)
         
-        # Today's sales with more detailed metrics
-        today_sales = Sale.objects.filter(
-            date__date=today,
-            status='completed'
+        # Today's sales with more detailed metrics using SaleItem
+        today_sales = SaleItem.objects.filter(
+            sale__date__date=today,
+            sale__status='completed'
         ).aggregate(
             total_sales=Sum('total'),
-            total_transactions=Count('id'),
-            total_profit=Sum(F('total') - F('subtotal')),
-            total_customers=Count('customer', distinct=True),
-            total_loss=Sum('total_loss'),
-            average_transaction_value=Avg('total'),
-            total_discount=Sum('discount')
+            total_transactions=Count('sale', distinct=True),
+            total_profit=Sum('profit'),
+            total_customers=Count('sale__customer', distinct=True),
+            total_loss=Sum('sale__total_loss'),
+            average_transaction_value=Avg('sale__total'),
+            total_discount=Sum('sale__discount')
         )
         
-        # Monthly sales with more detailed metrics
-        monthly_sales = Sale.objects.filter(
-            date__date__gte=start_of_month,
-            status='completed'
+        # Monthly sales with more detailed metrics using SaleItem
+        monthly_sales = SaleItem.objects.filter(
+            sale__date__date__gte=start_of_month,
+            sale__status='completed'
         ).aggregate(
             total_sales=Sum('total'),
-            total_transactions=Count('id'),
-            total_profit=Sum(F('total') - F('subtotal')),
-            total_customers=Count('customer', distinct=True),
-            total_loss=Sum('total_loss'),
-            average_transaction_value=Avg('total'),
-            total_discount=Sum('discount')
+            total_transactions=Count('sale', distinct=True),
+            total_profit=Sum('profit'),
+            total_customers=Count('sale__customer', distinct=True),
+            total_loss=Sum('sale__total_loss'),
+            average_transaction_value=Avg('sale__total'),
+            total_discount=Sum('sale__discount')
         )
 
         # Customer analytics
@@ -158,49 +158,49 @@ class SaleViewSet(viewsets.ModelViewSet):
             'new_customers_today': Customer.objects.filter(
                 created_at__date=today
             ).count(),
-            'active_customers_today': Sale.objects.filter(
-                date__date=today,
-                status='completed'
-            ).values('customer').distinct().count(),
+            'active_customers_today': SaleItem.objects.filter(
+                sale__date__date=today,
+                sale__status='completed'
+            ).values('sale__customer').distinct().count(),
             'customer_retention_rate': self._calculate_customer_retention_rate(),
-            'top_customers': Sale.objects.filter(
-                date__date__gte=start_of_month,
-                status='completed'
+            'top_customers': SaleItem.objects.filter(
+                sale__date__date__gte=start_of_month,
+                sale__status='completed'
             ).values(
-                'customer__first_name',
-                'customer__last_name',
-                'customer__phone'
+                'sale__customer__first_name',
+                'sale__customer__last_name',
+                'sale__customer__phone'
             ).annotate(
-                total_spent=Sum('total'),
-                visit_count=Count('id')
+                total_spent=Sum('sale__total'),
+                visit_count=Count('sale', distinct=True)
             ).order_by('-total_spent')[:5]
         }
 
         # Format customer names
         for customer in customer_analytics['top_customers']:
-            customer['customer__name'] = f"{customer['customer__first_name']} {customer['customer__last_name']}".strip()
-            del customer['customer__first_name']
-            del customer['customer__last_name']
+            customer['customer__name'] = f"{customer['sale__customer__first_name']} {customer['sale__customer__last_name']}".strip()
+            del customer['sale__customer__first_name']
+            del customer['sale__customer__last_name']
 
         # Payment method distribution
-        payment_method_distribution = Sale.objects.filter(
-            date__date__gte=start_of_month,
-            status='completed'
-        ).values('payment_method').annotate(
-            count=Count('id'),
-            total=Sum('total')
+        payment_method_distribution = SaleItem.objects.filter(
+            sale__date__date__gte=start_of_month,
+            sale__status='completed'
+        ).values('sale__payment_method').annotate(
+            count=Count('sale', distinct=True),
+            total=Sum('sale__total')
         ).order_by('-total')
 
         # Sales by hour distribution
         sales_by_hour = []
         for hour in range(24):
-            hour_sales = Sale.objects.filter(
-                date__date=today,
-                date__hour=hour,
-                status='completed'
+            hour_sales = SaleItem.objects.filter(
+                sale__date__date=today,
+                sale__date__hour=hour,
+                sale__status='completed'
             ).aggregate(
-                count=Count('id'),
-                total=Sum('total')
+                count=Count('sale', distinct=True),
+                total=Sum('sale__total')
             )
             sales_by_hour.append({
                 'hour': hour,
@@ -208,26 +208,6 @@ class SaleViewSet(viewsets.ModelViewSet):
                 'total': hour_sales['total'] or 0
             })
 
-        # Inventory stats
-        inventory_stats = {
-            'total_products': Product.objects.count(),
-            'active_products': Product.objects.filter(is_active=True).count(),
-            'low_stock_products': Product.objects.filter(stock_quantity__lte=F('minimum_stock')).count(),
-            'out_of_stock_products': Product.objects.filter(stock_quantity=0).count(),
-            'total_inventory_value': Product.objects.aggregate(
-                total=Sum(F('stock_quantity') * F('cost_price'))
-            )['total'] or 0
-        }
-        
-        # Stock movements
-        stock_movements = StockMovement.objects.filter(
-            created_at__date__gte=start_of_month
-        ).aggregate(
-            total_in=Sum('quantity', filter=Q(movement_type='IN')),
-            total_out=Sum('quantity', filter=Q(movement_type='OUT')),
-            total_adjustments=Sum('quantity', filter=Q(movement_type='ADJ'))
-        )
-        
         # Top selling products
         top_products = SaleItem.objects.filter(
             sale__date__date__gte=start_of_month,
@@ -237,7 +217,7 @@ class SaleViewSet(viewsets.ModelViewSet):
         ).annotate(
             total_quantity=Sum('quantity'),
             total_revenue=Sum('total'),
-            total_profit=Sum(F('total') - F('unit_price') * F('quantity'))
+            total_profit=Sum('profit')
         ).order_by('-total_quantity')[:5]
 
         # Sales trend data
@@ -251,15 +231,15 @@ class SaleViewSet(viewsets.ModelViewSet):
         else:
             start_date = today - timedelta(days=7)
 
-        sales_trend = Sale.objects.filter(
-            date__date__gte=start_date,
-            date__date__lte=today,
-            status='completed'
-        ).values('date__date').annotate(
-            sales=Sum('total'),
-            profit=Sum(F('total') - F('subtotal')),
-            orders=Count('id')
-        ).order_by('date__date')
+        sales_trend = SaleItem.objects.filter(
+            sale__date__date__gte=start_date,
+            sale__date__date__lte=today,
+            sale__status='completed'
+        ).values('sale__date__date').annotate(
+            sales=Sum('sale__total'),
+            profit=Sum('profit'),
+            orders=Count('sale', distinct=True)
+        ).order_by('sale__date__date')
 
         # Sales distribution by category
         sales_distribution = SaleItem.objects.filter(
@@ -269,7 +249,7 @@ class SaleViewSet(viewsets.ModelViewSet):
             'product__category__name'
         ).annotate(
             value=Sum('total'),
-            profit=Sum(F('total') - F('unit_price') * F('quantity'))
+            profit=Sum('profit')
         ).order_by('-value')
 
         # Category distribution
@@ -298,8 +278,6 @@ class SaleViewSet(viewsets.ModelViewSet):
             'customer_analytics': customer_analytics,
             'payment_method_distribution': list(payment_method_distribution),
             'sales_by_hour': sales_by_hour,
-            'inventory': inventory_stats,
-            'stock_movements': stock_movements,
             'top_products': list(top_products),
             'sales_trend': list(sales_trend),
             'sales_distribution': list(sales_distribution),

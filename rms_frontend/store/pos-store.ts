@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import { Customer, CreateCustomerData, createCustomer, searchCustomers } from '@/lib/api/customer';
+import { Customer, CreateCustomerData, createCustomer, searchCustomers, lookupCustomerByPhone } from '@/lib/api/customer';
 import { Product } from '@/types/inventory';
 import { PaymentMethod, SaleStatus } from '@/types/sales';
 import { createSale } from '@/lib/api/sales';
 import { Sale, SaleItem } from '@/types/sales';
+import { toast } from '@/hooks/use-toast';
 
 interface CartItem {
     id: number;
@@ -121,14 +122,34 @@ export const usePOSStore = create<POSState>((set, get) => ({
     handleAddNewCustomer: async () => {
         const { newCustomer } = get();
         try {
+            // Check if customer exists by phone
+            const existingCustomer = await lookupCustomerByPhone(newCustomer.phone);
+            if (existingCustomer) {
+                toast({
+                    title: "Customer Already Exists",
+                    description: "A customer with this phone number already exists.",
+                    variant: "destructive",
+                });
+                return;
+            }
+
             const createdCustomer = await createCustomer(newCustomer);
             set({
                 selectedCustomer: createdCustomer,
                 showNewCustomerForm: false,
                 newCustomer: initialNewCustomer
             });
+            toast({
+                title: "Success",
+                description: "Customer created successfully",
+            });
         } catch (error) {
             console.error('Error adding customer:', error);
+            toast({
+                title: "Error",
+                description: "Failed to create customer",
+                variant: "destructive",
+            });
         }
     },
 

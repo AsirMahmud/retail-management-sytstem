@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import Customer
+from apps.sales.models import Sale, SaleItem
+from django.db.models import Sum, Count, Max
 
 class PurchaseHistorySerializer(serializers.Serializer):
     id = serializers.IntegerField()
@@ -7,7 +9,6 @@ class PurchaseHistorySerializer(serializers.Serializer):
     total_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
     status = serializers.CharField()
     payment_method = serializers.CharField()
-    sales_person = serializers.CharField()
     items = serializers.ListField(
         child=serializers.DictField(
             child=serializers.CharField()
@@ -35,17 +36,51 @@ class CustomerSerializer(serializers.ModelSerializer):
         }
 
     def get_total_sales(self, obj):
-        # This will be implemented when we have the sales model
-        return 0.00
+        total = Sale.objects.filter(
+            customer=obj,
+            status='completed'
+        ).aggregate(total=Sum('total'))['total']
+        return total or 0.00
 
     def get_sales_count(self, obj):
-        # This will be implemented when we have the sales model
-        return 0
+        return Sale.objects.filter(
+            customer=obj,
+            status='completed'
+        ).count()
 
     def get_last_sale_date(self, obj):
-        # This will be implemented when we have the sales model
-        return None
+        last_sale = Sale.objects.filter(
+            customer=obj,
+            status='completed'
+        ).order_by('-date').first()
+        return last_sale.date if last_sale else None
 
     def get_purchase_history(self, obj):
-        # This will be implemented when we have the sales model
-        return [] 
+        sales = Sale.objects.filter(
+            customer=obj,
+            status='completed'
+        ).order_by('-date')
+        
+        history = []
+        for sale in sales:
+            items = []
+            for item in sale.items.all():
+                items.append({
+                    'product_name': item.product.name,
+                    'size': item.size,
+                    'color': item.color,
+                    'quantity': item.quantity,
+                    'unit_price': str(item.unit_price),
+                    'total': str(item.total)
+                })
+            
+            history.append({
+                'id': sale.id,
+                'date': sale.date,
+                'total_amount': str(sale.total),
+                'status': sale.status,
+                'payment_method': sale.payment_method,
+                'items': items
+            })
+        
+        return history 

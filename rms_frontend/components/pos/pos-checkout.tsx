@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState } from "react";
 import {
   ArrowRight,
   BadgePercent,
@@ -18,18 +18,41 @@ import {
   User,
   Wallet,
   X,
-} from "lucide-react"
+} from "lucide-react";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -38,11 +61,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Switch } from "@/components/ui/switch"
+} from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 
 // Sample product list for demo
 const productList = [
@@ -100,7 +123,7 @@ const productList = [
     sku: "SCK-DRS-BLK",
     image: "/placeholder.svg?height=80&width=80&text=Socks",
   },
-]
+];
 
 // Sample customer list
 const customerList = [
@@ -136,15 +159,43 @@ const customerList = [
     phone: "555-456-7890",
     loyaltyPoints: 150,
   },
-]
+];
 
 // Sample discount coupons
 const discountCoupons = [
-  { id: 1, code: "SUMMER25", type: "percentage", value: 25, minPurchase: 100, expiryDate: "2025-08-31" },
-  { id: 2, code: "WELCOME10", type: "percentage", value: 10, minPurchase: 0, expiryDate: "2025-12-31" },
-  { id: 3, code: "FREESHIP", type: "shipping", value: 0, minPurchase: 75, expiryDate: "2025-06-30" },
-  { id: 4, code: "SAVE20", type: "fixed", value: 20, minPurchase: 150, expiryDate: "2025-07-15" },
-]
+  {
+    id: 1,
+    code: "SUMMER25",
+    type: "percentage",
+    value: 25,
+    minPurchase: 100,
+    expiryDate: "2025-08-31",
+  },
+  {
+    id: 2,
+    code: "WELCOME10",
+    type: "percentage",
+    value: 10,
+    minPurchase: 0,
+    expiryDate: "2025-12-31",
+  },
+  {
+    id: 3,
+    code: "FREESHIP",
+    type: "shipping",
+    value: 0,
+    minPurchase: 75,
+    expiryDate: "2025-06-30",
+  },
+  {
+    id: 4,
+    code: "SAVE20",
+    type: "fixed",
+    value: 20,
+    minPurchase: 150,
+    expiryDate: "2025-07-15",
+  },
+];
 
 export function POSCheckout() {
   const [cartItems, setCartItems] = useState<any[]>([
@@ -168,68 +219,72 @@ export function POSCheckout() {
       sku: "TIE-SLK-BRG",
       image: "/placeholder.svg?height=80&width=80&text=Tie",
     },
-  ])
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
-  const [discountType, setDiscountType] = useState<"none" | "percentage" | "fixed" | "coupon">("none")
-  const [discountValue, setDiscountValue] = useState<number>(0)
-  const [couponCode, setCouponCode] = useState<string>("")
-  const [appliedCoupon, setAppliedCoupon] = useState<any>(null)
-  const [cashTendered, setCashTendered] = useState<string>("")
-  const [customerSearchQuery, setCustomerSearchQuery] = useState<string>("")
-  const [showNewCustomerForm, setShowNewCustomerForm] = useState<boolean>(false)
+  ]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [discountType, setDiscountType] = useState<
+    "none" | "percentage" | "fixed" | "coupon"
+  >("none");
+  const [discountValue, setDiscountValue] = useState<number>(0);
+  const [couponCode, setCouponCode] = useState<string>("");
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [cashTendered, setCashTendered] = useState<string>("");
+  const [customerSearchQuery, setCustomerSearchQuery] = useState<string>("");
+  const [showNewCustomerForm, setShowNewCustomerForm] =
+    useState<boolean>(false);
   const [newCustomer, setNewCustomer] = useState({
     name: "",
     email: "",
     phone: "",
-  })
+  });
 
   // Calculate cart totals
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const subtotal = cartItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
 
   // Calculate discount amount
-  let discountAmount = 0
+  let discountAmount = 0;
   if (discountType === "percentage") {
-    discountAmount = subtotal * (discountValue / 100)
+    discountAmount = subtotal * (discountValue / 100);
   } else if (discountType === "fixed") {
-    discountAmount = discountValue
+    discountAmount = discountValue;
   } else if (discountType === "coupon" && appliedCoupon) {
     if (appliedCoupon.type === "percentage") {
-      discountAmount = subtotal * (appliedCoupon.value / 100)
+      discountAmount = subtotal * (appliedCoupon.value / 100);
     } else if (appliedCoupon.type === "fixed") {
-      discountAmount = appliedCoupon.value
+      discountAmount = appliedCoupon.value;
     }
   }
 
-  const taxRate = 0.0825 // 8.25% tax rate
-  const discountedSubtotal = subtotal - discountAmount
-  const tax = discountedSubtotal * taxRate
-  const total = discountedSubtotal + tax
+  const discountedSubtotal = subtotal - discountAmount;
+  const total = discountedSubtotal;
 
   // Calculate change if paying with cash
-  const change = cashTendered ? Number.parseFloat(cashTendered) - total : 0
+  const change = cashTendered ? Number.parseFloat(cashTendered) - total : 0;
 
   const handleQuantityChange = (id: number, change: number) => {
     const updatedCart = cartItems.map((item) => {
       if (item.id === id) {
-        const newQuantity = item.quantity + change
-        return newQuantity > 0 ? { ...item, quantity: newQuantity } : item
+        const newQuantity = item.quantity + change;
+        return newQuantity > 0 ? { ...item, quantity: newQuantity } : item;
       }
-      return item
-    })
-    setCartItems(updatedCart)
-  }
+      return item;
+    });
+    setCartItems(updatedCart);
+  };
 
   const handleRemoveItem = (id: number) => {
-    setCartItems(cartItems.filter((item) => item.id !== id))
-  }
+    setCartItems(cartItems.filter((item) => item.id !== id));
+  };
 
   const handleAddProduct = (product: any) => {
     // Check if product already in cart
-    const existingItem = cartItems.find((item) => item.id === product.id)
+    const existingItem = cartItems.find((item) => item.id === product.id);
 
     if (existingItem) {
-      handleQuantityChange(product.id, 1)
+      handleQuantityChange(product.id, 1);
     } else {
       setCartItems([
         ...cartItems,
@@ -239,37 +294,41 @@ export function POSCheckout() {
           quantity: 1,
           image: product.image || "/placeholder.svg",
         },
-      ])
+      ]);
     }
 
-    setSearchQuery("")
-  }
+    setSearchQuery("");
+  };
 
   const handleApplyCoupon = () => {
-    const coupon = discountCoupons.find((c) => c.code === couponCode)
+    const coupon = discountCoupons.find((c) => c.code === couponCode);
     if (coupon) {
       if (coupon.minPurchase > subtotal) {
-        alert(`This coupon requires a minimum purchase of $${coupon.minPurchase.toFixed(2)}`)
-        return
+        alert(
+          `This coupon requires a minimum purchase of $${coupon.minPurchase.toFixed(
+            2
+          )}`
+        );
+        return;
       }
 
-      setAppliedCoupon(coupon)
-      setDiscountType("coupon")
-      setCouponCode("")
+      setAppliedCoupon(coupon);
+      setDiscountType("coupon");
+      setCouponCode("");
     } else {
-      alert("Invalid coupon code")
+      alert("Invalid coupon code");
     }
-  }
+  };
 
   const handleRemoveCoupon = () => {
-    setAppliedCoupon(null)
-    setDiscountType("none")
-  }
+    setAppliedCoupon(null);
+    setDiscountType("none");
+  };
 
   const handleAddNewCustomer = () => {
     if (!newCustomer.name || !newCustomer.email) {
-      alert("Name and email are required")
-      return
+      alert("Name and email are required");
+      return;
     }
 
     const initials = newCustomer.name
@@ -277,7 +336,7 @@ export function POSCheckout() {
       .map((name) => name[0])
       .join("")
       .toUpperCase()
-      .substring(0, 2)
+      .substring(0, 2);
 
     const newCustomerObj = {
       id: customerList.length + 1,
@@ -286,32 +345,36 @@ export function POSCheckout() {
       phone: newCustomer.phone,
       initials,
       loyaltyPoints: 0,
-    }
+    };
 
-    setSelectedCustomer(newCustomerObj)
-    setShowNewCustomerForm(false)
-    setNewCustomer({ name: "", email: "", phone: "" })
-  }
+    setSelectedCustomer(newCustomerObj);
+    setShowNewCustomerForm(false);
+    setNewCustomer({ name: "", email: "", phone: "" });
+  };
 
   const filteredProducts = productList.filter(
     (product) =>
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+      product.sku.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const filteredCustomers = customerList.filter(
     (customer) =>
       customer.name.toLowerCase().includes(customerSearchQuery.toLowerCase()) ||
-      customer.email.toLowerCase().includes(customerSearchQuery.toLowerCase()) ||
-      (customer.phone && customer.phone.includes(customerSearchQuery)),
-  )
+      customer.email
+        .toLowerCase()
+        .includes(customerSearchQuery.toLowerCase()) ||
+      (customer.phone && customer.phone.includes(customerSearchQuery))
+  );
 
   return (
     <div className="flex flex-col lg:flex-row min-h-[calc(100vh-3.5rem)] bg-[#F1F5F9]">
       {/* Left side - Product search & cart */}
       <div className="flex-1 p-4 lg:p-6 flex flex-col">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-[#1E3A8A] mb-2">Point of Sale</h1>
+          <h1 className="text-2xl font-bold text-[#1E3A8A] mb-2">
+            Point of Sale
+          </h1>
           <div className="flex gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -340,16 +403,24 @@ export function POSCheckout() {
                         </div>
                         <div className="flex-1">
                           <div className="font-medium">{product.name}</div>
-                          <div className="text-xs text-muted-foreground mt-1">SKU: {product.sku}</div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            SKU: {product.sku}
+                          </div>
                         </div>
                         <div className="text-right">
-                          <div className="font-medium">${product.price.toFixed(2)}</div>
-                          <div className="text-xs text-muted-foreground">{product.color}</div>
+                          <div className="font-medium">
+                            ${product.price.toFixed(2)}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {product.color}
+                          </div>
                         </div>
                       </button>
                     ))
                   ) : (
-                    <div className="p-3 text-center text-muted-foreground">No products found</div>
+                    <div className="p-3 text-center text-muted-foreground">
+                      No products found
+                    </div>
                   )}
                 </div>
               )}
@@ -392,8 +463,12 @@ export function POSCheckout() {
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1">
-                              <p className="text-sm font-medium">{customer.name}</p>
-                              <p className="text-xs text-muted-foreground">{customer.email}</p>
+                              <p className="text-sm font-medium">
+                                {customer.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {customer.email}
+                              </p>
                             </div>
                             {customer.loyaltyPoints > 0 && (
                               <Badge variant="outline" className="ml-auto">
@@ -402,9 +477,12 @@ export function POSCheckout() {
                             )}
                           </button>
                         ))}
-                        {customerSearchQuery && filteredCustomers.length === 0 && (
-                          <div className="p-2 text-center text-sm text-muted-foreground">No customers found</div>
-                        )}
+                        {customerSearchQuery &&
+                          filteredCustomers.length === 0 && (
+                            <div className="p-2 text-center text-sm text-muted-foreground">
+                              No customers found
+                            </div>
+                          )}
                       </ScrollArea>
                       <div className="pt-2 border-t">
                         <Button
@@ -422,7 +500,12 @@ export function POSCheckout() {
                         <Input
                           id="name"
                           value={newCustomer.name}
-                          onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                          onChange={(e) =>
+                            setNewCustomer({
+                              ...newCustomer,
+                              name: e.target.value,
+                            })
+                          }
                         />
                       </div>
                       <div className="space-y-2">
@@ -431,7 +514,12 @@ export function POSCheckout() {
                           id="email"
                           type="email"
                           value={newCustomer.email}
-                          onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
+                          onChange={(e) =>
+                            setNewCustomer({
+                              ...newCustomer,
+                              email: e.target.value,
+                            })
+                          }
                         />
                       </div>
                       <div className="space-y-2">
@@ -439,14 +527,26 @@ export function POSCheckout() {
                         <Input
                           id="phone"
                           value={newCustomer.phone}
-                          onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                          onChange={(e) =>
+                            setNewCustomer({
+                              ...newCustomer,
+                              phone: e.target.value,
+                            })
+                          }
                         />
                       </div>
                       <div className="flex gap-2 pt-2">
-                        <Button variant="outline" className="flex-1" onClick={() => setShowNewCustomerForm(false)}>
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          onClick={() => setShowNewCustomerForm(false)}
+                        >
                           Cancel
                         </Button>
-                        <Button className="flex-1 bg-[#1E3A8A] hover:bg-[#15296b]" onClick={handleAddNewCustomer}>
+                        <Button
+                          className="flex-1 bg-[#1E3A8A] hover:bg-[#15296b]"
+                          onClick={handleAddNewCustomer}
+                        >
                           Add Customer
                         </Button>
                       </div>
@@ -505,7 +605,9 @@ export function POSCheckout() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">${item.price.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">
+                        ${item.price.toFixed(2)}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center">
                           <Button
@@ -517,7 +619,9 @@ export function POSCheckout() {
                           >
                             <MinusCircle className="h-4 w-4" />
                           </Button>
-                          <span className="w-8 text-center">{item.quantity}</span>
+                          <span className="w-8 text-center">
+                            {item.quantity}
+                          </span>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -545,10 +649,15 @@ export function POSCheckout() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center h-32 text-muted-foreground">
+                    <TableCell
+                      colSpan={5}
+                      className="text-center h-32 text-muted-foreground"
+                    >
                       <ShoppingBag className="mx-auto h-8 w-8 mb-2 opacity-50" />
                       <p>No items in cart</p>
-                      <p className="text-xs mt-1">Search for products to add them to the transaction</p>
+                      <p className="text-xs mt-1">
+                        Search for products to add them to the transaction
+                      </p>
                     </TableCell>
                   </TableRow>
                 )}
@@ -576,7 +685,11 @@ export function POSCheckout() {
               {discountType === "none" ? (
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 text-[#FFC107]">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-[#FFC107]"
+                    >
                       <BadgePercent className="mr-1 h-4 w-4" />
                       Add Discount
                     </Button>
@@ -584,11 +697,16 @@ export function POSCheckout() {
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Apply Discount</DialogTitle>
-                      <DialogDescription>Choose a discount type and enter the value.</DialogDescription>
+                      <DialogDescription>
+                        Choose a discount type and enter the value.
+                      </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-4 py-4">
-                      <RadioGroup defaultValue="percentage" onValueChange={(value) => setDiscountType(value as any)}>
+                      <RadioGroup
+                        defaultValue="percentage"
+                        onValueChange={(value) => setDiscountType(value as any)}
+                      >
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="percentage" id="percentage" />
                           <Label htmlFor="percentage">Percentage (%)</Label>
@@ -605,7 +723,9 @@ export function POSCheckout() {
 
                       {discountType === "percentage" && (
                         <div className="space-y-2">
-                          <Label htmlFor="discount-value">Discount Percentage</Label>
+                          <Label htmlFor="discount-value">
+                            Discount Percentage
+                          </Label>
                           <div className="relative">
                             <Input
                               id="discount-value"
@@ -614,7 +734,9 @@ export function POSCheckout() {
                               max="100"
                               placeholder="0"
                               value={discountValue || ""}
-                              onChange={(e) => setDiscountValue(Number(e.target.value))}
+                              onChange={(e) =>
+                                setDiscountValue(Number(e.target.value))
+                              }
                             />
                             <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                               <Percent className="h-4 w-4 text-muted-foreground" />
@@ -625,7 +747,9 @@ export function POSCheckout() {
 
                       {discountType === "fixed" && (
                         <div className="space-y-2">
-                          <Label htmlFor="discount-value">Discount Amount</Label>
+                          <Label htmlFor="discount-value">
+                            Discount Amount
+                          </Label>
                           <div className="relative">
                             <Input
                               id="discount-value"
@@ -634,7 +758,9 @@ export function POSCheckout() {
                               max={subtotal}
                               placeholder="0.00"
                               value={discountValue || ""}
-                              onChange={(e) => setDiscountValue(Number(e.target.value))}
+                              onChange={(e) =>
+                                setDiscountValue(Number(e.target.value))
+                              }
                             />
                             <div className="absolute inset-y-0 left-0 flex items-center pl-3">
                               <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -651,15 +777,22 @@ export function POSCheckout() {
                               id="coupon-code"
                               placeholder="Enter coupon code"
                               value={couponCode}
-                              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                              onChange={(e) =>
+                                setCouponCode(e.target.value.toUpperCase())
+                              }
                               className="uppercase"
                             />
-                            <Button variant="outline" onClick={handleApplyCoupon} disabled={!couponCode}>
+                            <Button
+                              variant="outline"
+                              onClick={handleApplyCoupon}
+                              disabled={!couponCode}
+                            >
                               Apply
                             </Button>
                           </div>
                           <div className="text-xs text-muted-foreground mt-2">
-                            Available coupons: SUMMER25, WELCOME10, FREESHIP, SAVE20
+                            Available coupons: SUMMER25, WELCOME10, FREESHIP,
+                            SAVE20
                           </div>
                         </div>
                       )}
@@ -669,14 +802,17 @@ export function POSCheckout() {
                       <Button
                         variant="outline"
                         onClick={() => {
-                          setDiscountType("none")
-                          setDiscountValue(0)
-                          setCouponCode("")
+                          setDiscountType("none");
+                          setDiscountValue(0);
+                          setCouponCode("");
                         }}
                       >
                         Cancel
                       </Button>
-                      <Button className="bg-[#1E3A8A] hover:bg-[#15296b]" onClick={() => {}}>
+                      <Button
+                        className="bg-[#1E3A8A] hover:bg-[#15296b]"
+                        onClick={() => {}}
+                      >
                         Apply Discount
                       </Button>
                     </DialogFooter>
@@ -686,17 +822,20 @@ export function POSCheckout() {
                 <div className="flex items-center gap-2">
                   <Badge className="bg-[#FFC107] text-black">
                     {discountType === "percentage" && `${discountValue}% OFF`}
-                    {discountType === "fixed" && `$${discountValue.toFixed(2)} OFF`}
-                    {discountType === "coupon" && appliedCoupon && `${appliedCoupon.code}`}
+                    {discountType === "fixed" &&
+                      `$${discountValue.toFixed(2)} OFF`}
+                    {discountType === "coupon" &&
+                      appliedCoupon &&
+                      `${appliedCoupon.code}`}
                   </Badge>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6 rounded-full"
                     onClick={() => {
-                      setDiscountType("none")
-                      setDiscountValue(0)
-                      setAppliedCoupon(null)
+                      setDiscountType("none");
+                      setDiscountValue(0);
+                      setAppliedCoupon(null);
                     }}
                   >
                     <X className="h-3 w-3" />
@@ -725,8 +864,12 @@ export function POSCheckout() {
 
             {selectedCustomer && selectedCustomer.loyaltyPoints > 0 && (
               <div className="flex justify-between text-sm mt-2">
-                <span className="text-muted-foreground">Available Loyalty Points</span>
-                <span className="font-medium">{selectedCustomer.loyaltyPoints}</span>
+                <span className="text-muted-foreground">
+                  Available Loyalty Points
+                </span>
+                <span className="font-medium">
+                  {selectedCustomer.loyaltyPoints}
+                </span>
               </div>
             )}
           </div>
@@ -755,11 +898,19 @@ export function POSCheckout() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="col-span-2">
                         <Label htmlFor="cardNumber">Card Number</Label>
-                        <Input id="cardNumber" placeholder="**** **** **** ****" className="mt-1" />
+                        <Input
+                          id="cardNumber"
+                          placeholder="**** **** **** ****"
+                          className="mt-1"
+                        />
                       </div>
                       <div>
                         <Label htmlFor="expiry">Expiry Date</Label>
-                        <Input id="expiry" placeholder="MM/YY" className="mt-1" />
+                        <Input
+                          id="expiry"
+                          placeholder="MM/YY"
+                          className="mt-1"
+                        />
                       </div>
                       <div>
                         <Label htmlFor="cvv">CVV</Label>
@@ -768,7 +919,9 @@ export function POSCheckout() {
                     </div>
                     <div className="flex items-center space-x-2">
                       <Switch id="save-card" />
-                      <Label htmlFor="save-card">Save card for future transactions</Label>
+                      <Label htmlFor="save-card">
+                        Save card for future transactions
+                      </Label>
                     </div>
                   </CardContent>
                 </Card>
@@ -790,7 +943,11 @@ export function POSCheckout() {
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Change Due:</span>
-                      <span className={change > 0 ? "font-medium text-green-600" : ""}>
+                      <span
+                        className={
+                          change > 0 ? "font-medium text-green-600" : ""
+                        }
+                      >
                         ${change > 0 ? change.toFixed(2) : "0.00"}
                       </span>
                     </div>
@@ -820,14 +977,21 @@ export function POSCheckout() {
                         <SelectItem value="giftcard">Gift Card</SelectItem>
                         <SelectItem value="applepay">Apple Pay</SelectItem>
                         <SelectItem value="googlepay">Google Pay</SelectItem>
-                        <SelectItem value="loyaltypoints">Loyalty Points</SelectItem>
-                        <SelectItem value="storecredit">Store Credit</SelectItem>
+                        <SelectItem value="loyaltypoints">
+                          Loyalty Points
+                        </SelectItem>
+                        <SelectItem value="storecredit">
+                          Store Credit
+                        </SelectItem>
                       </SelectContent>
                     </Select>
 
                     <div className="space-y-2">
                       <Label htmlFor="reference">Reference Number</Label>
-                      <Input id="reference" placeholder="Enter reference number" />
+                      <Input
+                        id="reference"
+                        placeholder="Enter reference number"
+                      />
                     </div>
                   </CardContent>
                 </Card>
@@ -837,7 +1001,10 @@ export function POSCheckout() {
 
           {/* Checkout buttons */}
           <div className="space-y-3">
-            <Button className="w-full h-12 text-base bg-[#1E3A8A] hover:bg-[#15296b]" disabled={cartItems.length === 0}>
+            <Button
+              className="w-full h-12 text-base bg-[#1E3A8A] hover:bg-[#15296b]"
+              disabled={cartItems.length === 0}
+            >
               Complete Sale
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
@@ -856,12 +1023,14 @@ export function POSCheckout() {
             {selectedCustomer && (
               <div className="flex items-center space-x-2 pt-2">
                 <Switch id="add-loyalty" defaultChecked />
-                <Label htmlFor="add-loyalty">Add transaction to loyalty points</Label>
+                <Label htmlFor="add-loyalty">
+                  Add transaction to loyalty points
+                </Label>
               </div>
             )}
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

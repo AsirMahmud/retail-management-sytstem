@@ -1,6 +1,6 @@
-"use client"
+"use client";
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react";
 import {
   BadgePercent,
   CreditCard,
@@ -19,17 +19,34 @@ import {
   User,
   X,
   Zap,
-} from "lucide-react"
-import { useRouter } from "next/navigation"
+} from "lucide-react";
+import { useRouter } from "next/navigation";
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -38,13 +55,18 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Switch } from "@/components/ui/switch"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { useToast } from "@/hooks/use-toast"
+} from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 
 // Sample product list for demo
 const productList = [
@@ -108,7 +130,7 @@ const productList = [
     image: "/placeholder.svg?height=80&width=80&text=Socks",
     barcode: "1006",
   },
-]
+];
 
 // Sample customer list
 const customerList = [
@@ -144,29 +166,77 @@ const customerList = [
     phone: "555-456-7890",
     loyaltyPoints: 150,
   },
-]
+];
 
 // Sample discount coupons
 const discountCoupons = [
-  { id: 1, code: "SUMMER25", type: "percentage", value: 25, minPurchase: 100, expiryDate: "2025-08-31" },
-  { id: 2, code: "WELCOME10", type: "percentage", value: 10, minPurchase: 0, expiryDate: "2025-12-31" },
-  { id: 3, code: "FREESHIP", type: "shipping", value: 0, minPurchase: 75, expiryDate: "2025-06-30" },
-  { id: 4, code: "SAVE20", type: "fixed", value: 20, minPurchase: 150, expiryDate: "2025-07-15" },
-]
+  {
+    id: 1,
+    code: "SUMMER25",
+    type: "percentage",
+    value: 25,
+    minPurchase: 100,
+    expiryDate: "2025-08-31",
+  },
+  {
+    id: 2,
+    code: "WELCOME10",
+    type: "percentage",
+    value: 10,
+    minPurchase: 0,
+    expiryDate: "2025-12-31",
+  },
+  {
+    id: 3,
+    code: "FREESHIP",
+    type: "shipping",
+    value: 0,
+    minPurchase: 75,
+    expiryDate: "2025-06-30",
+  },
+  {
+    id: 4,
+    code: "SAVE20",
+    type: "fixed",
+    value: 20,
+    minPurchase: 150,
+    expiryDate: "2025-07-15",
+  },
+];
 
 // Quick action buttons for common products
 const quickItems = [
-  { id: 1, name: "Oxford Shirt", price: 89.99, image: "/placeholder.svg?height=50&width=50&text=Shirt" },
-  { id: 4, name: "Silk Tie", price: 59.99, image: "/placeholder.svg?height=50&width=50&text=Tie" },
-  { id: 5, name: "Leather Belt", price: 79.99, image: "/placeholder.svg?height=50&width=50&text=Belt" },
-  { id: 6, name: "Dress Socks", price: 19.99, image: "/placeholder.svg?height=50&width=50&text=Socks" },
-]
+  {
+    id: 1,
+    name: "Oxford Shirt",
+    price: 89.99,
+    image: "/placeholder.svg?height=50&width=50&text=Shirt",
+  },
+  {
+    id: 4,
+    name: "Silk Tie",
+    price: 59.99,
+    image: "/placeholder.svg?height=50&width=50&text=Tie",
+  },
+  {
+    id: 5,
+    name: "Leather Belt",
+    price: 79.99,
+    image: "/placeholder.svg?height=50&width=50&text=Belt",
+  },
+  {
+    id: 6,
+    name: "Dress Socks",
+    price: 19.99,
+    image: "/placeholder.svg?height=50&width=50&text=Socks",
+  },
+];
 
 export function EnhancedPOS() {
-  const router = useRouter()
-  const { toast } = useToast()
-  const searchInputRef = useRef<HTMLInputElement>(null)
-  const barcodeInputRef = useRef<HTMLInputElement>(null)
+  const router = useRouter();
+  const { toast } = useToast();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const barcodeInputRef = useRef<HTMLInputElement>(null);
 
   const [cartItems, setCartItems] = useState<any[]>([
     {
@@ -189,128 +259,133 @@ export function EnhancedPOS() {
       sku: "TIE-SLK-BRG",
       image: "/placeholder.svg?height=80&width=80&text=Tie",
     },
-  ])
-  const [searchQuery, setSearchQuery] = useState("")
-  const [barcodeInput, setBarcodeInput] = useState("")
-  const [selectedCustomer, setSelectedCustomer] = useState<any>(null)
-  const [discountType, setDiscountType] = useState<"none" | "percentage" | "fixed" | "coupon">("none")
-  const [discountValue, setDiscountValue] = useState<number>(0)
-  const [couponCode, setCouponCode] = useState<string>("")
-  const [appliedCoupon, setAppliedCoupon] = useState<any>(null)
-  const [cashTendered, setCashTendered] = useState<string>("")
-  const [customerSearchQuery, setCustomerSearchQuery] = useState<string>("")
-  const [showNewCustomerForm, setShowNewCustomerForm] = useState<boolean>(false)
+  ]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [barcodeInput, setBarcodeInput] = useState("");
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [discountType, setDiscountType] = useState<
+    "none" | "percentage" | "fixed" | "coupon"
+  >("none");
+  const [discountValue, setDiscountValue] = useState<number>(0);
+  const [couponCode, setCouponCode] = useState<string>("");
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [cashTendered, setCashTendered] = useState<string>("");
+  const [customerSearchQuery, setCustomerSearchQuery] = useState<string>("");
+  const [showNewCustomerForm, setShowNewCustomerForm] =
+    useState<boolean>(false);
   const [newCustomer, setNewCustomer] = useState({
     name: "",
     email: "",
     phone: "",
-  })
-  const [paymentMethod, setPaymentMethod] = useState("card")
-  const [isCheckoutDialogOpen, setIsCheckoutDialogOpen] = useState(false)
-  const [isQuickCustomerDialogOpen, setIsQuickCustomerDialogOpen] = useState(false)
+  });
+  const [paymentMethod, setPaymentMethod] = useState("card");
+  const [isCheckoutDialogOpen, setIsCheckoutDialogOpen] = useState(false);
+  const [isQuickCustomerDialogOpen, setIsQuickCustomerDialogOpen] =
+    useState(false);
   const [quickCustomerInfo, setQuickCustomerInfo] = useState({
     email: "",
     phone: "",
-  })
+  });
 
   // Calculate cart totals
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const subtotal = cartItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
 
   // Calculate discount amount
-  let discountAmount = 0
+  let discountAmount = 0;
   if (discountType === "percentage") {
-    discountAmount = subtotal * (discountValue / 100)
+    discountAmount = subtotal * (discountValue / 100);
   } else if (discountType === "fixed") {
-    discountAmount = discountValue
+    discountAmount = discountValue;
   } else if (discountType === "coupon" && appliedCoupon) {
     if (appliedCoupon.type === "percentage") {
-      discountAmount = subtotal * (appliedCoupon.value / 100)
+      discountAmount = subtotal * (appliedCoupon.value / 100);
     } else if (appliedCoupon.type === "fixed") {
-      discountAmount = appliedCoupon.value
+      discountAmount = appliedCoupon.value;
     }
   }
 
-  const taxRate = 0.0825 // 8.25% tax rate
-  const discountedSubtotal = subtotal - discountAmount
-  const tax = discountedSubtotal * taxRate
-  const total = discountedSubtotal + tax
+  const discountedSubtotal = subtotal - discountAmount;
+  const total = discountedSubtotal;
 
   // Calculate change if paying with cash
-  const change = cashTendered ? Number.parseFloat(cashTendered) - total : 0
+  const change = cashTendered ? Number.parseFloat(cashTendered) - total : 0;
 
   // Set up keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // F2 - Focus search
       if (e.key === "F2") {
-        e.preventDefault()
-        searchInputRef.current?.focus()
+        e.preventDefault();
+        searchInputRef.current?.focus();
       }
       // F3 - Focus barcode
       else if (e.key === "F3") {
-        e.preventDefault()
-        barcodeInputRef.current?.focus()
+        e.preventDefault();
+        barcodeInputRef.current?.focus();
       }
       // F4 - Quick checkout with card
       else if (e.key === "F4" && cartItems.length > 0) {
-        e.preventDefault()
-        setPaymentMethod("card")
-        setIsCheckoutDialogOpen(true)
+        e.preventDefault();
+        setPaymentMethod("card");
+        setIsCheckoutDialogOpen(true);
       }
       // F5 - Quick checkout with cash
       else if (e.key === "F5" && cartItems.length > 0) {
-        e.preventDefault()
-        setPaymentMethod("cash")
-        setIsCheckoutDialogOpen(true)
+        e.preventDefault();
+        setPaymentMethod("cash");
+        setIsCheckoutDialogOpen(true);
       }
       // Escape - Clear search
       else if (e.key === "Escape") {
-        setSearchQuery("")
-        setBarcodeInput("")
+        setSearchQuery("");
+        setBarcodeInput("");
       }
-    }
+    };
 
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [cartItems])
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [cartItems]);
 
   // Handle barcode scanning
   useEffect(() => {
     if (barcodeInput) {
-      const product = productList.find((p) => p.barcode === barcodeInput)
+      const product = productList.find((p) => p.barcode === barcodeInput);
       if (product) {
-        handleAddProduct(product)
+        handleAddProduct(product);
         toast({
           title: "Product Added",
           description: `${product.name} has been added to the cart.`,
           duration: 2000,
-        })
+        });
       }
-      setBarcodeInput("")
+      setBarcodeInput("");
     }
-  }, [barcodeInput])
+  }, [barcodeInput]);
 
   const handleQuantityChange = (id: number, change: number) => {
     const updatedCart = cartItems.map((item) => {
       if (item.id === id) {
-        const newQuantity = item.quantity + change
-        return newQuantity > 0 ? { ...item, quantity: newQuantity } : item
+        const newQuantity = item.quantity + change;
+        return newQuantity > 0 ? { ...item, quantity: newQuantity } : item;
       }
-      return item
-    })
-    setCartItems(updatedCart)
-  }
+      return item;
+    });
+    setCartItems(updatedCart);
+  };
 
   const handleRemoveItem = (id: number) => {
-    setCartItems(cartItems.filter((item) => item.id !== id))
-  }
+    setCartItems(cartItems.filter((item) => item.id !== id));
+  };
 
   const handleAddProduct = (product: any) => {
     // Check if product already in cart
-    const existingItem = cartItems.find((item) => item.id === product.id)
+    const existingItem = cartItems.find((item) => item.id === product.id);
 
     if (existingItem) {
-      handleQuantityChange(product.id, 1)
+      handleQuantityChange(product.id, 1);
     } else {
       setCartItems([
         ...cartItems,
@@ -320,44 +395,46 @@ export function EnhancedPOS() {
           quantity: 1,
           image: product.image || "/placeholder.svg",
         },
-      ])
+      ]);
     }
 
-    setSearchQuery("")
-  }
+    setSearchQuery("");
+  };
 
   const handleApplyCoupon = () => {
-    const coupon = discountCoupons.find((c) => c.code === couponCode)
+    const coupon = discountCoupons.find((c) => c.code === couponCode);
     if (coupon) {
       if (coupon.minPurchase > subtotal) {
         toast({
           title: "Invalid Coupon",
-          description: `This coupon requires a minimum purchase of $${coupon.minPurchase.toFixed(2)}`,
+          description: `This coupon requires a minimum purchase of $${coupon.minPurchase.toFixed(
+            2
+          )}`,
           variant: "destructive",
-        })
-        return
+        });
+        return;
       }
 
-      setAppliedCoupon(coupon)
-      setDiscountType("coupon")
-      setCouponCode("")
+      setAppliedCoupon(coupon);
+      setDiscountType("coupon");
+      setCouponCode("");
       toast({
         title: "Coupon Applied",
         description: `${coupon.code} has been applied to your order.`,
-      })
+      });
     } else {
       toast({
         title: "Invalid Coupon",
         description: "The coupon code you entered is invalid.",
         variant: "destructive",
-      })
+      });
     }
-  }
+  };
 
   const handleRemoveCoupon = () => {
-    setAppliedCoupon(null)
-    setDiscountType("none")
-  }
+    setAppliedCoupon(null);
+    setDiscountType("none");
+  };
 
   const handleAddNewCustomer = () => {
     if (!newCustomer.name || !newCustomer.email) {
@@ -365,8 +442,8 @@ export function EnhancedPOS() {
         title: "Missing Information",
         description: "Name and email are required.",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     const initials = newCustomer.name
@@ -374,7 +451,7 @@ export function EnhancedPOS() {
       .map((name) => name[0])
       .join("")
       .toUpperCase()
-      .substring(0, 2)
+      .substring(0, 2);
 
     const newCustomerObj = {
       id: customerList.length + 1,
@@ -383,42 +460,43 @@ export function EnhancedPOS() {
       phone: newCustomer.phone,
       initials,
       loyaltyPoints: 0,
-    }
+    };
 
-    setSelectedCustomer(newCustomerObj)
-    setShowNewCustomerForm(false)
-    setNewCustomer({ name: "", email: "", phone: "" })
+    setSelectedCustomer(newCustomerObj);
+    setShowNewCustomerForm(false);
+    setNewCustomer({ name: "", email: "", phone: "" });
     toast({
       title: "Customer Added",
       description: `${newCustomer.name} has been added as a customer.`,
-    })
-  }
+    });
+  };
 
   const handleQuickCustomerCreate = () => {
     // Check if customer already exists by email or phone
     const existingCustomer = customerList.find(
       (c) =>
-        (quickCustomerInfo.email && c.email.toLowerCase() === quickCustomerInfo.email.toLowerCase()) ||
-        (quickCustomerInfo.phone && c.phone === quickCustomerInfo.phone),
-    )
+        (quickCustomerInfo.email &&
+          c.email.toLowerCase() === quickCustomerInfo.email.toLowerCase()) ||
+        (quickCustomerInfo.phone && c.phone === quickCustomerInfo.phone)
+    );
 
     if (existingCustomer) {
-      setSelectedCustomer(existingCustomer)
-      setIsQuickCustomerDialogOpen(false)
+      setSelectedCustomer(existingCustomer);
+      setIsQuickCustomerDialogOpen(false);
       toast({
         title: "Customer Found",
         description: `${existingCustomer.name} has been added to this transaction.`,
-      })
-      return
+      });
+      return;
     }
 
     // Create a temporary customer with just email/phone
     // A proper name will be requested after checkout
     const tempName = quickCustomerInfo.email
       ? quickCustomerInfo.email.split("@")[0]
-      : `Customer-${Math.floor(Math.random() * 10000)}`
+      : `Customer-${Math.floor(Math.random() * 10000)}`;
 
-    const initials = tempName.substring(0, 2).toUpperCase()
+    const initials = tempName.substring(0, 2).toUpperCase();
 
     const newCustomerObj = {
       id: customerList.length + 1,
@@ -428,21 +506,21 @@ export function EnhancedPOS() {
       initials,
       loyaltyPoints: 0,
       isTemporary: true,
-    }
+    };
 
-    setSelectedCustomer(newCustomerObj)
-    setIsQuickCustomerDialogOpen(false)
+    setSelectedCustomer(newCustomerObj);
+    setIsQuickCustomerDialogOpen(false);
     toast({
       title: "Customer Created",
       description: "A new customer has been created for this transaction.",
-    })
-  }
+    });
+  };
 
   const handleCompleteSale = () => {
     // If no customer is selected, prompt to add one
     if (!selectedCustomer && total > 50) {
-      setIsQuickCustomerDialogOpen(true)
-      return
+      setIsQuickCustomerDialogOpen(true);
+      return;
     }
 
     // Create a record of the sale
@@ -466,62 +544,66 @@ export function EnhancedPOS() {
       })),
       subtotal,
       discount: discountAmount,
-      tax,
+      tax: 0,
       total,
       paymentMethod,
       cashTendered: paymentMethod === "cash" ? Number(cashTendered) : null,
       change: paymentMethod === "cash" ? change : null,
-    }
+    };
 
     // In a real app, you would save this to your backend
-    console.log("Sale completed:", saleRecord)
+    console.log("Sale completed:", saleRecord);
 
     // If the customer is temporary, we would update their info in a real app
     if (selectedCustomer?.isTemporary) {
       // In a real app, you would update the customer record
-      console.log("Temporary customer to be updated:", selectedCustomer)
+      console.log("Temporary customer to be updated:", selectedCustomer);
     }
 
     toast({
       title: "Sale Complete",
       description: `Transaction of $${total.toFixed(2)} has been processed.`,
-    })
+    });
 
     // If we have a customer, we could navigate to their details
     if (selectedCustomer) {
       // Add loyalty points based on purchase
-      const loyaltyPointsEarned = Math.floor(total)
-      console.log(`${loyaltyPointsEarned} loyalty points earned for customer ${selectedCustomer.id}`)
+      const loyaltyPointsEarned = Math.floor(total);
+      console.log(
+        `${loyaltyPointsEarned} loyalty points earned for customer ${selectedCustomer.id}`
+      );
     }
 
-    setCartItems([])
-    setDiscountType("none")
-    setDiscountValue(0)
-    setAppliedCoupon(null)
-    setCashTendered("")
-    setIsCheckoutDialogOpen(false)
-  }
+    setCartItems([]);
+    setDiscountType("none");
+    setDiscountValue(0);
+    setAppliedCoupon(null);
+    setCashTendered("");
+    setIsCheckoutDialogOpen(false);
+  };
 
   const handleQuickCheckout = () => {
-    setIsCheckoutDialogOpen(true)
-  }
+    setIsCheckoutDialogOpen(true);
+  };
 
   const handleViewCustomer = (customerId: number) => {
-    router.push(`/customers/${customerId}`)
-  }
+    router.push(`/customers/${customerId}`);
+  };
 
   const filteredProducts = productList.filter(
     (product) =>
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+      product.sku.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const filteredCustomers = customerList.filter(
     (customer) =>
       customer.name.toLowerCase().includes(customerSearchQuery.toLowerCase()) ||
-      customer.email.toLowerCase().includes(customerSearchQuery.toLowerCase()) ||
-      (customer.phone && customer.phone.includes(customerSearchQuery)),
-  )
+      customer.email
+        .toLowerCase()
+        .includes(customerSearchQuery.toLowerCase()) ||
+      (customer.phone && customer.phone.includes(customerSearchQuery))
+  );
 
   return (
     <div className="flex flex-col lg:flex-row min-h-[calc(100vh-10rem)] bg-[#F1F5F9] rounded-lg overflow-hidden">
@@ -556,16 +638,24 @@ export function EnhancedPOS() {
                       </div>
                       <div className="flex-1">
                         <div className="font-medium">{product.name}</div>
-                        <div className="text-xs text-muted-foreground mt-1">SKU: {product.sku}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          SKU: {product.sku}
+                        </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-medium">${product.price.toFixed(2)}</div>
-                        <div className="text-xs text-muted-foreground">{product.color}</div>
+                        <div className="font-medium">
+                          ${product.price.toFixed(2)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {product.color}
+                        </div>
                       </div>
                     </button>
                   ))
                 ) : (
-                  <div className="p-3 text-center text-muted-foreground">No products found</div>
+                  <div className="p-3 text-center text-muted-foreground">
+                    No products found
+                  </div>
                 )}
               </div>
             )}
@@ -583,7 +673,10 @@ export function EnhancedPOS() {
 
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="flex gap-2 whitespace-nowrap">
+              <Button
+                variant="outline"
+                className="flex gap-2 whitespace-nowrap"
+              >
                 <User className="h-4 w-4" />
                 {selectedCustomer ? selectedCustomer.name : "Select Customer"}
               </Button>
@@ -618,8 +711,12 @@ export function EnhancedPOS() {
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1">
-                            <p className="text-sm font-medium">{customer.name}</p>
-                            <p className="text-xs text-muted-foreground">{customer.email}</p>
+                            <p className="text-sm font-medium">
+                              {customer.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {customer.email}
+                            </p>
                           </div>
                           {customer.loyaltyPoints > 0 && (
                             <Badge variant="outline" className="ml-auto">
@@ -628,9 +725,12 @@ export function EnhancedPOS() {
                           )}
                         </button>
                       ))}
-                      {customerSearchQuery && filteredCustomers.length === 0 && (
-                        <div className="p-2 text-center text-sm text-muted-foreground">No customers found</div>
-                      )}
+                      {customerSearchQuery &&
+                        filteredCustomers.length === 0 && (
+                          <div className="p-2 text-center text-sm text-muted-foreground">
+                            No customers found
+                          </div>
+                        )}
                     </ScrollArea>
                     <div className="pt-2 border-t">
                       <Button
@@ -648,7 +748,12 @@ export function EnhancedPOS() {
                       <Input
                         id="name"
                         value={newCustomer.name}
-                        onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                        onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            name: e.target.value,
+                          })
+                        }
                       />
                     </div>
                     <div className="space-y-2">
@@ -657,7 +762,12 @@ export function EnhancedPOS() {
                         id="email"
                         type="email"
                         value={newCustomer.email}
-                        onChange={(e) => setNewCustomer({ ...newCustomer, email: e.target.value })}
+                        onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            email: e.target.value,
+                          })
+                        }
                       />
                     </div>
                     <div className="space-y-2">
@@ -665,14 +775,26 @@ export function EnhancedPOS() {
                       <Input
                         id="phone"
                         value={newCustomer.phone}
-                        onChange={(e) => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                        onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            phone: e.target.value,
+                          })
+                        }
                       />
                     </div>
                     <div className="flex gap-2 pt-2">
-                      <Button variant="outline" className="flex-1" onClick={() => setShowNewCustomerForm(false)}>
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => setShowNewCustomerForm(false)}
+                      >
                         Cancel
                       </Button>
-                      <Button className="flex-1 bg-[#1E3A8A] hover:bg-[#15296b]" onClick={handleAddNewCustomer}>
+                      <Button
+                        className="flex-1 bg-[#1E3A8A] hover:bg-[#15296b]"
+                        onClick={handleAddNewCustomer}
+                      >
                         Add Customer
                       </Button>
                     </div>
@@ -692,7 +814,11 @@ export function EnhancedPOS() {
                   <Button
                     variant="outline"
                     className="h-auto py-2 flex flex-col items-center justify-center"
-                    onClick={() => handleAddProduct(productList.find((p) => p.id === item.id))}
+                    onClick={() =>
+                      handleAddProduct(
+                        productList.find((p) => p.id === item.id)
+                      )
+                    }
                   >
                     <img
                       src={item.image || "/placeholder.svg"}
@@ -771,7 +897,9 @@ export function EnhancedPOS() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">${item.price.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">
+                        ${item.price.toFixed(2)}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center">
                           <Button
@@ -783,7 +911,9 @@ export function EnhancedPOS() {
                           >
                             <MinusCircle className="h-4 w-4" />
                           </Button>
-                          <span className="w-8 text-center">{item.quantity}</span>
+                          <span className="w-8 text-center">
+                            {item.quantity}
+                          </span>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -811,10 +941,15 @@ export function EnhancedPOS() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center h-32 text-muted-foreground">
+                    <TableCell
+                      colSpan={5}
+                      className="text-center h-32 text-muted-foreground"
+                    >
                       <ShoppingBag className="mx-auto h-8 w-8 mb-2 opacity-50" />
                       <p>No items in cart</p>
-                      <p className="text-xs mt-1">Search for products to add them to the transaction</p>
+                      <p className="text-xs mt-1">
+                        Search for products to add them to the transaction
+                      </p>
                     </TableCell>
                   </TableRow>
                 )}
@@ -832,8 +967,8 @@ export function EnhancedPOS() {
                   <Button
                     className="bg-[#1E3A8A] hover:bg-[#15296b] h-12"
                     onClick={() => {
-                      setPaymentMethod("card")
-                      handleQuickCheckout()
+                      setPaymentMethod("card");
+                      handleQuickCheckout();
                     }}
                   >
                     <CreditCard className="mr-2 h-5 w-5" />
@@ -853,8 +988,8 @@ export function EnhancedPOS() {
                     variant="outline"
                     className="h-12"
                     onClick={() => {
-                      setPaymentMethod("cash")
-                      handleQuickCheckout()
+                      setPaymentMethod("cash");
+                      handleQuickCheckout();
                     }}
                   >
                     <DollarSign className="mr-2 h-5 w-5" />
@@ -888,7 +1023,11 @@ export function EnhancedPOS() {
               {discountType === "none" ? (
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-8 text-[#FFC107]">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-[#FFC107]"
+                    >
                       <BadgePercent className="mr-1 h-4 w-4" />
                       Add Discount
                     </Button>
@@ -896,11 +1035,16 @@ export function EnhancedPOS() {
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Apply Discount</DialogTitle>
-                      <DialogDescription>Choose a discount type and enter the value.</DialogDescription>
+                      <DialogDescription>
+                        Choose a discount type and enter the value.
+                      </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-4 py-4">
-                      <RadioGroup defaultValue="percentage" onValueChange={(value) => setDiscountType(value as any)}>
+                      <RadioGroup
+                        defaultValue="percentage"
+                        onValueChange={(value) => setDiscountType(value as any)}
+                      >
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="percentage" id="percentage" />
                           <Label htmlFor="percentage">Percentage (%)</Label>
@@ -917,7 +1061,9 @@ export function EnhancedPOS() {
 
                       {discountType === "percentage" && (
                         <div className="space-y-2">
-                          <Label htmlFor="discount-value">Discount Percentage</Label>
+                          <Label htmlFor="discount-value">
+                            Discount Percentage
+                          </Label>
                           <div className="relative">
                             <Input
                               id="discount-value"
@@ -926,7 +1072,9 @@ export function EnhancedPOS() {
                               max="100"
                               placeholder="0"
                               value={discountValue || ""}
-                              onChange={(e) => setDiscountValue(Number(e.target.value))}
+                              onChange={(e) =>
+                                setDiscountValue(Number(e.target.value))
+                              }
                             />
                             <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                               <Percent className="h-4 w-4 text-muted-foreground" />
@@ -937,7 +1085,9 @@ export function EnhancedPOS() {
 
                       {discountType === "fixed" && (
                         <div className="space-y-2">
-                          <Label htmlFor="discount-value">Discount Amount</Label>
+                          <Label htmlFor="discount-value">
+                            Discount Amount
+                          </Label>
                           <div className="relative">
                             <Input
                               id="discount-value"
@@ -946,7 +1096,9 @@ export function EnhancedPOS() {
                               max={subtotal}
                               placeholder="0.00"
                               value={discountValue || ""}
-                              onChange={(e) => setDiscountValue(Number(e.target.value))}
+                              onChange={(e) =>
+                                setDiscountValue(Number(e.target.value))
+                              }
                             />
                             <div className="absolute inset-y-0 left-0 flex items-center pl-3">
                               <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -963,15 +1115,22 @@ export function EnhancedPOS() {
                               id="coupon-code"
                               placeholder="Enter coupon code"
                               value={couponCode}
-                              onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                              onChange={(e) =>
+                                setCouponCode(e.target.value.toUpperCase())
+                              }
                               className="uppercase"
                             />
-                            <Button variant="outline" onClick={handleApplyCoupon} disabled={!couponCode}>
+                            <Button
+                              variant="outline"
+                              onClick={handleApplyCoupon}
+                              disabled={!couponCode}
+                            >
                               Apply
                             </Button>
                           </div>
                           <div className="text-xs text-muted-foreground mt-2">
-                            Available coupons: SUMMER25, WELCOME10, FREESHIP, SAVE20
+                            Available coupons: SUMMER25, WELCOME10, FREESHIP,
+                            SAVE20
                           </div>
                         </div>
                       )}
@@ -981,14 +1140,17 @@ export function EnhancedPOS() {
                       <Button
                         variant="outline"
                         onClick={() => {
-                          setDiscountType("none")
-                          setDiscountValue(0)
-                          setCouponCode("")
+                          setDiscountType("none");
+                          setDiscountValue(0);
+                          setCouponCode("");
                         }}
                       >
                         Cancel
                       </Button>
-                      <Button className="bg-[#1E3A8A] hover:bg-[#15296b]" onClick={() => {}}>
+                      <Button
+                        className="bg-[#1E3A8A] hover:bg-[#15296b]"
+                        onClick={() => {}}
+                      >
                         Apply Discount
                       </Button>
                     </DialogFooter>
@@ -998,17 +1160,20 @@ export function EnhancedPOS() {
                 <div className="flex items-center gap-2">
                   <Badge className="bg-[#FFC107] text-black">
                     {discountType === "percentage" && `${discountValue}% OFF`}
-                    {discountType === "fixed" && `$${discountValue.toFixed(2)} OFF`}
-                    {discountType === "coupon" && appliedCoupon && `${appliedCoupon.code}`}
+                    {discountType === "fixed" &&
+                      `$${discountValue.toFixed(2)} OFF`}
+                    {discountType === "coupon" &&
+                      appliedCoupon &&
+                      `${appliedCoupon.code}`}
                   </Badge>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6 rounded-full"
                     onClick={() => {
-                      setDiscountType("none")
-                      setDiscountValue(0)
-                      setAppliedCoupon(null)
+                      setDiscountType("none");
+                      setDiscountValue(0);
+                      setAppliedCoupon(null);
                     }}
                   >
                     <X className="h-3 w-3" />
@@ -1025,8 +1190,8 @@ export function EnhancedPOS() {
             )}
 
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Tax (8.25%)</span>
-              <span>${tax.toFixed(2)}</span>
+              <span className="text-muted-foreground">Tax</span>
+              <span>$0.00</span>
             </div>
 
             <Separator className="my-2" />
@@ -1037,8 +1202,12 @@ export function EnhancedPOS() {
 
             {selectedCustomer && selectedCustomer.loyaltyPoints > 0 && (
               <div className="flex justify-between text-sm mt-2">
-                <span className="text-muted-foreground">Available Loyalty Points</span>
-                <span className="font-medium">{selectedCustomer.loyaltyPoints}</span>
+                <span className="text-muted-foreground">
+                  Available Loyalty Points
+                </span>
+                <span className="font-medium">
+                  {selectedCustomer.loyaltyPoints}
+                </span>
               </div>
             )}
           </div>
@@ -1103,7 +1272,10 @@ export function EnhancedPOS() {
       </div>
 
       {/* Checkout Dialog */}
-      <Dialog open={isCheckoutDialogOpen} onOpenChange={setIsCheckoutDialogOpen}>
+      <Dialog
+        open={isCheckoutDialogOpen}
+        onOpenChange={setIsCheckoutDialogOpen}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Complete Payment</DialogTitle>
@@ -1119,7 +1291,11 @@ export function EnhancedPOS() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <Label htmlFor="cardNumber">Card Number</Label>
-                  <Input id="cardNumber" placeholder="**** **** **** ****" className="mt-1" />
+                  <Input
+                    id="cardNumber"
+                    placeholder="**** **** **** ****"
+                    className="mt-1"
+                  />
                 </div>
                 <div>
                   <Label htmlFor="expiry">Expiry Date</Label>
@@ -1147,13 +1323,20 @@ export function EnhancedPOS() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Change Due:</span>
-                <span className={change > 0 ? "font-medium text-green-600" : ""}>
+                <span
+                  className={change > 0 ? "font-medium text-green-600" : ""}
+                >
                   ${change > 0 ? change.toFixed(2) : "0.00"}
                 </span>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {[20, 50, 100].map((amount) => (
-                  <Button key={amount} variant="outline" size="sm" onClick={() => setCashTendered(amount.toString())}>
+                  <Button
+                    key={amount}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCashTendered(amount.toString())}
+                  >
                     ${amount}
                   </Button>
                 ))}
@@ -1162,13 +1345,19 @@ export function EnhancedPOS() {
           )}
 
           <DialogFooter className="sm:justify-between">
-            <Button variant="outline" onClick={() => setIsCheckoutDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsCheckoutDialogOpen(false)}
+            >
               Cancel
             </Button>
             <Button
               className="bg-[#1E3A8A] hover:bg-[#15296b]"
               onClick={handleCompleteSale}
-              disabled={paymentMethod === "cash" && (cashTendered === "" || Number(cashTendered) < total)}
+              disabled={
+                paymentMethod === "cash" &&
+                (cashTendered === "" || Number(cashTendered) < total)
+              }
             >
               Complete Sale
             </Button>
@@ -1177,12 +1366,16 @@ export function EnhancedPOS() {
       </Dialog>
 
       {/* Quick Customer Creation Dialog */}
-      <Dialog open={isQuickCustomerDialogOpen} onOpenChange={setIsQuickCustomerDialogOpen}>
+      <Dialog
+        open={isQuickCustomerDialogOpen}
+        onOpenChange={setIsQuickCustomerDialogOpen}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Add Customer Information</DialogTitle>
             <DialogDescription>
-              Add customer details to track this purchase and enable loyalty benefits.
+              Add customer details to track this purchase and enable loyalty
+              benefits.
             </DialogDescription>
           </DialogHeader>
 
@@ -1196,7 +1389,12 @@ export function EnhancedPOS() {
                   type="email"
                   placeholder="customer@example.com"
                   value={quickCustomerInfo.email}
-                  onChange={(e) => setQuickCustomerInfo({ ...quickCustomerInfo, email: e.target.value })}
+                  onChange={(e) =>
+                    setQuickCustomerInfo({
+                      ...quickCustomerInfo,
+                      email: e.target.value,
+                    })
+                  }
                 />
               </div>
             </div>
@@ -1209,7 +1407,12 @@ export function EnhancedPOS() {
                   id="quick-phone"
                   placeholder="(555) 123-4567"
                   value={quickCustomerInfo.phone}
-                  onChange={(e) => setQuickCustomerInfo({ ...quickCustomerInfo, phone: e.target.value })}
+                  onChange={(e) =>
+                    setQuickCustomerInfo({
+                      ...quickCustomerInfo,
+                      phone: e.target.value,
+                    })
+                  }
                 />
               </div>
             </div>
@@ -1217,7 +1420,8 @@ export function EnhancedPOS() {
             <div className="text-sm text-muted-foreground mt-2">
               <p>Enter at least one contact method to continue.</p>
               <p className="mt-1">
-                If this customer already exists in our system, their information will be automatically retrieved.
+                If this customer already exists in our system, their information
+                will be automatically retrieved.
               </p>
             </div>
           </div>
@@ -1226,8 +1430,8 @@ export function EnhancedPOS() {
             <Button
               variant="outline"
               onClick={() => {
-                setIsQuickCustomerDialogOpen(false)
-                setIsCheckoutDialogOpen(true)
+                setIsQuickCustomerDialogOpen(false);
+                setIsCheckoutDialogOpen(true);
               }}
             >
               Skip
@@ -1243,5 +1447,5 @@ export function EnhancedPOS() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

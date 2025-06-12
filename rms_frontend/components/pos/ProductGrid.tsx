@@ -124,12 +124,34 @@ export default function ProductGrid({
   };
 
   const getCurrentVariationStock = (product: Product): number => {
-    const size =
-      selectedSizes[product.id] ||
-      getUniqueValues(product.variations, "size")[0];
-    const color =
-      selectedColors[product.id] ||
-      getUniqueValues(product.variations, "color")[0];
+    // If no size or color is selected, return total stock across all variations
+    if (!selectedSizes[product.id] && !selectedColors[product.id]) {
+      return (product.variations || []).reduce((total, v) => {
+        return v.is_active ? total + v.stock : total;
+      }, 0);
+    }
+
+    // If only size is selected, return sum of stock for that size across all colors
+    if (selectedSizes[product.id] && !selectedColors[product.id]) {
+      return (product.variations || []).reduce((total, v) => {
+        return v.is_active && v.size === selectedSizes[product.id]
+          ? total + v.stock
+          : total;
+      }, 0);
+    }
+
+    // If only color is selected, return sum of stock for that color across all sizes
+    if (!selectedSizes[product.id] && selectedColors[product.id]) {
+      return (product.variations || []).reduce((total, v) => {
+        return v.is_active && v.color === selectedColors[product.id]
+          ? total + v.stock
+          : total;
+      }, 0);
+    }
+
+    // If both size and color are selected, return stock for that specific variation
+    const size = selectedSizes[product.id];
+    const color = selectedColors[product.id];
     return getVariationStock(product, size, color);
   };
 
@@ -214,11 +236,16 @@ export default function ProductGrid({
 
               {/* Size selection */}
               {sizes.length > 0 && (
-                <div className="mb-1.5">
-                  <p className="text-[10px] text-muted-foreground mb-0.5">
-                    Size:
+                <div className="mb-2">
+                  <p className="text-xs font-medium mb-1.5 flex items-center gap-1">
+                    <span>Select Size:</span>
+                    {!selectedSizes[product.id] && (
+                      <span className="text-red-500 text-[10px]">
+                        (Required)
+                      </span>
+                    )}
                   </p>
-                  <div className="flex flex-wrap gap-0.5">
+                  <div className="flex flex-wrap gap-1">
                     {sizes.map((size) => (
                       <Badge
                         key={size}
@@ -227,7 +254,11 @@ export default function ProductGrid({
                             ? "default"
                             : "outline"
                         }
-                        className="cursor-pointer text-[10px] h-5"
+                        className={`cursor-pointer text-xs h-6 px-2 transition-all ${
+                          selectedSizes[product.id] === size
+                            ? "bg-blue-600 hover:bg-blue-700"
+                            : "hover:bg-gray-100"
+                        }`}
                         onClick={() => {
                           setSelectedSizes({
                             ...selectedSizes,
@@ -244,20 +275,24 @@ export default function ProductGrid({
 
               {/* Color selection */}
               {colors.length > 0 && (
-                <div className="mb-1.5">
-                  <p className="text-[10px] text-muted-foreground mb-0.5">
-                    Color:
+                <div className="mb-2">
+                  <p className="text-xs font-medium mb-1.5 flex items-center gap-1">
+                    <span>Select Color:</span>
+                    {!selectedColors[product.id] && (
+                      <span className="text-red-500 text-[10px]">
+                        (Required)
+                      </span>
+                    )}
                   </p>
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap gap-2">
                     {colors.map((color) => (
                       <button
                         key={color}
-                        className={`h-4 w-4 rounded-full border ${
+                        className={`group relative flex items-center gap-1.5 px-2 py-1 rounded-md border transition-all ${
                           selectedColors[product.id] === color
-                            ? "border-blue-600 ring-1 ring-blue-200"
-                            : "border-gray-300"
+                            ? "border-blue-600 bg-blue-50"
+                            : "border-gray-200 hover:border-gray-300"
                         }`}
-                        style={{ backgroundColor: getColorValue(color) }}
                         onClick={() => {
                           setSelectedColors({
                             ...selectedColors,
@@ -266,7 +301,17 @@ export default function ProductGrid({
                         }}
                         title={color}
                         aria-label={`Select color ${color}`}
-                      />
+                      >
+                        <div
+                          className={`h-4 w-4 rounded-full border transition-all ${
+                            selectedColors[product.id] === color
+                              ? "border-blue-600 ring-2 ring-blue-200"
+                              : "border-gray-300 group-hover:border-gray-400"
+                          }`}
+                          style={{ backgroundColor: getColorValue(color) }}
+                        />
+                        <span className="text-xs text-gray-700">{color}</span>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -290,8 +335,18 @@ export default function ProductGrid({
 
               {/* Add to cart button */}
               <Button
-                className="w-full mt-auto h-7 text-xs"
-                disabled={currentStock === 0}
+                className={`w-full mt-auto h-8 text-xs transition-all ${
+                  currentStock === 0
+                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : !selectedSizes[product.id] || !selectedColors[product.id]
+                    ? "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
+                disabled={
+                  currentStock === 0 ||
+                  !selectedSizes[product.id] ||
+                  !selectedColors[product.id]
+                }
                 onClick={() => {
                   const size = selectedSizes[product.id] || sizes[0];
                   const color = selectedColors[product.id] || colors[0];
@@ -299,7 +354,11 @@ export default function ProductGrid({
                 }}
               >
                 <Plus className="h-3 w-3 mr-1" />
-                {currentStock === 0 ? "Out of Stock" : "Add to Cart"}
+                {currentStock === 0
+                  ? "Out of Stock"
+                  : !selectedSizes[product.id] || !selectedColors[product.id]
+                  ? "Select Size & Color"
+                  : "Add to Cart"}
               </Button>
             </CardContent>
           </Card>

@@ -56,10 +56,6 @@ const mainNavItems = [
     title: "Customers",
     icon: Users,
     href: "/customers",
-    subItems: [
-      { title: "All Customers", href: "/customers" },
-      { title: "Add Customer", href: "/customers/add" },
-    ],
   },
   {
     title: "Inventory",

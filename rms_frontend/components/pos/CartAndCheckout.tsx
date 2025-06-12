@@ -98,7 +98,6 @@ export default function CartAndCheckout() {
     return sum + itemTotal;
   }, 0);
 
-  const taxRate = 0.1; // 10% tax rate
   let discountedSubtotal = subtotal;
 
   // Apply cart-wide discount if any
@@ -110,9 +109,9 @@ export default function CartAndCheckout() {
     }
   }
 
-  const tax = discountedSubtotal * taxRate;
-  const total = discountedSubtotal + tax;
-  const changeDue = cashAmount ? Number.parseFloat(cashAmount) - total : 0;
+  const changeDue = cashAmount
+    ? Number.parseFloat(cashAmount) - discountedSubtotal
+    : 0;
 
   const handleSplitPaymentChange = (
     index: number,
@@ -554,13 +553,9 @@ export default function CartAndCheckout() {
                             </span>
                           </div>
                         )}
-                        <div className="flex justify-between text-xs">
-                          <span>Tax (10%)</span>
-                          <span>{formatCurrency(tax)}</span>
-                        </div>
                         <div className="flex justify-between font-semibold pt-1 border-t text-xs">
                           <span>Total</span>
-                          <span>{formatCurrency(total)}</span>
+                          <span>{formatCurrency(discountedSubtotal)}</span>
                         </div>
                       </div>
                     </div>
@@ -579,7 +574,7 @@ export default function CartAndCheckout() {
                       addSplitPaymentMethod={addSplitPaymentMethod}
                       cashAmount={cashAmount}
                       setCashAmount={setCashAmount}
-                      total={total}
+                      total={discountedSubtotal}
                       changeDue={changeDue}
                       cart={cart}
                       handleCompletePayment={handleCompleteSale}

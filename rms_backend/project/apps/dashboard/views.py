@@ -5,7 +5,7 @@ from django.db.models import Sum, Count, F, Q, Max
 from django.utils import timezone
 from datetime import timedelta
 from .models import DashboardMetrics
-from apps.sales.models import Sale
+from apps.sales.models import Sale, SaleItem
 from apps.expenses.models import Expense, ExpenseCategory
 from apps.customer.models import Customer
 from apps.inventory.models import Product
@@ -16,36 +16,43 @@ class DashboardStatsView(APIView):
         today = timezone.now().date()
         thirty_days_ago = today - timedelta(days=30)
         
-        # Get today's metrics
-        today_sales = Sale.objects.filter(
-            date__date=today,
-            status='completed'
-        ).aggregate(total=Sum('total'))['total'] or 0
+        # Get today's metrics using SaleItem
+        today_sales = SaleItem.objects.filter(
+            sale__date__date=today,
+            sale__status='completed'
+        ).aggregate(
+            total=Sum('total'),
+            total_profit=Sum('profit')
+        )
         
         today_expenses = Expense.objects.filter(date=today).aggregate(total=Sum('amount'))['total'] or 0
-        today_profit = today_sales - today_expenses
         
-        # Get monthly metrics
-        monthly_sales = Sale.objects.filter(
-            date__date__gte=thirty_days_ago,
-            status='completed'
-        ).aggregate(total=Sum('total'))['total'] or 0
+        # Get monthly metrics using SaleItem
+        monthly_sales = SaleItem.objects.filter(
+            sale__date__date__gte=thirty_days_ago,
+            sale__status='completed'
+        ).aggregate(
+            total=Sum('total'),
+            total_profit=Sum('profit')
+        )
         
         monthly_expenses = Expense.objects.filter(date__gte=thirty_days_ago).aggregate(total=Sum('amount'))['total'] or 0
-        monthly_profit = monthly_sales - monthly_expenses
         
         # Get counts
         total_customers = Customer.objects.count()
         total_products = Product.objects.count()
         total_suppliers = Supplier.objects.count()
         
-        # Get sales trend
-        sales_trend = Sale.objects.filter(
-            date__date__gte=thirty_days_ago,
-            status='completed'
-        ).values('date__date')\
-            .annotate(total=Sum('total'))\
-            .order_by('date__date')
+        # Get sales trend using SaleItem
+        sales_trend = SaleItem.objects.filter(
+            sale__date__date__gte=thirty_days_ago,
+            sale__status='completed'
+        ).values('sale__date__date')\
+            .annotate(
+                total=Sum('total'),
+                profit=Sum('profit')
+            )\
+            .order_by('sale__date__date')
             
         # Get expense trend
         expense_trend = Expense.objects.filter(date__gte=thirty_days_ago)\
@@ -53,10 +60,16 @@ class DashboardStatsView(APIView):
             .annotate(amount=Sum('amount'))\
             .order_by('date')
             
-        # Get top selling products
-        top_products = Product.objects.annotate(
-            total_sales=Sum('saleitem__quantity')
-        ).order_by('-total_sales')[:5]
+        # Get top selling products using SaleItem
+        top_products = SaleItem.objects.filter(
+            sale__status='completed'
+        ).values('product__name')\
+            .annotate(
+                total_sales=Sum('quantity'),
+                total_revenue=Sum('total'),
+                total_profit=Sum('profit')
+            )\
+            .order_by('-total_sales')[:5]
         
         # Get expense categories
         expense_categories = ExpenseCategory.objects.annotate(
@@ -73,14 +86,14 @@ class DashboardStatsView(APIView):
         
         return Response({
             'today': {
-                'sales': today_sales,
+                'sales': today_sales['total'] or 0,
                 'expenses': today_expenses,
-                'profit': today_profit,
+                'profit': today_sales['total_profit'] or 0,
             },
             'monthly': {
-                'sales': monthly_sales,
+                'sales': monthly_sales['total'] or 0,
                 'expenses': monthly_expenses,
-                'profit': monthly_profit,
+                'profit': monthly_sales['total_profit'] or 0,
             },
             'counts': {
                 'customers': total_customers,
@@ -91,8 +104,10 @@ class DashboardStatsView(APIView):
             'expense_trend': list(expense_trend),
             'top_products': [
                 {
-                    'name': product.name,
-                    'total_sales': product.total_sales or 0
+                    'name': product['product__name'],
+                    'total_sales': product['total_sales'] or 0,
+                    'total_revenue': product['total_revenue'] or 0,
+                    'total_profit': product['total_profit'] or 0
                 } for product in top_products
             ],
             'expense_categories': list(expense_categories),

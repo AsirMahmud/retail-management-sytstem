@@ -187,7 +187,11 @@ export default function Dashboard() {
                 {formatCurrency(stats.today.profit)}
               </div>
               <div className="flex items-center text-xs text-emerald-600 font-medium mt-1">
-                <ArrowUpRight className="h-4 w-4 mr-1" />
+                {stats.today.profit >= 0 ? (
+                  <ArrowUpRight className="h-4 w-4 mr-1" />
+                ) : (
+                  <ArrowDownRight className="h-4 w-4 mr-1" />
+                )}
                 <span>Net profit today</span>
               </div>
             </CardContent>
