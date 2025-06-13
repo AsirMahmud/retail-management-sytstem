@@ -254,7 +254,7 @@ export default function SuppliersPage() {
               </div>
             </div>
             <Button
-              onClick={() => router.push("/inventory/add-supplier")}
+              onClick={() => router.push("/inventory/suppliers/add")}
               className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
             >
               <PlusCircle className="mr-2 h-4 w-4" />

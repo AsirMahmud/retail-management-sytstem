@@ -189,14 +189,6 @@ export default function CustomersPage() {
             Manage your customer relationships and track their activity
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" /> Export
-          </Button>
-          <Button>
-            <UserPlus className="mr-2 h-4 w-4" /> Add Customer
-          </Button>
-        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
