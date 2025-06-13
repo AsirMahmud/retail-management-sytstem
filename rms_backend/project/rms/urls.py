@@ -27,7 +27,8 @@ urlpatterns = [
     path('api/supplier/', include('apps.supplier.urls')),
     path('api/sales/', include('apps.sales.urls')),
     path('api/expenses/', include('apps.expenses.urls')),
-        path('api/dashboard/', include('apps.dashboard.urls')),
+     path('api/dashboard/', include('apps.dashboard.urls')),
+     path('api/reports/',include('apps.reports.urls'))
 ]
 
 # Add media URL patterns for development

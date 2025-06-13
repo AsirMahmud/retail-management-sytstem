@@ -284,14 +284,14 @@ export function SideNav() {
       </Sheet>
 
       <div className="hidden md:flex flex-col w-[280px] h-screen fixed border-r bg-gradient-to-b from-blue-50 to-white">
-        <div className="flex h-16 items-center px-6 border-b border-blue-100 bg-white/50 backdrop-blur-sm">
-          <Link
-            href="/"
-            className="flex items-center gap-2 font-semibold text-lg text-blue-900"
-          >
-            <Store className="h-6 w-6 text-blue-600" />
-            <span>MenWear Pro</span>
-          </Link>
+        <div className="flex h-auto items-center px-6 border-b border-blue-100 bg-white/50 backdrop-blur-sm">
+          <div className="flex flex-col h-auto mx-auto py-4 overflow-hidden items-center px-6 border-b border-blue-100 bg-white/50 backdrop-blur-sm">
+            <img
+              src="/raw_stitch.JPG"
+              alt="MenWear Pro Logo"
+              className="w-full h-32 object-cover rounded-lg my-4"
+            />
+          </div>
         </div>
         <ScrollArea className="flex-1">
           <nav className="grid gap-1 p-4">

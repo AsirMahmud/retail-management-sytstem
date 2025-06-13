@@ -34,7 +34,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-=i3-$(--y)2nbeogrplsh-c1z%
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ["rawstitch.info","localhost"]
+ALLOWED_HOSTS = ["rawstitch.info","localhost",'127.0.0.1']
 
 
 # Application definition
@@ -50,7 +50,6 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'django_filters',
     'corsheaders',
-    'whitenoise.ruserver_nostatic'
     
     # local apps
     'apps.authentication',
@@ -60,6 +59,7 @@ INSTALLED_APPS = [
     "apps.sales",
     "apps.expenses",
     'apps.dashboard',
+    'apps.reports'
 ]
 
 REST_FRAMEWORK = {
@@ -98,7 +98,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware'
 ]
 
 ROOT_URLCONF = 'rms.urls'
