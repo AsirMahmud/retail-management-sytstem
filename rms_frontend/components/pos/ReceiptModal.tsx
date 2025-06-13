@@ -177,7 +177,7 @@ export default function ReceiptModal({
           <div class="header">
             <div class="store-name">RAW STITCH</div>
             <div class="store-info">Kapasia, Gazipur</div>
-            <div class="store-info">Phone: (555) 123-4567</div>
+            <div class="store-info">Phone: 01338869901</div>
           </div>
 
           <div class="receipt-details">
@@ -186,7 +186,7 @@ export default function ReceiptModal({
             ${
               data.customer
                 ? `
-              <div>Customer: ${data.customer.name}</div>
+             
               <div>Customer #: ${data.customer.id || "N/A"}</div>
               <div>Phone: ${data.customer.phone || "N/A"}</div>
             `
@@ -329,7 +329,7 @@ export default function ReceiptModal({
           </div>
 
           <div class="footer">
-            <div>Thank you for your purchase!</div>
+            <div>Thanks for your purchase!</div>
             <div style=>Return policy:3 days with receipt before wash </div>
           </div>
 
