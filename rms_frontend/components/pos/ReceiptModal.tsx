@@ -330,7 +330,7 @@ export default function ReceiptModal({
 
           <div class="footer">
             <div>Thank you for your purchase!</div>
-            <div>Return policy: 30 days with receipt</div>
+            <div style=>Return policy:3 days with receipt before wash </div>
           </div>
 
           <div class="no-print" style="margin-top: 20px; text-align: center;">
