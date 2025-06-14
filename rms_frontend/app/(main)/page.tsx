@@ -173,30 +173,6 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-emerald-50 to-teal-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">
-                Today's Profit
-              </CardTitle>
-              <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900">
-                {formatCurrency(stats.today.profit)}
-              </div>
-              <div className="flex items-center text-xs text-emerald-600 font-medium mt-1">
-                {stats.today.profit >= 0 ? (
-                  <ArrowUpRight className="h-4 w-4 mr-1" />
-                ) : (
-                  <ArrowDownRight className="h-4 w-4 mr-1" />
-                )}
-                <span>Net profit today</span>
-              </div>
-            </CardContent>
-          </Card>
-
           <Card className="bg-gradient-to-br from-purple-50 to-indigo-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-700">
