@@ -191,10 +191,13 @@ export default function ProductGrid({
 
               {/* SKU Badge */}
               <div className="absolute top-1 left-1">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Badge
+                  variant="secondary"
+                  className="flex items-center gap-2 text-sm text-muted-foreground"
+                >
                   <Barcode className="h-3 w-3" />
                   {product.sku}
-                </div>
+                </Badge>
               </div>
 
               {/* Low stock indicator */}
@@ -238,17 +241,20 @@ export default function ProductGrid({
                 product.gender) && (
                 <div className="flex gap-1 mt-1">
                   {product.size_type && (
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className="text-xs bg-emerald-200">
                       {product.size_type}
                     </Badge>
                   )}
                   {product.size_category && (
-                    <Badge variant="outline" className="text-xs">
+                    <Badge variant="outline" className="text-xs ">
                       {product.size_category}
                     </Badge>
                   )}
                   {product.gender && (
-                    <Badge variant="outline" className="text-xs">
+                    <Badge
+                      variant="outline"
+                      className="text-xs bg-red-600 text-white"
+                    >
                       {product.gender}
                     </Badge>
                   )}

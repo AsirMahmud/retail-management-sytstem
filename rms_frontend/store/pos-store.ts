@@ -276,7 +276,7 @@ export const usePOSStore = create<POSState>((set, get) => ({
 
         try {
             // Calculate totals
-            const subtotal = cart.reduce((sum, item) => {
+            const subtotal = Math.floor(cart.reduce((sum, item) => {
                 const itemTotal = item.price * item.quantity;
                 if (item.discount) {
                     if (item.discount.type === "percentage") {
@@ -286,7 +286,7 @@ export const usePOSStore = create<POSState>((set, get) => ({
                     }
                 }
                 return sum + itemTotal;
-            }, 0);
+            }, 0));
 
             // Remove tax calculation completely
             const tax = 0;
