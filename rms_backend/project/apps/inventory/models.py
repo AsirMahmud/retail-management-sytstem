@@ -31,6 +31,12 @@ class Category(models.Model):
 
 
 class Product(models.Model):
+    GENDER_CHOICES = [
+        ('MALE', 'Male'),
+        ('FEMALE', 'Female'),
+        ('UNISEX', 'Unisex'),
+    ]
+
     name = models.CharField(max_length=200)
     sku = models.CharField(max_length=50, unique=True, blank=True)
     barcode = models.CharField(max_length=50, unique=True, blank=True, null=True)
@@ -43,6 +49,9 @@ class Product(models.Model):
     minimum_stock = models.IntegerField(default=10)
     image = models.ImageField(upload_to='products/', null=True, blank=True)
     is_active = models.BooleanField(default=True)
+    size_type = models.CharField(max_length=50, null=True, blank=True)
+    size_category=models.CharField(max_length=50, null=True, blank=True)
+    gender = models.CharField(max_length=6, choices=GENDER_CHOICES, default='UNISEX')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -70,6 +79,7 @@ class ProductVariation(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variations')
     size = models.CharField(max_length=50, default='Standard')
     color = models.CharField(max_length=50, default='Default')
+    color_hax = models.CharField(max_length=50, default='#FFFFF')
     stock = models.IntegerField(default=0, validators=[MinValueValidator(0)])
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

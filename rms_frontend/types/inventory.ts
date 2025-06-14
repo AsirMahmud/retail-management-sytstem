@@ -34,34 +34,21 @@ export interface Product {
     sku: string;
     barcode?: string;
     description?: string;
-    category?: {
-        id: number;
-        name: string;
-        slug: string;
-        description?: string;
-        parent?: number;
-    } | null;
-    category_name?: string | null;
-    supplier?: {
-        id: number;
-        company_name: string;
-        contact_person: string;
-        email: string;
-        phone: string;
-    } | null;
-    supplier_name?: string | null;
-    cost_price: string;
-    selling_price: string;
+    category?: Category;
+    supplier?: Supplier;
+    cost_price: number;
+    selling_price: number;
     stock_quantity: number;
     minimum_stock: number;
-    image?: string | null;
+    image?: string;
     is_active: boolean;
+    size_type?: string;
+    size_category?: string;
+    gender?: string;
+    created_at: string;
+    updated_at: string;
     variations?: ProductVariation[];
     images?: ProductImage[];
-    total_stock?: number;
-    created_at?: string;
-    updated_at?: string;
-    total_sold?: number;
 }
 
 export interface ProductVariation {
@@ -106,9 +93,12 @@ export interface CreateProductDTO {
     minimum_stock: number;
     image?: File;
     is_active: boolean;
+    size_type?: string;
+    gender?: string;
     variations?: {
         size: string;
         color: string;
+        color_hax?: string;
         stock: number;
     }[];
 }

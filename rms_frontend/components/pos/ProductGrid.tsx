@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, ShoppingBag, History, Plus } from "lucide-react";
+import { AlertCircle, ShoppingBag, History, Plus, Barcode } from "lucide-react";
 import { useProducts } from "@/hooks/queries/useInventory";
 import { Product } from "@/types/inventory";
 import { usePOSStore } from "@/store/pos-store";
@@ -191,9 +191,10 @@ export default function ProductGrid({
 
               {/* SKU Badge */}
               <div className="absolute top-1 left-1">
-                <Badge variant="secondary" className="text-[10px]">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Barcode className="h-3 w-3" />
                   {product.sku}
-                </Badge>
+                </div>
               </div>
 
               {/* Low stock indicator */}
@@ -230,6 +231,30 @@ export default function ProductGrid({
               <p className="text-[10px] text-muted-foreground mb-1 line-clamp-1">
                 {product.description}
               </p>
+
+              {/* Size Type and Gender Info */}
+              {(product.size_type ||
+                product.size_category ||
+                product.gender) && (
+                <div className="flex gap-1 mt-1">
+                  {product.size_type && (
+                    <Badge variant="outline" className="text-xs">
+                      {product.size_type}
+                    </Badge>
+                  )}
+                  {product.size_category && (
+                    <Badge variant="outline" className="text-xs">
+                      {product.size_category}
+                    </Badge>
+                  )}
+                  {product.gender && (
+                    <Badge variant="outline" className="text-xs">
+                      {product.gender}
+                    </Badge>
+                  )}
+                </div>
+              )}
+
               <p className="text-sm font-bold mb-1">
                 {formatCurrency(product.selling_price)}
               </p>

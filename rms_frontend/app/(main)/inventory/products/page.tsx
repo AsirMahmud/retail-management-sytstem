@@ -191,6 +191,27 @@ export default function ProductsPage() {
                   <Barcode className="h-3 w-3" />
                   {product.sku}
                 </div>
+                {(product.size_type ||
+                  product.size_category ||
+                  product.gender) && (
+                  <div className="flex gap-1 mt-1">
+                    {product.size_type && (
+                      <Badge variant="outline" className="text-xs">
+                        {product.size_type}
+                      </Badge>
+                    )}
+                    {product.size_category && (
+                      <Badge variant="outline" className="text-xs">
+                        {product.size_category}
+                      </Badge>
+                    )}
+                    {product.gender && (
+                      <Badge variant="outline" className="text-xs">
+                        {product.gender}
+                      </Badge>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -296,23 +317,23 @@ export default function ProductsPage() {
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Package className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                  Products
-                </h1>
-                <p className="text-gray-600 mt-1">
-                  Manage your product inventory and stock levels
-                </p>
-              </div>
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+              <ShoppingCart className="h-6 w-6 text-white" />
             </div>
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                Products
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Manage your product inventory and stock levels
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end">
             <Button
               onClick={() => router.push("/inventory/add-product")}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+              className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg"
             >
               <PlusCircle className="mr-2 h-4 w-4" />
               Add Product
@@ -322,7 +343,7 @@ export default function ProductsPage() {
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-blue-50 to-indigo-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+          <Card className="border-0 shadow-xl bg-white/70 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-700">
                 Total Products
@@ -341,12 +362,12 @@ export default function ProductsPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-emerald-50 to-teal-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+          <Card className="border-0 shadow-xl bg-white/70 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-700">
                 Total Value
               </CardTitle>
-              <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
                 <DollarSign className="h-5 w-5 text-white" />
               </div>
             </CardHeader>
@@ -354,18 +375,18 @@ export default function ProductsPage() {
               <div className="text-3xl font-bold text-gray-900">
                 ${totalValue.toLocaleString()}
               </div>
-              <p className="text-xs text-emerald-600 font-medium mt-1">
+              <p className="text-xs text-blue-600 font-medium mt-1">
                 Current Inventory Value
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-orange-50 to-amber-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+          <Card className="border-0 shadow-xl bg-white/70 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-700">
                 Low Stock Items
               </CardTitle>
-              <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
                 <AlertTriangle className="h-5 w-5 text-white" />
               </div>
             </CardHeader>
@@ -373,18 +394,18 @@ export default function ProductsPage() {
               <div className="text-3xl font-bold text-gray-900">
                 {lowStockProducts}
               </div>
-              <p className="text-xs text-orange-600 font-medium mt-1">
+              <p className="text-xs text-blue-600 font-medium mt-1">
                 Needs attention
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-red-50 to-rose-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+          <Card className="border-0 shadow-xl bg-white/70 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-700">
                 Out of Stock
               </CardTitle>
-              <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-rose-500 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
                 <Package className="h-5 w-5 text-white" />
               </div>
             </CardHeader>
@@ -392,7 +413,7 @@ export default function ProductsPage() {
               <div className="text-3xl font-bold text-gray-900">
                 {outOfStockProducts}
               </div>
-              <p className="text-xs text-red-600 font-medium mt-1">
+              <p className="text-xs text-blue-600 font-medium mt-1">
                 Immediate action required
               </p>
             </CardContent>
@@ -400,71 +421,75 @@ export default function ProductsPage() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-white/70 backdrop-blur-sm border-white/20 shadow-lg"
-            />
-          </div>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-            <SelectTrigger className="w-[180px] bg-white/70 backdrop-blur-sm border-white/20 shadow-lg">
-              <SelectValue placeholder="Category" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
-              {categories
-                .filter((category): category is string => !!category)
-                .map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
-            </SelectContent>
-          </Select>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px] bg-white/70 backdrop-blur-sm border-white/20 shadow-lg">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={stockFilter} onValueChange={setStockFilter}>
-            <SelectTrigger className="w-[180px] bg-white/70 backdrop-blur-sm border-white/20 shadow-lg">
-              <SelectValue placeholder="Stock Level" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Stock Levels</SelectItem>
-              <SelectItem value="low">Low Stock</SelectItem>
-              <SelectItem value="out">Out of Stock</SelectItem>
-              <SelectItem value="in">In Stock</SelectItem>
-            </SelectContent>
-          </Select>
-          <div className="flex gap-2">
-            <Button
-              variant={viewMode === "table" ? "default" : "outline"}
-              size="icon"
-              onClick={() => setViewMode("table")}
-              className="bg-white/70 backdrop-blur-sm border-white/20 shadow-lg"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "grid" ? "default" : "outline"}
-              size="icon"
-              onClick={() => setViewMode("grid")}
-              className="bg-white/70 backdrop-blur-sm border-white/20 shadow-lg"
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        <Card className="border-0 shadow-xl bg-white/70 backdrop-blur-sm mb-6">
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9 h-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors"
+                />
+              </div>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-[180px] h-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors">
+                  <SelectValue placeholder="Category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories
+                    .filter((category): category is string => !!category)
+                    .map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[180px] h-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={stockFilter} onValueChange={setStockFilter}>
+                <SelectTrigger className="w-[180px] h-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors">
+                  <SelectValue placeholder="Stock Level" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Stock Levels</SelectItem>
+                  <SelectItem value="low">Low Stock</SelectItem>
+                  <SelectItem value="out">Out of Stock</SelectItem>
+                  <SelectItem value="in">In Stock</SelectItem>
+                </SelectContent>
+              </Select>
+              <div className="flex gap-2">
+                <Button
+                  variant={viewMode === "table" ? "default" : "outline"}
+                  size="icon"
+                  onClick={() => setViewMode("table")}
+                  className="h-12 w-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === "grid" ? "default" : "outline"}
+                  size="icon"
+                  onClick={() => setViewMode("grid")}
+                  className="h-12 w-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors"
+                >
+                  <Grid3X3 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Products List/Grid */}
         {viewMode === "grid" ? (
@@ -474,7 +499,7 @@ export default function ProductsPage() {
             ))}
           </div>
         ) : (
-          <Card className="border-0 shadow-lg overflow-hidden">
+          <Card className="border-0 shadow-xl bg-white/70 backdrop-blur-sm overflow-hidden">
             <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
               <CardTitle className="text-lg font-semibold text-slate-900">
                 Products List
@@ -509,6 +534,27 @@ export default function ProductsPage() {
                             <p className="text-sm text-muted-foreground">
                               {product.sku}
                             </p>
+                            {(product.size_type ||
+                              product.size_category ||
+                              product.gender) && (
+                              <div className="flex gap-1 mt-1">
+                                {product.size_type && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {product.size_type}
+                                  </Badge>
+                                )}
+                                {product.size_category && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {product.size_category}
+                                  </Badge>
+                                )}
+                                {product.gender && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {product.gender}
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </TableCell>

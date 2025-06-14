@@ -28,6 +28,7 @@ import {
   Calendar,
   Filter,
   ArrowUpDown,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -37,15 +38,28 @@ import {
   useCustomers,
   useActiveCustomers,
   useSearchCustomers,
+  useDeleteCustomer,
 } from "@/hooks/queries/use-customer";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/components/ui/use-toast";
 
 type Customer = {
   id: number;
   first_name: string;
   last_name: string;
-  email: string;
-  phone: string;
+  email: string | null;
+  phone: string | null;
   total_sales: number;
   sales_count: number;
   last_sale_date: string | null;
@@ -145,6 +159,25 @@ const columns: ColumnDef<Customer>[] = [
     id: "actions",
     cell: ({ row }) => {
       const customer = row.original;
+      const deleteCustomer = useDeleteCustomer();
+      const { toast } = useToast();
+
+      const handleDeleteCustomer = async (customerId: number) => {
+        try {
+          await deleteCustomer.mutateAsync(customerId);
+          toast({
+            title: "Success",
+            description: "Customer deleted successfully",
+          });
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: "Failed to delete customer",
+            variant: "destructive",
+          });
+        }
+      };
+
       return (
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" asChild>
@@ -156,6 +189,35 @@ const columns: ColumnDef<Customer>[] = [
           <Button variant="ghost" size="sm">
             <Phone className="h-4 w-4" />
           </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete the
+                  customer and all associated data.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => handleDeleteCustomer(customer.id)}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       );
     },
@@ -169,15 +231,33 @@ export default function CustomersPage() {
     useActiveCustomers();
   const { data: searchResults, isLoading: isLoadingSearch } =
     useSearchCustomers(searchQuery);
+  const deleteCustomer = useDeleteCustomer();
+  const { toast } = useToast();
 
-  const displayCustomers = searchQuery ? searchResults : customers;
+  const handleDeleteCustomer = async (customerId: number) => {
+    try {
+      await deleteCustomer.mutateAsync(customerId);
+      toast({
+        title: "Success",
+        description: "Customer deleted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete customer",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const displayCustomers = searchQuery ? searchResults || [] : customers || [];
 
   const stats = {
-    total: customers?.length || 0,
+    total: displayCustomers.length,
     active: activeCustomers?.length || 0,
     averageSpend:
-      customers?.reduce((acc, curr) => acc + (curr.total_sales || 0), 0) /
-        (customers?.length || 1) || 0,
+      displayCustomers.reduce((acc, curr) => acc + (curr.total_sales || 0), 0) /
+        (displayCustomers.length || 1) || 0,
   };
 
   return (

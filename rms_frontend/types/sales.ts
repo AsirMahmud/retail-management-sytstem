@@ -96,6 +96,7 @@ export interface DashboardStats {
         total_profit: number;
     }>;
     sales_trend: Array<{
+        sale__date__date: any;
         date__date: string;
         sales: number;
         profit: number;
