@@ -82,7 +82,7 @@ export default function SalesOverview() {
   const salesTrendData = useMemo<SalesTrendDataPoint[]>(() => {
     if (!stats?.sales_trend) return [];
     return stats.sales_trend.map((item) => ({
-      date: item.date__date,
+      date: item.sale__date__date,
       sales: item.sales,
       profit: item.profit,
       orders: item.orders,

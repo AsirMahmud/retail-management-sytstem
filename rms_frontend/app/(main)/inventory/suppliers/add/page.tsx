@@ -44,6 +44,9 @@ export default function AddSupplierPage() {
     try {
       const transformedData = {
         ...data,
+        company_name: data.company_name || null,
+        email: data.email || null,
+        address: data.address || null,
         tax_number: data.tax_number || null,
         website: data.website || null,
         payment_terms: data.payment_terms || null,
@@ -85,7 +88,7 @@ export default function AddSupplierPage() {
                   name="company_name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Company Name</FormLabel>
+                      <FormLabel>Company Name (Optional)</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -99,7 +102,7 @@ export default function AddSupplierPage() {
                   name="contact_person"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Contact Person</FormLabel>
+                      <FormLabel>Contact Person *</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -113,7 +116,7 @@ export default function AddSupplierPage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>Email (Optional)</FormLabel>
                       <FormControl>
                         <Input type="email" {...field} />
                       </FormControl>
@@ -127,7 +130,7 @@ export default function AddSupplierPage() {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone</FormLabel>
+                      <FormLabel>Phone *</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -141,7 +144,7 @@ export default function AddSupplierPage() {
                   name="tax_number"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tax Number</FormLabel>
+                      <FormLabel>Tax Number (Optional)</FormLabel>
                       <FormControl>
                         <Input {...field} />
                       </FormControl>
@@ -155,7 +158,7 @@ export default function AddSupplierPage() {
                   name="website"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Website</FormLabel>
+                      <FormLabel>Website (Optional)</FormLabel>
                       <FormControl>
                         <Input type="url" placeholder="https://" {...field} />
                       </FormControl>
@@ -169,7 +172,7 @@ export default function AddSupplierPage() {
                   name="address"
                   render={({ field }) => (
                     <FormItem className="md:col-span-2">
-                      <FormLabel>Address</FormLabel>
+                      <FormLabel>Address (Optional)</FormLabel>
                       <FormControl>
                         <Textarea rows={3} {...field} />
                       </FormControl>
@@ -183,7 +186,7 @@ export default function AddSupplierPage() {
                   name="payment_terms"
                   render={({ field }) => (
                     <FormItem className="md:col-span-2">
-                      <FormLabel>Payment Terms</FormLabel>
+                      <FormLabel>Payment Terms (Optional)</FormLabel>
                       <FormControl>
                         <Textarea rows={3} {...field} />
                       </FormControl>

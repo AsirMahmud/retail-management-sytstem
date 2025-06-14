@@ -238,7 +238,7 @@ export default function Dashboard() {
                   <LineChart data={stats.sales_trend}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                     <XAxis
-                      dataKey="date__date"
+                      dataKey="sale__date__date"
                       stroke="#64748b"
                       fontSize={12}
                       tickFormatter={(value) =>
