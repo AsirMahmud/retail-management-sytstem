@@ -94,6 +94,7 @@ export interface CreateProductDTO {
     image?: File;
     is_active: boolean;
     size_type?: string;
+    size_category?: string;
     gender?: string;
     variations?: {
         size: string;

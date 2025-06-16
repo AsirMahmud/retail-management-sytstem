@@ -5,6 +5,7 @@ import {
     createSale,
     updateSale,
     deleteSale,
+    bulkDeleteSales,
     getPayments,
     addPayment,
     getReturns,
@@ -12,7 +13,9 @@ import {
     approveReturn,
     rejectReturn,
     lookupCustomer,
-    getDashboardStats
+    getDashboardStats,
+    PaginatedResponse,
+    deleteAllSales
 } from '@/lib/api/sales';
 import type { Sale, Payment, Return } from '@/types/sales';
 import { useToast } from '../use-toast';
@@ -25,6 +28,8 @@ export const useSales = (params?: {
     customer_phone?: string;
     search?: string;
     ordering?: string;
+    page?: number;
+    page_size?: number;
 }) => {
     const queryClient = useQueryClient();
     const { toast } = useToast();
@@ -79,25 +84,72 @@ export const useSales = (params?: {
                 description: 'Sale deleted successfully'
             });
         },
-        onError: (error) => {
+        onError: (error: any) => {
             toast({
                 title: 'Error',
-                description: 'Failed to delete sale',
+                description: error.response?.data?.error || 'Failed to delete sale',
+                variant: 'destructive'
+            });
+        }
+    });
+
+    const bulkDeleteSalesMutation = useMutation({
+        mutationFn: bulkDeleteSales,
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['sales'] });
+            toast({
+                title: 'Success',
+                description: data.message || 'Sales deleted successfully'
+            });
+        },
+        onError: (error: any) => {
+            toast({
+                title: 'Error',
+                description: error.response?.data?.error || 'Failed to delete sales',
+                variant: 'destructive'
+            });
+        }
+    });
+
+    const deleteAllSalesMutation = useMutation({
+        mutationFn: deleteAllSales,
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['sales'] });
+            toast({
+                title: 'Success',
+                description: data.message || 'All sales deleted successfully'
+            });
+        },
+        onError: (error: any) => {
+            toast({
+                title: 'Error',
+                description: error.response?.data?.error || 'Failed to delete all sales',
                 variant: 'destructive'
             });
         }
     });
 
     return {
-        sales: salesQuery.data,
+        sales: salesQuery.data?.results || [],
+        pagination: {
+            count: salesQuery.data?.count || 0,
+            next: salesQuery.data?.next,
+            previous: salesQuery.data?.previous,
+            currentPage: params?.page || 1,
+            pageSize: params?.page_size || 10
+        },
         isLoading: salesQuery.isLoading,
         error: salesQuery.error,
         createSale: createSaleMutation.mutate,
         updateSale: updateSaleMutation.mutate,
         deleteSale: deleteSaleMutation.mutate,
+        bulkDeleteSales: bulkDeleteSalesMutation.mutate,
+        deleteAllSales: deleteAllSalesMutation.mutate,
         isCreating: createSaleMutation.isPending,
         isUpdating: updateSaleMutation.isPending,
-        isDeleting: deleteSaleMutation.isPending
+        isDeleting: deleteSaleMutation.isPending,
+        isBulkDeleting: bulkDeleteSalesMutation.isPending,
+        isDeletingAll: deleteAllSalesMutation.isPending
     };
 };
 

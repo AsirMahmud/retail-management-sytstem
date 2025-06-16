@@ -27,6 +27,7 @@ export interface Sale {
     total: number;
     payment_method: PaymentMethod;
     status?: SaleStatus;
+    total_profit?: number;
     notes?: string;
     created_at?: string;
     updated_at?: string;

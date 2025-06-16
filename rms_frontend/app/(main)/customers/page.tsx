@@ -39,6 +39,8 @@ import {
   useActiveCustomers,
   useSearchCustomers,
   useDeleteCustomer,
+  usePermanentDeleteCustomer,
+  useBulkDeleteCustomers,
 } from "@/hooks/queries/use-customer";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -53,6 +55,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
+import { Checkbox } from "@/components/ui/checkbox";
+import { deleteAllCustomers } from "@/lib/api/customer";
 
 type Customer = {
   id: number;
@@ -67,6 +71,28 @@ type Customer = {
 };
 
 const columns: ColumnDef<Customer>[] = [
+  {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && "indeterminate")
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     accessorKey: "name",
     header: ({ column }) => {
@@ -159,15 +185,15 @@ const columns: ColumnDef<Customer>[] = [
     id: "actions",
     cell: ({ row }) => {
       const customer = row.original;
-      const deleteCustomer = useDeleteCustomer();
+      const permanentDeleteCustomer = usePermanentDeleteCustomer();
       const { toast } = useToast();
 
-      const handleDeleteCustomer = async (customerId: number) => {
+      const handlePermanentDeleteCustomer = async (customerId: number) => {
         try {
-          await deleteCustomer.mutateAsync(customerId);
+          await permanentDeleteCustomer.mutateAsync(customerId);
           toast({
             title: "Success",
-            description: "Customer deleted successfully",
+            description: "Customer permanently deleted",
           });
         } catch (error) {
           toast({
@@ -201,19 +227,19 @@ const columns: ColumnDef<Customer>[] = [
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                 <AlertDialogDescription>
                   This action cannot be undone. This will permanently delete the
-                  customer and all associated data.
+                  customer and all associated data from the database.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction
-                  onClick={() => handleDeleteCustomer(customer.id)}
+                  onClick={() => handlePermanentDeleteCustomer(customer.id)}
                   className="bg-red-600 hover:bg-red-700"
                 >
-                  Delete
+                  Delete Permanently
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -226,35 +252,60 @@ const columns: ColumnDef<Customer>[] = [
 
 export default function CustomersPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [rowSelection, setRowSelection] = useState({});
   const { data: customers, isLoading: isLoadingCustomers } = useCustomers();
   const { data: activeCustomers, isLoading: isLoadingActive } =
     useActiveCustomers();
   const { data: searchResults, isLoading: isLoadingSearch } =
     useSearchCustomers(searchQuery);
-  const deleteCustomer = useDeleteCustomer();
+  const bulkDeleteCustomers = useBulkDeleteCustomers();
   const { toast } = useToast();
 
-  const handleDeleteCustomer = async (customerId: number) => {
+  const displayCustomers = searchQuery ? searchResults || [] : customers || [];
+
+  const handleBulkDelete = async () => {
+    const selectedIds = Object.keys(rowSelection).map(
+      (index) => displayCustomers[parseInt(index)].id
+    );
+
+    if (selectedIds.length === 0) {
+      toast({
+        title: "No Selection",
+        description: "Please select at least one customer to delete",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      await deleteCustomer.mutateAsync(customerId);
+      await bulkDeleteCustomers.mutateAsync(selectedIds);
+      setRowSelection({});
+    } catch (error) {
+      // Error handling is done in the mutation
+    }
+  };
+
+  const handleDeleteAllCustomers = async () => {
+    try {
+      await deleteAllCustomers();
       toast({
         title: "Success",
-        description: "Customer deleted successfully",
+        description: "All customers have been deleted successfully",
       });
+      // Refresh the customers list
+      customers.refetch();
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete customer",
+        description: "Failed to delete all customers",
         variant: "destructive",
       });
     }
   };
 
-  const displayCustomers = searchQuery ? searchResults || [] : customers || [];
-
   const stats = {
     total: displayCustomers.length,
-    active: activeCustomers?.length || 0,
+    active: displayCustomers.filter((c) => c.is_active).length,
     averageSpend:
       displayCustomers.reduce((acc, curr) => acc + (curr.total_sales || 0), 0) /
         (displayCustomers.length || 1) || 0,
@@ -346,12 +397,48 @@ export default function CustomersPage() {
         </Card>
       </div>
 
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="all">All Customers</TabsTrigger>
-          <TabsTrigger value="active">Active</TabsTrigger>
-          <TabsTrigger value="inactive">Inactive</TabsTrigger>
-        </TabsList>
+      <Tabs defaultValue="all">
+        <div className="flex items-center justify-between mb-4">
+          <TabsList>
+            <TabsTrigger value="all">All Customers</TabsTrigger>
+            <TabsTrigger value="active">Active</TabsTrigger>
+            <TabsTrigger value="inactive">Inactive</TabsTrigger>
+          </TabsList>
+
+          {Object.keys(rowSelection).length > 0 && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Selected ({Object.keys(rowSelection).length})
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete
+                    {Object.keys(rowSelection).length === 1
+                      ? " the selected customer"
+                      : ` ${
+                          Object.keys(rowSelection).length
+                        } selected customers`}{" "}
+                    and all associated data from the database.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleBulkDelete}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Delete Permanently
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
 
         <TabsContent value="all">
           <Card>
@@ -403,12 +490,55 @@ export default function CustomersPage() {
                   ))}
                 </div>
               ) : (
-                <DataTable columns={columns} data={displayCustomers || []} />
+                <DataTable
+                  columns={columns}
+                  data={displayCustomers || []}
+                  enableRowSelection
+                  rowSelection={rowSelection}
+                  onRowSelectionChange={setRowSelection}
+                />
               )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      <div className="flex justify-between items-center mt-6">
+        <div className="flex gap-2">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete All Customers
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete all
+                  customers and their associated data from the database.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteAllCustomers}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Delete All Customers
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <Button asChild>
+            <Link href="/customers/new">
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add Customer
+            </Link>
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }

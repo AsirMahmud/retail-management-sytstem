@@ -1,6 +1,7 @@
 from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from django.db.models import Sum, F, Q, Count, Avg
 from django.utils import timezone
 from datetime import datetime, timedelta
@@ -13,6 +14,11 @@ from .serializers import (
 from apps.inventory.models import Product, ProductVariation, StockMovement, InventoryAlert, Category
 from apps.customer.models import Customer
 
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
 class SaleViewSet(viewsets.ModelViewSet):
     queryset = Sale.objects.all()
     serializer_class = SaleSerializer
@@ -20,6 +26,7 @@ class SaleViewSet(viewsets.ModelViewSet):
     search_fields = ['invoice_number', 'customer__name', 'customer_phone', 'staff__username']
     ordering_fields = ['date', 'total', 'status']
     ordering = ['-date']
+    pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -125,32 +132,32 @@ class SaleViewSet(viewsets.ModelViewSet):
         today = timezone.now().date()
         start_of_month = today.replace(day=1)
         
-        # Today's sales with more detailed metrics using SaleItem
-        today_sales = SaleItem.objects.filter(
-            sale__date__date=today,
-            sale__status='completed'
+        # Today's sales with more detailed metrics using Sale model
+        today_sales = Sale.objects.filter(
+            date__date=today,
+            status='completed'
         ).aggregate(
             total_sales=Sum('total'),
-            total_transactions=Count('sale', distinct=True),
-            total_profit=Sum('profit'),
-            total_customers=Count('sale__customer', distinct=True),
-            total_loss=Sum('sale__total_loss'),
-            average_transaction_value=Avg('sale__total'),
-            total_discount=Sum('sale__discount')
+            total_transactions=Count('id'),
+            total_profit=Sum('total_profit'),
+            total_customers=Count('customer', distinct=True),
+            total_loss=Sum('total_loss'),
+            average_transaction_value=Avg('total'),
+            total_discount=Sum('discount')
         )
         
-        # Monthly sales with more detailed metrics using SaleItem
-        monthly_sales = SaleItem.objects.filter(
-            sale__date__date__gte=start_of_month,
-            sale__status='completed'
+        # Monthly sales with more detailed metrics using Sale model
+        monthly_sales = Sale.objects.filter(
+            date__date__gte=start_of_month,
+            status='completed'
         ).aggregate(
             total_sales=Sum('total'),
-            total_transactions=Count('sale', distinct=True),
-            total_profit=Sum('profit'),
-            total_customers=Count('sale__customer', distinct=True),
-            total_loss=Sum('sale__total_loss'),
-            average_transaction_value=Avg('sale__total'),
-            total_discount=Sum('sale__discount')
+            total_transactions=Count('id'),
+            total_profit=Sum('total_profit'),
+            total_customers=Count('customer', distinct=True),
+            total_loss=Sum('total_loss'),
+            average_transaction_value=Avg('total'),
+            total_discount=Sum('discount')
         )
 
         # Customer analytics
@@ -158,49 +165,49 @@ class SaleViewSet(viewsets.ModelViewSet):
             'new_customers_today': Customer.objects.filter(
                 created_at__date=today
             ).count(),
-            'active_customers_today': SaleItem.objects.filter(
-                sale__date__date=today,
-                sale__status='completed'
-            ).values('sale__customer').distinct().count(),
+            'active_customers_today': Sale.objects.filter(
+                date__date=today,
+                status='completed'
+            ).values('customer').distinct().count(),
             'customer_retention_rate': self._calculate_customer_retention_rate(),
-            'top_customers': SaleItem.objects.filter(
-                sale__date__date__gte=start_of_month,
-                sale__status='completed'
+            'top_customers': Sale.objects.filter(
+                date__date__gte=start_of_month,
+                status='completed'
             ).values(
-                'sale__customer__first_name',
-                'sale__customer__last_name',
-                'sale__customer__phone'
+                'customer__first_name',
+                'customer__last_name',
+                'customer__phone'
             ).annotate(
-                total_spent=Sum('sale__total'),
-                visit_count=Count('sale', distinct=True)
+                total_spent=Sum('total'),
+                visit_count=Count('id')
             ).order_by('-total_spent')[:5]
         }
 
         # Format customer names
         for customer in customer_analytics['top_customers']:
-            customer['customer__name'] = f"{customer['sale__customer__first_name']} {customer['sale__customer__last_name']}".strip()
-            del customer['sale__customer__first_name']
-            del customer['sale__customer__last_name']
+            customer['customer__name'] = f"{customer['customer__first_name']} {customer['customer__last_name']}".strip()
+            del customer['customer__first_name']
+            del customer['customer__last_name']
 
         # Payment method distribution
-        payment_method_distribution = SaleItem.objects.filter(
-            sale__date__date__gte=start_of_month,
-            sale__status='completed'
-        ).values('sale__payment_method').annotate(
-            count=Count('sale', distinct=True),
-            total=Sum('sale__total')
+        payment_method_distribution = Sale.objects.filter(
+            date__date__gte=start_of_month,
+            status='completed'
+        ).values('payment_method').annotate(
+            count=Count('id'),
+            total=Sum('total')
         ).order_by('-total')
 
         # Sales by hour distribution
         sales_by_hour = []
         for hour in range(24):
-            hour_sales = SaleItem.objects.filter(
-                sale__date__date=today,
-                sale__date__hour=hour,
-                sale__status='completed'
+            hour_sales = Sale.objects.filter(
+                date__date=today,
+                date__hour=hour,
+                status='completed'
             ).aggregate(
-                count=Count('sale', distinct=True),
-                total=Sum('sale__total')
+                count=Count('id'),
+                total=Sum('total')
             )
             sales_by_hour.append({
                 'hour': hour,
@@ -231,15 +238,15 @@ class SaleViewSet(viewsets.ModelViewSet):
         else:
             start_date = today - timedelta(days=7)
 
-        sales_trend = SaleItem.objects.filter(
-            sale__date__date__gte=start_date,
-            sale__date__date__lte=today,
-            sale__status='completed'
-        ).values('sale__date__date').annotate(
-            sales=Sum('sale__total'),
-            profit=Sum('profit'),
-            orders=Count('sale', distinct=True)
-        ).order_by('sale__date__date')
+        sales_trend = Sale.objects.filter(
+            date__date__gte=start_date,
+            date__date__lte=today,
+            status='completed'
+        ).values('date__date').annotate(
+            sales=Sum('total'),
+            profit=Sum('total_profit'),
+            orders=Count('id')
+        ).order_by('date__date')
 
         # Sales distribution by category
         sales_distribution = SaleItem.objects.filter(
@@ -310,6 +317,57 @@ class SaleViewSet(viewsets.ModelViewSet):
         ).values('customer').distinct().count()
         
         return (returning_customers / previous_month_customers) * 100
+
+    @transaction.atomic
+    def destroy(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            
+            # Delete associated items and update inventory
+            for item in instance.items.all():
+                # Restore stock for non-completed sales
+                if instance.status in ['pending', 'cancelled']:
+                    variation = item.product_variation
+                    if variation:
+                        variation.stock += item.quantity
+                        variation.save()
+            
+            # Delete the sale
+            self.perform_destroy(instance)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=False, methods=['post'])
+    @transaction.atomic
+    def bulk_delete(self, request):
+        """Delete multiple sales at once"""
+       
+
+    @action(detail=False, methods=['post'])
+    @transaction.atomic
+    def delete_all_sales(self, request):
+        """Delete all sales data"""
+        try:
+            # Get count before deletion
+            total_count = Sale.objects.count()
+            
+            # Simple direct deletion of all sales
+            Sale.objects.all().delete()
+            
+            return Response({
+                'message': f'Successfully deleted all {total_count} sales',
+                'deleted_count': total_count
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 class PaymentViewSet(viewsets.ModelViewSet):
     queryset = Payment.objects.all()

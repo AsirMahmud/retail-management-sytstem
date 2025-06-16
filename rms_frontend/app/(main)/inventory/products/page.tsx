@@ -102,7 +102,8 @@ export default function ProductsPage() {
       product.sku.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesCategory =
-      categoryFilter === "all" || product.category_name === categoryFilter;
+      categoryFilter === "all" ||
+      (product.category && product.category.name === categoryFilter);
 
     const matchesStatus =
       statusFilter === "all" ||
@@ -130,13 +131,13 @@ export default function ProductsPage() {
   ).length;
   const totalValue = products.reduce(
     (sum: number, product: Product) =>
-      sum + parseFloat(product.selling_price) * product.stock_quantity,
+      sum + product.selling_price * product.stock_quantity,
     0
   );
 
   // Get unique categories for filter
   const categories = Array.from(
-    new Set(products.map((p: Product) => p.category_name).filter(Boolean))
+    new Set(products.map((p: Product) => p.category?.name).filter(Boolean))
   );
 
   if (isLoading) {
@@ -196,17 +197,23 @@ export default function ProductsPage() {
                   product.gender) && (
                   <div className="flex gap-1 mt-1">
                     {product.size_type && (
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-xs bg-blue-100">
                         {product.size_type}
                       </Badge>
                     )}
                     {product.size_category && (
-                      <Badge variant="outline" className="text-xs">
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-emerald-200"
+                      >
                         {product.size_category}
                       </Badge>
                     )}
                     {product.gender && (
-                      <Badge variant="outline" className="text-xs">
+                      <Badge
+                        variant="outline"
+                        className="text-xs bg-red-600 text-white"
+                      >
                         {product.gender}
                       </Badge>
                     )}
@@ -258,7 +265,7 @@ export default function ProductsPage() {
               <span className="text-muted-foreground">Category</span>
             </div>
             <p className="font-medium">
-              {product.category_name || "Uncategorized"}
+              {product.category?.name || "Uncategorized"}
             </p>
           </div>
           <div className="space-y-2">
@@ -267,9 +274,7 @@ export default function ProductsPage() {
               <span className="text-muted-foreground">Supplier</span>
             </div>
             <p className="font-medium">
-              {typeof product.supplier === "object"
-                ? product.supplier_name
-                : "N/A"}
+              {product.supplier?.company_name || "No Supplier"}
             </p>
           </div>
         </div>
@@ -539,17 +544,26 @@ export default function ProductsPage() {
                               product.gender) && (
                               <div className="flex gap-1 mt-1">
                                 {product.size_type && (
-                                  <Badge variant="outline" className="text-xs">
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs bg-blue-100"
+                                  >
                                     {product.size_type}
                                   </Badge>
                                 )}
                                 {product.size_category && (
-                                  <Badge variant="outline" className="text-xs">
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs bg-emerald-200"
+                                  >
                                     {product.size_category}
                                   </Badge>
                                 )}
                                 {product.gender && (
-                                  <Badge variant="outline" className="text-xs">
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs bg-red-600 text-white"
+                                  >
                                     {product.gender}
                                   </Badge>
                                 )}
@@ -558,7 +572,9 @@ export default function ProductsPage() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>{product.category_name || "N/A"}</TableCell>
+                      <TableCell className="font-medium">
+                        {product.category?.name || "Uncategorized"}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <span>{product.stock_quantity}</span>

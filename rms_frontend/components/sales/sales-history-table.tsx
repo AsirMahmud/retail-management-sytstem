@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -33,7 +33,28 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import {
   Search,
   Download,
@@ -47,43 +68,37 @@ import {
   MoreHorizontal,
   FileText,
   TrendingUp,
+  Trash2,
 } from "lucide-react";
 import { useSales } from "@/hooks/queries/use-sales";
-import { Sale, SaleStatus, PaymentMethod } from "@/types/sales";
+import { SaleStatus, PaymentMethod } from "@/types/sales";
+import type { Sale, SaleItem } from "@/types/sales";
+import type { Customer } from "@/types/customer";
+import { useToast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-interface Customer {
-  id: number;
-  first_name: string;
-  last_name: string;
-  phone?: string;
-}
-
-interface Sale {
-  id: number;
-  invoice_number: string;
-  customer?: Customer;
-  date: string;
-  subtotal: string;
-  tax: string;
-  discount: string;
-  total: string;
-  payment_method: string;
-  status: SaleStatus;
-  items: Array<{
+// The backend returns customer details in a nested object
+interface SaleWithCustomerDetails extends Omit<Sale, "customer"> {
+  customer?: {
     id: number;
-    product: {
-      id: number;
-      name: string;
-      sku: string;
-    };
-    size: string;
-    color: string;
-    quantity: number;
-    unit_price: string;
-    total: string;
-    profit: string;
-  }>;
+    first_name: string;
+    last_name: string;
+    phone: string;
+    email: string;
+  } | null;
 }
+
+// Helper function to safely convert to number
+const toNumber = (value: number | string | null | undefined): number => {
+  if (value === null || value === undefined) return 0;
+  if (typeof value === "string") return parseFloat(value) || 0;
+  return value;
+};
 
 export default function SalesHistory() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -93,14 +108,36 @@ export default function SalesHistory() {
   );
   const [sortBy, setSortBy] = useState("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [selectedOrder, setSelectedOrder] = useState<Sale | null>(null);
+  const [selectedOrder, setSelectedOrder] =
+    useState<SaleWithCustomerDetails | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [saleToDelete, setSaleToDelete] =
+    useState<SaleWithCustomerDetails | null>(null);
+  const [salesToDelete, setSalesToDelete] = useState<number[]>([]);
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const { toast } = useToast();
 
-  const { sales, isLoading, error } = useSales({
+  const {
+    sales,
+    pagination,
+    isLoading,
+    error,
+    deleteSale,
+    deleteAllSales,
+    isDeleting,
+    isDeletingAll,
+  } = useSales({
     status: statusFilter !== "all" ? statusFilter : undefined,
     payment_method: paymentFilter !== "all" ? paymentFilter : undefined,
     search: searchTerm || undefined,
     ordering: sortOrder === "desc" ? `-${sortBy}` : sortBy,
+    page,
+    page_size: pageSize,
   });
+
+  // Cast the sales array to the correct type since we know the backend returns customer details
+  const typedSales = sales as unknown as SaleWithCustomerDetails[];
 
   const getStatusBadge = (status: SaleStatus) => {
     const statusConfig = {
@@ -129,7 +166,8 @@ export default function SalesHistory() {
     return <Badge className={`${config.color}`}>{config.label}</Badge>;
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return "";
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
       year: "numeric",
@@ -140,11 +178,8 @@ export default function SalesHistory() {
     });
   };
 
-  const calculateOrderProfit = (items: any[]) => {
-    return items.reduce(
-      (sum, item) => sum + Number.parseFloat(item.profit || "0"),
-      0
-    );
+  const calculateOrderProfit = (items: SaleItem[]) => {
+    return items.reduce((sum, item) => sum + (item.total || 0), 0);
   };
 
   const handleSort = (field: string) => {
@@ -155,6 +190,59 @@ export default function SalesHistory() {
       setSortOrder("desc");
     }
   };
+
+  const handleViewSale = (sale: SaleWithCustomerDetails) => {
+    console.log("Viewing sale:", sale);
+    setSelectedOrder(sale);
+  };
+
+  const handleDeleteSaleClick = (sale: SaleWithCustomerDetails) => {
+    console.log("Delete sale clicked:", sale);
+    setSaleToDelete(sale);
+  };
+
+  const handleDeleteSale = async () => {
+    if (!saleToDelete?.id) {
+      console.error("No sale selected for deletion");
+      return;
+    }
+
+    console.log("Deleting sale:", saleToDelete);
+    try {
+      await deleteSale(saleToDelete.id);
+      toast({
+        title: "Success",
+        description: "Sale deleted successfully",
+      });
+      setSaleToDelete(null);
+    } catch (error) {
+      console.error("Error deleting sale:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete sale. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteAllClick = () => {
+    console.log("Delete all clicked");
+    setShowDeleteAllDialog(true);
+  };
+
+  const handleBulkDelete = async () => {
+    console.log("Bulk delete triggered");
+    try {
+      console.log("Calling deleteAllSales");
+      await deleteAllSales();
+      console.log("Delete all successful");
+      setShowDeleteAllDialog(false);
+    } catch (error) {
+      console.error("Error in delete all:", error);
+    }
+  };
+
+  const totalPages = Math.ceil((pagination?.count || 0) / pageSize);
 
   if (isLoading) {
     return (
@@ -192,7 +280,7 @@ export default function SalesHistory() {
               View and manage all sales transactions
             </p>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Button
               variant="outline"
               className="bg-white border-gray-200 shadow-sm hover:bg-gray-50"
@@ -210,6 +298,14 @@ export default function SalesHistory() {
             <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg">
               <FileText className="w-4 h-4 mr-2" />
               Generate Report
+            </Button>
+            <Button
+              variant="destructive"
+              className="bg-red-600 hover:bg-red-700 shadow-lg flex items-center"
+              onClick={handleDeleteAllClick}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete All
             </Button>
           </div>
         </div>
@@ -283,7 +379,8 @@ export default function SalesHistory() {
                   Transaction History
                 </CardTitle>
                 <CardDescription className="text-gray-600">
-                  Showing {sales?.length || 0} transactions
+                  Showing {sales.length} of {pagination?.count || 0}{" "}
+                  transactions
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
@@ -364,7 +461,7 @@ export default function SalesHistory() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sales?.map((sale) => (
+                  {typedSales.map((sale) => (
                     <TableRow
                       key={sale.id}
                       className="hover:bg-gray-50 transition-colors border-gray-100"
@@ -375,15 +472,17 @@ export default function SalesHistory() {
                       <TableCell>
                         <div className="space-y-1">
                           <div className="font-medium text-gray-900">
-                            {sale.customer?.first_name || "Guest"}
+                            {sale.customer
+                              ? `${sale.customer.first_name} ${sale.customer.last_name}`
+                              : "Guest"}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {sale.customer?.phone}
+                            {sale.customer_phone || sale.customer?.phone}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-gray-600">
-                        {formatDate(sale.date || "")}
+                        {formatDate(sale.date)}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -400,325 +499,369 @@ export default function SalesHistory() {
                         </span>
                       </TableCell>
                       <TableCell className="font-semibold text-gray-900">
-                        ${Number.parseFloat(sale.total || "0").toFixed(2)}
+                        ${Number(sale.total).toFixed(2)}
                       </TableCell>
                       <TableCell className="font-semibold text-emerald-600">
-                        ${calculateOrderProfit(sale.items || []).toFixed(2)}
+                        ${Number(sale.total_profit || 0).toFixed(2)}
                       </TableCell>
                       <TableCell>
                         {sale.status && getStatusBadge(sale.status)}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setSelectedOrder(sale)}
-                                className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600"
-                              >
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-                              <DialogHeader>
-                                <DialogTitle className="text-xl font-semibold">
-                                  Order Details - {sale.invoice_number}
-                                </DialogTitle>
-                                <DialogDescription>
-                                  Complete transaction information
-                                </DialogDescription>
-                              </DialogHeader>
-                              {selectedOrder && (
-                                <div className="space-y-6">
-                                  {/* Order Summary */}
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                    <div className="space-y-3">
-                                      <div className="flex items-center gap-2">
-                                        <User className="w-5 h-5 text-blue-600" />
-                                        <span className="font-semibold text-gray-900">
-                                          Customer
-                                        </span>
-                                      </div>
-                                      <div className="bg-blue-50 p-4 rounded-lg">
-                                        <div className="font-medium text-gray-900">
-                                          {selectedOrder.customer?.first_name ||
-                                            "Guest Customer"}
-                                        </div>
-                                        <div className="text-sm text-gray-600">
-                                          {selectedOrder.customer?.phone}
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <div className="space-y-3">
-                                      <div className="flex items-center gap-2">
-                                        <Calendar className="w-5 h-5 text-green-600" />
-                                        <span className="font-semibold text-gray-900">
-                                          Date & Time
-                                        </span>
-                                      </div>
-                                      <div className="bg-green-50 p-4 rounded-lg">
-                                        <div className="text-sm text-gray-600">
-                                          {formatDate(selectedOrder.date || "")}
-                                        </div>
-                                      </div>
-                                    </div>
-                                    <div className="space-y-3">
-                                      <div className="flex items-center gap-2">
-                                        <TrendingUp className="w-5 h-5 text-purple-600" />
-                                        <span className="font-semibold text-gray-900">
-                                          Status
-                                        </span>
-                                      </div>
-                                      <div className="bg-purple-50 p-4 rounded-lg">
-                                        {selectedOrder.status &&
-                                          getStatusBadge(selectedOrder.status)}
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* Items */}
-                                  <div>
-                                    <div className="flex items-center gap-2 mb-4">
-                                      <Package className="w-5 h-5 text-orange-600" />
-                                      <span className="font-semibold text-gray-900">
-                                        Items Purchased
-                                      </span>
-                                    </div>
-                                    <div className="space-y-3">
-                                      {selectedOrder.items?.map(
-                                        (item: any, index: number) => (
-                                          <div
-                                            key={index}
-                                            className="flex justify-between items-center p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200"
-                                          >
-                                            <div className="space-y-1">
-                                              <div className="font-semibold text-gray-900">
-                                                {item.product?.name}
-                                              </div>
-                                              <div className="text-sm text-gray-600">
-                                                <span className="bg-gray-200 px-2 py-1 rounded mr-2">
-                                                  {item.size}
-                                                </span>
-                                                <span className="bg-gray-200 px-2 py-1 rounded mr-2">
-                                                  {item.color}
-                                                </span>
-                                                <span className="font-medium">
-                                                  Qty: {item.quantity}
-                                                </span>
-                                              </div>
-                                              <div className="text-xs text-gray-500 font-mono">
-                                                {item.product?.sku}
-                                              </div>
-                                            </div>
-                                            <div className="text-right space-y-1">
-                                              <div className="font-semibold text-gray-900">
-                                                $
-                                                {Number.parseFloat(
-                                                  item.total || "0"
-                                                ).toFixed(2)}
-                                              </div>
-                                              <div className="text-sm text-emerald-600 font-medium">
-                                                Profit: $
-                                                {Number.parseFloat(
-                                                  item.profit || "0"
-                                                ).toFixed(2)}
-                                              </div>
-                                            </div>
-                                          </div>
-                                        )
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  {/* Financial Summary */}
-                                  <div className="border-t pt-6">
-                                    <div className="flex items-center gap-2 mb-4">
-                                      <DollarSign className="w-5 h-5 text-green-600" />
-                                      <span className="font-semibold text-gray-900">
-                                        Financial Summary
-                                      </span>
-                                    </div>
-                                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg border border-green-200">
-                                      <div className="grid grid-cols-2 gap-4 text-sm">
-                                        <div className="flex justify-between">
-                                          <span className="text-gray-600">
-                                            Subtotal:
-                                          </span>
-                                          <span className="font-medium">
-                                            $
-                                            {Number.parseFloat(
-                                              selectedOrder.subtotal || "0"
-                                            ).toFixed(2)}
-                                          </span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                          <span className="text-gray-600">
-                                            Tax:
-                                          </span>
-                                          <span className="font-medium">
-                                            $
-                                            {Number.parseFloat(
-                                              selectedOrder.tax || "0"
-                                            ).toFixed(2)}
-                                          </span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                          <span className="text-gray-600">
-                                            Discount:
-                                          </span>
-                                          <span className="font-medium">
-                                            -$
-                                            {Number.parseFloat(
-                                              selectedOrder.discount || "0"
-                                            ).toFixed(2)}
-                                          </span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                          <span className="text-gray-600">
-                                            Payment:
-                                          </span>
-                                          <span className="font-medium capitalize">
-                                            {selectedOrder.payment_method}
-                                          </span>
-                                        </div>
-                                      </div>
-                                      <div className="border-t border-green-300 mt-4 pt-4">
-                                        <div className="flex justify-between items-center">
-                                          <span className="text-lg font-semibold text-gray-900">
-                                            Total:
-                                          </span>
-                                          <span className="text-2xl font-bold text-gray-900">
-                                            $
-                                            {Number.parseFloat(
-                                              selectedOrder.total || "0"
-                                            ).toFixed(2)}
-                                          </span>
-                                        </div>
-                                        <div className="flex justify-between items-center mt-2">
-                                          <span className="text-lg font-semibold text-emerald-700">
-                                            Total Profit:
-                                          </span>
-                                          <span className="text-xl font-bold text-emerald-700">
-                                            $
-                                            {calculateOrderProfit(
-                                              selectedOrder.items || []
-                                            ).toFixed(2)}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-                            </DialogContent>
-                          </Dialog>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 hover:bg-gray-100"
-                          >
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Open menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => handleViewSale(sale)}
+                              className="cursor-pointer"
+                            >
+                              <Eye className="w-4 h-4 mr-2" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleDeleteSaleClick(sale)}
+                              className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete Sale
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </div>
+
+            {/* Pagination */}
+            <div className="mt-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Rows per page:</span>
+                <Select
+                  value={pageSize.toString()}
+                  onValueChange={(value) => {
+                    setPageSize(Number(value));
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      className={
+                        page === 1 ? "pointer-events-none opacity-50" : ""
+                      }
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((p) => {
+                      // Show first page, last page, current page, and pages around current page
+                      return (
+                        p === 1 || p === totalPages || Math.abs(p - page) <= 1
+                      );
+                    })
+                    .map((p, i, arr) => {
+                      // Add ellipsis if there are gaps
+                      if (i > 0 && p - arr[i - 1] > 1) {
+                        return (
+                          <React.Fragment key={`ellipsis-${p}`}>
+                            <PaginationItem>
+                              <PaginationEllipsis />
+                            </PaginationItem>
+                            <PaginationItem>
+                              <PaginationLink
+                                onClick={() => setPage(p)}
+                                isActive={page === p}
+                              >
+                                {p}
+                              </PaginationLink>
+                            </PaginationItem>
+                          </React.Fragment>
+                        );
+                      }
+                      return (
+                        <PaginationItem key={p}>
+                          <PaginationLink
+                            onClick={() => setPage(p)}
+                            isActive={page === p}
+                          >
+                            {p}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() =>
+                        setPage((p) => Math.min(totalPages, p + 1))
+                      }
+                      className={
+                        page === totalPages
+                          ? "pointer-events-none opacity-50"
+                          : ""
+                      }
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
           </CardContent>
         </Card>
-
-        {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-sm font-medium">
-                    Total Revenue
-                  </p>
-                  <p className="text-3xl font-bold">
-                    $
-                    {sales
-                      ?.reduce(
-                        (sum, sale) =>
-                          sum + Number.parseFloat(sale.total || "0"),
-                        0
-                      )
-                      .toLocaleString()}
-                  </p>
-                </div>
-                <DollarSign className="h-8 w-8 text-blue-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-0 shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-emerald-100 text-sm font-medium">
-                    Total Orders
-                  </p>
-                  <p className="text-3xl font-bold">{sales?.length || 0}</p>
-                </div>
-                <Package className="h-8 w-8 text-emerald-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-purple-100 text-sm font-medium">
-                    Total Profit
-                  </p>
-                  <p className="text-3xl font-bold">
-                    $
-                    {sales
-                      ?.reduce(
-                        (sum, sale) =>
-                          sum + calculateOrderProfit(sale.items || []),
-                        0
-                      )
-                      .toFixed(2)}
-                  </p>
-                </div>
-                <TrendingUp className="h-8 w-8 text-purple-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-orange-100 text-sm font-medium">
-                    Avg Order Value
-                  </p>
-                  <p className="text-3xl font-bold">
-                    $
-                    {sales && sales.length > 0
-                      ? (
-                          sales.reduce(
-                            (sum, sale) =>
-                              sum + Number.parseFloat(sale.total || "0"),
-                            0
-                          ) / sales.length
-                        ).toFixed(2)
-                      : "0.00"}
-                  </p>
-                </div>
-                <User className="h-8 w-8 text-orange-200" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={!!saleToDelete}
+        onOpenChange={(open) => {
+          console.log("Delete dialog open state changed:", open);
+          if (!open) setSaleToDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Sale</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the sale{" "}
+              {saleToDelete?.invoice_number}. This action cannot be undone. Are
+              you sure you want to proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteSale}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete Sale"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete All Dialog */}
+      <AlertDialog
+        open={showDeleteAllDialog}
+        onOpenChange={(open) => {
+          console.log("Delete dialog open state changed:", open);
+          setShowDeleteAllDialog(open);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete All Sales</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will delete ALL sales data from the system, including
+              completed, pending, and cancelled sales. This action cannot be
+              undone. Are you absolutely sure you want to proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={isDeletingAll}
+            >
+              {isDeletingAll ? "Deleting..." : "Delete All Sales"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Order Details Dialog */}
+      {selectedOrder && (
+        <Dialog
+          open={!!selectedOrder}
+          onOpenChange={(open) => {
+            console.log("Dialog open state changed:", open);
+            if (!open) setSelectedOrder(null);
+          }}
+        >
+          <DialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedOrder(null)}
+              className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600"
+            >
+              <span className="sr-only">Close</span>
+              <Eye className="w-4 h-4" />
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold">
+                Order Details - {selectedOrder.invoice_number}
+              </DialogTitle>
+              <DialogDescription>
+                Complete transaction information
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6">
+              {/* Order Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <User className="w-5 h-5 text-blue-600" />
+                    <span className="font-semibold text-gray-900">
+                      Customer
+                    </span>
+                  </div>
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="font-medium text-gray-900">
+                      {selectedOrder.customer
+                        ? `${selectedOrder.customer.first_name} ${selectedOrder.customer.last_name}`
+                        : "Guest Customer"}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {selectedOrder.customer_phone ||
+                        selectedOrder.customer?.phone}
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-green-600" />
+                    <span className="font-semibold text-gray-900">
+                      Date & Time
+                    </span>
+                  </div>
+                  <div className="bg-green-50 p-4 rounded-lg">
+                    <div className="text-sm text-gray-600">
+                      {formatDate(selectedOrder.date)}
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-purple-600" />
+                    <span className="font-semibold text-gray-900">Status</span>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-lg">
+                    {selectedOrder.status &&
+                      getStatusBadge(selectedOrder.status)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Items */}
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <Package className="w-5 h-5 text-orange-600" />
+                  <span className="font-semibold text-gray-900">
+                    Items Purchased
+                  </span>
+                </div>
+                <div className="space-y-3">
+                  {selectedOrder.items?.map((item: any, index: number) => (
+                    <div
+                      key={index}
+                      className="flex justify-between items-center p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200"
+                    >
+                      <div className="space-y-1">
+                        <div className="font-semibold text-gray-900">
+                          {item.product?.name}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          <span className="bg-gray-200 px-2 py-1 rounded mr-2">
+                            {item.size}
+                          </span>
+                          <span className="bg-gray-200 px-2 py-1 rounded mr-2">
+                            {item.color}
+                          </span>
+                          <span className="font-medium">
+                            Qty: {item.quantity}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-500 font-mono">
+                          {item.product?.sku}
+                        </div>
+                      </div>
+                      <div className="text-right space-y-1">
+                        <div className="font-semibold text-gray-900">
+                          ${toNumber(item.total).toFixed(2)}
+                        </div>
+                        <div className="text-sm text-emerald-600 font-medium">
+                          Profit: ${toNumber(item.profit).toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Financial Summary */}
+              <div className="border-t pt-6">
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg border border-green-200">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Subtotal:</span>
+                      <span className="font-medium">
+                        ${toNumber(selectedOrder.subtotal).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Tax:</span>
+                      <span className="font-medium">
+                        ${toNumber(selectedOrder.tax).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Discount:</span>
+                      <span className="font-medium">
+                        -${toNumber(selectedOrder.discount).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Payment:</span>
+                      <span className="font-medium capitalize">
+                        {selectedOrder.payment_method}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="border-t border-green-300 mt-4 pt-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-semibold text-gray-900">
+                        Total:
+                      </span>
+                      <span className="text-2xl font-bold text-gray-900">
+                        ${toNumber(selectedOrder.total).toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-lg font-semibold text-emerald-700">
+                        Total Profit:
+                      </span>
+                      <span className="text-2xl font-bold text-emerald-700">
+                        ${toNumber(selectedOrder.total_profit).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

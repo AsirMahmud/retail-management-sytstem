@@ -103,3 +103,10 @@ export const lookupCustomerByPhone = async (phone: string): Promise<Customer | n
         return null;
     }
 };
+
+// Delete all customers
+export const deleteAllCustomers = async (): Promise<void> => {
+    await axiosInstance.delete('/setting/flush-database/', {
+        params: { database_type: 'customers' }
+    });
+};

@@ -9,6 +9,13 @@ import type {
     DashboardStats
 } from '@/types/sales';
 
+export interface PaginatedResponse<T> {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: T[];
+}
+
 // Sales API
 export const getSales = async (params?: {
     start_date?: string;
@@ -18,8 +25,10 @@ export const getSales = async (params?: {
     customer_phone?: string;
     search?: string;
     ordering?: string;
+    page?: number;
+    page_size?: number;
 }) => {
-    const response = await axios.get<Sale[]>('/sales/sales/', { params });
+    const response = await axios.get<PaginatedResponse<Sale>>('/sales/sales/', { params });
     return response.data;
 };
 
@@ -38,8 +47,21 @@ export const updateSale = async (id: number, data: Partial<Sale>) => {
     return response.data;
 };
 
-export const deleteSale = async (id: number) => {
-    await axios.delete(`/sales/sales/${id}/`);
+export const deleteSale = async (id: number): Promise<void> => {
+    const response = await axios.delete(`/sales/sales/${id}/`);
+    return response.data;
+};
+
+export const bulkDeleteSales = async (saleIds: number[]) => {
+    const response = await axios.post<{ message: string; deleted_count: number }>('/sales/sales/bulk_delete/', {
+        sale_ids: saleIds
+    });
+    return response.data;
+};
+
+export const deleteAllSales = async (): Promise<{ message: string; deleted_count: number }> => {
+    const response = await axios.post('/sales/sales/delete_all_sales/');
+    return response.data;
 };
 
 // Payments API

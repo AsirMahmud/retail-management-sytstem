@@ -80,7 +80,7 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'sku', 'barcode', 'description', 'category', 'category_name',
             'supplier', 'supplier_name', 'cost_price', 'selling_price', 'stock_quantity',
-            'minimum_stock', 'image', 'is_active', 'size_type', 'gender', 'variations', 
+            'minimum_stock', 'image', 'is_active', 'size_type', 'size_category', 'gender', 'variations', 
             'images', 'total_stock', 'created_at', 'updated_at'
         ]
         extra_kwargs = {
@@ -133,7 +133,7 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'sku', 'barcode', 'description', 'category', 'supplier',
             'cost_price', 'selling_price', 'stock_quantity', 'minimum_stock', 'image',
-            'is_active', 'size_type', 'gender', 'variations', 'images'
+            'is_active', 'size_type', 'size_category', 'gender', 'variations', 'images'
         ]
         extra_kwargs = {
             'category': {'required': False, 'allow_null': True},

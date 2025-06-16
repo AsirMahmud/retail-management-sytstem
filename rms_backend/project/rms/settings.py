@@ -94,11 +94,22 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# Add CSRF exemption for API views
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://rawstitch.info"
+]
+
+# Exempt API views from CSRF
+CSRF_COOKIE_SECURE = False
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_HTTPONLY = False
 
 ROOT_URLCONF = 'rms.urls'
 

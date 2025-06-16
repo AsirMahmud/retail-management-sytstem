@@ -44,13 +44,11 @@ export default function ProductGrid({
       const matchesCategory =
         selectedCategory === "all" ||
         (product.category &&
-          product.category.id?.toString() === selectedCategory);
+          product.category.id === parseInt(selectedCategory));
 
-      const productPrice = parseFloat(product.selling_price);
+      const productPrice = product.selling_price;
       const matchesPrice =
-        !isNaN(productPrice) &&
-        productPrice >= priceRange[0] &&
-        productPrice <= priceRange[1];
+        productPrice >= priceRange[0] && productPrice <= priceRange[1];
 
       console.log("Product filtering:", {
         product: product.name,
@@ -236,17 +234,10 @@ export default function ProductGrid({
               </p>
 
               {/* Size Type and Gender Info */}
-              {(product.size_type ||
-                product.size_category ||
-                product.gender) && (
+              {(product.size_category || product.gender) && (
                 <div className="flex gap-1 mt-1">
-                  {product.size_type && (
-                    <Badge variant="outline" className="text-xs bg-emerald-200">
-                      {product.size_type}
-                    </Badge>
-                  )}
                   {product.size_category && (
-                    <Badge variant="outline" className="text-xs ">
+                    <Badge variant="outline" className="text-xs bg-emerald-200">
                       {product.size_category}
                     </Badge>
                   )}

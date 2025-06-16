@@ -27,6 +27,8 @@ interface ReceiptModalProps {
     splitPayments: { method: string; amount: string }[] | null;
     storeCredit: number;
     isPaid: boolean;
+    itemDiscounts: number;
+    globalDiscount: number;
   } | null;
   onNewSale: () => void;
   formatCurrency: (amount: number) => string;
@@ -207,8 +209,8 @@ export default function ReceiptModal({
                   ${
                     item.itemDiscount > 0
                       ? `
-                    <div class="text-xs text-muted-foreground">
-                      Item Discount: ${formatCurrency(item.itemDiscount)}
+                    <div class="text-xs text-red-600">
+                      Item Discount: -${formatCurrency(item.itemDiscount)}
                     </div>
                   `
                       : ""
@@ -229,17 +231,21 @@ export default function ReceiptModal({
               <span>${formatCurrency(data.subtotal)}</span>
             </div>
             ${
-              data.discount
+              data.itemDiscounts > 0
                 ? `
               <div class="total-row">
-                <span>Discount:</span>
-                <span class="discount">
-                  -${formatCurrency(
-                    data.discount.type === "percentage"
-                      ? (data.subtotal * data.discount.value) / 100
-                      : data.discount.value
-                  )}
-                </span>
+                <span>Item Discounts:</span>
+                <span>-${formatCurrency(data.itemDiscounts)}</span>
+              </div>
+            `
+                : ""
+            }
+            ${
+              data.globalDiscount > 0
+                ? `
+              <div class="total-row">
+                <span>Global Discount:</span>
+                <span>-${formatCurrency(data.globalDiscount)}</span>
               </div>
             `
                 : ""
@@ -393,8 +399,8 @@ export default function ReceiptModal({
                       {item.size} - {item.color}
                     </div>
                     {item.itemDiscount > 0 && (
-                      <div className="text-xs text-muted-foreground">
-                        Item Discount: {formatCurrency(item.itemDiscount)}
+                      <div className="text-xs text-red-600">
+                        Item Discount: -{formatCurrency(item.itemDiscount)}
                       </div>
                     )}
                   </div>
@@ -412,17 +418,16 @@ export default function ReceiptModal({
               <span>Subtotal:</span>
               <span>{formatCurrency(data.subtotal)}</span>
             </div>
-            {data.discount && (
+            {data.itemDiscounts > 0 && (
               <div className="flex justify-between text-red-600">
-                <span>Discount:</span>
-                <span>
-                  -
-                  {formatCurrency(
-                    data.discount.type === "percentage"
-                      ? (data.subtotal * data.discount.value) / 100
-                      : data.discount.value
-                  )}
-                </span>
+                <span>Item Discounts:</span>
+                <span>-{formatCurrency(data.itemDiscounts)}</span>
+              </div>
+            )}
+            {data.globalDiscount > 0 && (
+              <div className="flex justify-between text-red-600">
+                <span>Global Discount:</span>
+                <span>-{formatCurrency(data.globalDiscount)}</span>
               </div>
             )}
             <div className="flex justify-between">

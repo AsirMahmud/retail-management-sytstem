@@ -40,120 +40,7 @@ import type { CreateProductDTO } from "@/types/inventory";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HydrationWrapper } from "@/components/hydration-wrapper";
-
-// Global sizes object
-const globalSizes = {
-  pants: {
-    men: {
-      US: ["28", "30", "32", "34", "36", "38", "40", "42", "44"],
-      EU: ["44", "46", "48", "50", "52", "54", "56", "58"],
-      UK: ["28", "30", "32", "34", "36", "38", "40", "42"],
-      Asia: ["M", "L", "XL", "XXL", "3XL"],
-      international: ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
-    },
-    women: {
-      US: ["0", "2", "4", "6", "8", "10", "12", "14", "16"],
-      EU: ["32", "34", "36", "38", "40", "42", "44", "46"],
-      UK: ["4", "6", "8", "10", "12", "14", "16", "18"],
-      Asia: ["S", "M", "L", "XL", "XXL"],
-      international: ["XS", "S", "M", "L", "XL", "XXL"],
-    },
-  },
-  shoes: {
-    men: {
-      US: ["6", "7", "8", "9", "10", "11", "12"],
-      UK: ["5.5", "6.5", "7.5", "8.5", "9.5", "10.5"],
-      EU: ["39", "40", "41", "42", "43", "44", "45"],
-      Asia: ["240", "245", "250", "255", "260", "265", "270", "275", "280"], // mm
-    },
-    women: {
-      US: ["5", "6", "7", "8", "9", "10"],
-      UK: ["3", "4", "5", "6", "7"],
-      EU: ["36", "37", "38", "39", "40", "41"],
-      Asia: ["220", "225", "230", "235", "240", "245", "250"], // mm
-    },
-  },
-  belts: {
-    inches: ["28", "30", "32", "34", "36", "38", "40", "42"],
-    cm: ["70", "75", "80", "85", "90", "95", "100", "105", "110"],
-    Asia: ["S", "M", "L", "XL", "XXL"],
-    international: ["S", "M", "L", "XL", "XXL"],
-  },
-  underwear: {
-    men: {
-      waistInches: ["28", "30", "32", "34", "36", "38"],
-      international: ["XS", "S", "M", "L", "XL", "XXL"],
-      Asia: ["M", "L", "XL", "XXL", "3XL"],
-    },
-    women: {
-      dressSize: ["4", "6", "8", "10", "12"],
-      international: ["XS", "S", "M", "L", "XL"],
-      Asia: ["S", "M", "L", "XL", "XXL"],
-    },
-  },
-  jersey: {
-    unisex: ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
-    chestInches: ["32", "34", "36", "38", "40", "42", "44"],
-    EU: ["44", "46", "48", "50", "52", "54"],
-    Asia: ["M", "L", "XL", "XXL", "3XL", "4XL"],
-  },
-  shirts: {
-    men: {
-      US: ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
-      UK: ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
-      EU: ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
-      Asia: ["M", "L", "XL", "XXL", "3XL"],
-      international: ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
-    },
-    women: {
-      US: ["XS", "S", "M", "L", "XL", "XXL"],
-      UK: ["XS", "S", "M", "L", "XL", "XXL"],
-      EU: ["XS", "S", "M", "L", "XL", "XXL"],
-      Asia: ["S", "M", "L", "XL", "XXL"],
-      international: ["XS", "S", "M", "L", "XL", "XXL"],
-    },
-  },
-  tshirts: {
-    men: {
-      US: ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
-      UK: ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
-      EU: ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
-      Asia: ["M", "L", "XL", "XXL", "3XL"],
-      international: ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
-    },
-    women: {
-      US: ["XS", "S", "M", "L", "XL", "XXL"],
-      UK: ["XS", "S", "M", "L", "XL", "XXL"],
-      EU: ["XS", "S", "M", "L", "XL", "XXL"],
-      Asia: ["S", "M", "L", "XL", "XXL"],
-      international: ["XS", "S", "M", "L", "XL", "XXL"],
-    },
-  },
-};
-
-// Color constants with hex values
-const COLORS = {
-  Black: "#000000",
-  White: "#FFFFFF",
-  Red: "#FF0000",
-  Blue: "#0000FF",
-  Green: "#008000",
-  Yellow: "#FFFF00",
-  Purple: "#800080",
-  Orange: "#FFA500",
-  Pink: "#FFC0CB",
-  Brown: "#A52A2A",
-  Gray: "#808080",
-  Navy: "#000080",
-  Teal: "#008080",
-  Maroon: "#800000",
-  Olive: "#808000",
-  Silver: "#C0C0C0",
-  Gold: "#FFD700",
-  Beige: "#F5F5DC",
-  Burgundy: "#800020",
-  Khaki: "#F0E68C",
-} as const;
+import { globalSizes, COLORS } from "./constants";
 
 // Define the form schema using Zod
 const productFormSchema = z.object({
@@ -167,6 +54,9 @@ const productFormSchema = z.object({
   minimum_stock: z.number().default(10),
   size_type: z.string({ required_error: "Please select a size type" }),
   gender: z.string({ required_error: "Please select a gender" }),
+  size_category: z
+    .string({ required_error: "Please select a size category" })
+    .optional(),
   variations: z
     .array(
       z.object({
@@ -305,35 +195,79 @@ export default function AddProductPage() {
     setSizeCategory("");
   };
 
+  const validateSizeCategory = (
+    sizeType: string,
+    gender: string,
+    category: string
+  ) => {
+    const sizeTypeData = globalSizes[sizeType as keyof typeof globalSizes];
+    if (!sizeTypeData) return false;
+
+    if (sizeType === "belts" || sizeType === "jersey") {
+      return category in sizeTypeData;
+    } else if (
+      ["pants", "shoes", "underwear", "shirts", "tshirts"].includes(sizeType)
+    ) {
+      const genderKey =
+        gender === "MALE" ? "men" : gender === "FEMALE" ? "women" : "unisex";
+      return (
+        category in (sizeTypeData[genderKey as keyof typeof sizeTypeData] || {})
+      );
+    }
+    return false;
+  };
+
   const handleSizeCategoryChange = (value: string) => {
+    const sizeType = form.getValues("size_type");
+    const gender = form.getValues("gender");
+
+    if (!validateSizeCategory(sizeType, gender, value)) {
+      toast({
+        title: "Invalid Size Category",
+        description:
+          "Please select a valid size category for the chosen product type and gender",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSizeCategory(value);
+    // Clear existing variants when size category changes
     setVariants([]);
   };
 
   // Function to add a new size variant
   const addSizeVariant = () => {
-    if (availableSizes.length === 0) {
+    if (!sizeCategory) {
       toast({
-        title: "Select size configuration first",
-        description:
-          "Please select size type, gender (if applicable), and size category before adding variants.",
+        title: "Size Category Required",
+        description: "Please select a size category first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const existingSizes = variants.map((v) => v.size);
+    const availableSizes = getAvailableSizesForVariant("");
+    const unusedSizes = availableSizes.filter(
+      (size) => !existingSizes.includes(size)
+    );
+
+    if (unusedSizes.length === 0) {
+      toast({
+        title: "No Available Sizes",
+        description: "All sizes for this category have been added",
         variant: "destructive",
       });
       return;
     }
 
     const newVariant: SizeVariant = {
-      id: Date.now().toString(),
-      size: availableSizes[0],
-      colors: [
-        {
-          id: Date.now().toString() + "-color",
-          color: "Black",
-          colorHex: "#000000",
-          stock: 0,
-        },
-      ],
+      id: crypto.randomUUID(),
+      size: unusedSizes[0],
+      colors: [],
     };
+
     setVariants([...variants, newVariant]);
   };
 
@@ -434,6 +368,35 @@ export default function AddProductPage() {
   // Function to handle form submission
   const onSubmit = async (data: ProductFormValues) => {
     try {
+      if (!sizeCategory) {
+        toast({
+          title: "Size Category Required",
+          description: "Please select a size category",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (variants.length === 0) {
+        toast({
+          title: "Variants Required",
+          description: "Please add at least one size variant",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate that each variant has at least one color
+      const invalidVariants = variants.filter((v) => v.colors.length === 0);
+      if (invalidVariants.length > 0) {
+        toast({
+          title: "Color Required",
+          description: `Please add at least one color for size ${invalidVariants[0].size}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Prepare the product data
       const productData: CreateProductDTO = {
         name: data.name,
@@ -444,7 +407,8 @@ export default function AddProductPage() {
         selling_price: parseFloat(data.selling_price),
         minimum_stock: data.minimum_stock,
         is_active: data.status === "active",
-        size_type: sizeCategory, // Use sizeCategory as size_type
+        size_type: data.size_type,
+        size_category: sizeCategory, // Add size category explicitly
         gender: data.gender,
         variations: variants.flatMap((sizeVariant) =>
           sizeVariant.colors.map((colorVariant) => ({
