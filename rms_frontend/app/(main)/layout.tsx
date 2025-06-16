@@ -12,7 +12,6 @@ import { AuthProvider } from "@/contexts/auth-context";
 import { BismillahProvider } from "@/contexts/bismillah-context";
 import { Toaster } from "@/components/ui/toaster";
 import { BismillahLogo } from "@/components/bismillah-logo";
-import { Footer } from "@/components/ui/footer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -36,7 +35,6 @@ export default function RootLayout({
                     <main className="flex-1 p-4 md:p-6 overflow-auto">
                       {children}
                     </main>
-                    <Footer />
 
                     <Toaster />
                   </div>
