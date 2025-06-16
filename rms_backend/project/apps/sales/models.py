@@ -73,15 +73,61 @@ class Sale(models.Model):
         if not self.invoice_number:
             self.invoice_number = generate_invoice_number()
         super().save(*args, **kwargs)
-
+ 
     def calculate_totals(self):
-        """Calculate sale totals based on items"""
+        """Calculate sale totals based on items and discounts"""
         items = self.items.all()
-        self.subtotal = sum(item.total for item in items)
-        self.total = self.subtotal + self.tax - self.discount
-        self.total_profit = sum(item.profit for item in items)
-        self.total_loss = sum(item.loss for item in items)
-        self.save()
+        
+        # Calculate subtotal from items (before any discounts)
+        self.subtotal = sum(item.unit_price * item.quantity for item in items)
+        
+        # Calculate total item discounts
+        total_item_discounts = sum(item.discount for item in items)
+        
+        # Calculate total after item discounts
+        total_after_item_discounts = self.subtotal - total_item_discounts
+        
+        # Apply global discount if exists
+        if self.discount > 0:
+            # Calculate the proportion of global discount to apply to each item
+            global_discount_ratio = self.discount / total_after_item_discounts if total_after_item_discounts > 0 else 0
+            
+            # Calculate profit/loss for each item considering both item and global discounts
+            total_profit = Decimal('0.00')
+            total_loss = Decimal('0.00')
+            
+            for item in items:
+                # Calculate item's share of global discount
+                item_global_discount = (item.unit_price * item.quantity - item.discount) * global_discount_ratio
+                
+                # Calculate total discount for this item (item discount + share of global discount)
+                total_item_discount = item.discount + item_global_discount
+                
+                # Calculate selling price after all discounts
+                selling_price = item.unit_price * item.quantity - total_item_discount
+                
+                # Calculate cost
+                cost = item.product.cost_price * item.quantity if item.product.cost_price else Decimal('0.00')
+                
+                # Calculate profit/loss
+                difference = selling_price - cost
+                
+                if difference >= 0:
+                    total_profit += difference
+                else:
+                    total_loss += abs(difference)
+        else:
+            # If no global discount, calculate profit/loss normally
+            total_profit = sum(item.profit for item in items)
+            total_loss = sum(item.loss for item in items)
+        
+        # Set the final totals
+        self.total_profit = total_profit
+        self.total_loss = total_loss
+        self.total = self.subtotal - total_item_discounts - self.discount
+        
+        # Save the updated totals
+        self.save(update_fields=['subtotal', 'total', 'total_profit', 'total_loss'])
 
 class SaleItem(models.Model):
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='items')
@@ -124,8 +170,13 @@ class SaleItem(models.Model):
         """Calculate profit or loss for this sale item"""
         variation = self.get_variation()
         if variation and self.product.cost_price:
+            # Calculate cost total
             cost_total = self.product.cost_price * self.quantity
-            selling_total = self.total
+            
+            # Calculate selling total with discount
+            selling_total = self.total  # This already includes the discount
+            
+            # Calculate profit/loss
             difference = selling_total - cost_total
             
             if difference >= 0:
@@ -135,7 +186,7 @@ class SaleItem(models.Model):
         return Decimal('0.00'), Decimal('0.00')
 
     def save(self, *args, **kwargs):
-        # Calculate total before saving
+        # Calculate total before saving (with discount)
         self.total = (self.quantity * self.unit_price) - self.discount
         
         # Calculate profit and loss
@@ -164,6 +215,10 @@ class SaleItem(models.Model):
                 self.product.save()
         
         super().save(*args, **kwargs)
+        
+        # Update sale totals after saving the item
+        if self.sale:
+            self.sale.calculate_totals()
 
 class Payment(models.Model):
     PAYMENT_METHOD_CHOICES = [

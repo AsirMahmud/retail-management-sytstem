@@ -19,7 +19,7 @@ export interface Sale {
     id?: number;
     invoice_number?: string;
     customer?: number | null;
-    phone: string | null;
+    customer_phone: string | null;
     date?: string;
     subtotal: number;
     tax: number;

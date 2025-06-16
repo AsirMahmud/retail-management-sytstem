@@ -197,41 +197,25 @@ export default function ReceiptModal({
           <div class="items">
             ${data.items
               .map(
-                (item) => `
+                (item, index) => `
               <div class="item">
                 <div class="item-name">${item.name}</div>
                 <div class="item-details">
-                  ${item.quantity} x ${formatCurrency(item.price)}
+                  ${item.quantity} x ${formatCurrency(item.price)} - ${
+                  item.size
+                } - ${item.color}
                   ${
-                    item.discount
+                    item.itemDiscount > 0
                       ? `
-                    <span class="discount">
-                      (-${
-                        item.discount.type === "percentage"
-                          ? `${item.discount.value}%`
-                          : formatCurrency(item.discount.value)
-                      })
-                    </span>
+                    <div class="text-xs text-muted-foreground">
+                      Item Discount: ${formatCurrency(item.itemDiscount)}
+                    </div>
                   `
                       : ""
                   }
                 </div>
                 <div class="item-total">
-                  ${formatCurrency(item.price * item.quantity)}
-                  ${
-                    item.discount
-                      ? `
-                    <span class="discount">
-                      -${formatCurrency(
-                        item.discount.type === "percentage"
-                          ? (item.price * item.quantity * item.discount.value) /
-                              100
-                          : item.discount.value
-                      )}
-                    </span>
-                  `
-                      : ""
-                  }
+                  ${formatCurrency(item.discountedTotal)}
                 </div>
               </div>
             `
@@ -400,38 +384,22 @@ export default function ReceiptModal({
           {/* Items */}
           <ScrollArea className="h-[200px]">
             <div className="space-y-2">
-              {data.items.map((item) => (
-                <div key={item.id} className="flex justify-between text-sm">
-                  <div>
-                    <p>{item.name}</p>
-                    <p className="text-muted-foreground">
-                      {item.quantity} x {formatCurrency(item.price)}
-                      {item.discount && (
-                        <span className="text-red-600 ml-1">
-                          (-
-                          {item.discount.type === "percentage"
-                            ? `${item.discount.value}%`
-                            : formatCurrency(item.discount.value)}
-                          )
-                        </span>
-                      )}
-                    </p>
+              {data.items.map((item, index) => (
+                <div key={index} className="flex justify-between text-sm">
+                  <div className="flex-1">
+                    <div>{item.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {item.quantity} x {formatCurrency(item.price)} -{" "}
+                      {item.size} - {item.color}
+                    </div>
+                    {item.itemDiscount > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        Item Discount: {formatCurrency(item.itemDiscount)}
+                      </div>
+                    )}
                   </div>
                   <div className="text-right">
-                    <p>{formatCurrency(item.price * item.quantity)}</p>
-                    {item.discount && (
-                      <p className="text-red-600">
-                        -
-                        {formatCurrency(
-                          item.discount.type === "percentage"
-                            ? (item.price *
-                                item.quantity *
-                                item.discount.value) /
-                                100
-                            : item.discount.value
-                        )}
-                      </p>
-                    )}
+                    <div>{formatCurrency(item.discountedTotal)}</div>
                   </div>
                 </div>
               ))}
