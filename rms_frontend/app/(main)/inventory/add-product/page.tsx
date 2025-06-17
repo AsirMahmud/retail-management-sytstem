@@ -132,7 +132,9 @@ export default function AddProductPage() {
     } else if (
       watchedSizeType === "pants" ||
       watchedSizeType === "shoes" ||
-      watchedSizeType === "underwear"
+      watchedSizeType === "underwear" ||
+      watchedSizeType === "shirts" ||
+      watchedSizeType === "tshirts"
     ) {
       // Convert backend gender values to frontend gender values
       const frontendGender =
@@ -164,7 +166,9 @@ export default function AddProductPage() {
     } else if (
       (watchedSizeType === "pants" ||
         watchedSizeType === "shoes" ||
-        watchedSizeType === "underwear") &&
+        watchedSizeType === "underwear" ||
+        watchedSizeType === "shirts" ||
+        watchedSizeType === "tshirts") &&
       watchedGender
     ) {
       // Convert backend gender values to frontend gender values
@@ -635,6 +639,8 @@ export default function AddProductPage() {
                                 Underwear
                               </SelectItem>
                               <SelectItem value="jersey">Jersey</SelectItem>
+                              <SelectItem value="shirts">Shirts</SelectItem>
+                              <SelectItem value="tshirts">T-Shirts</SelectItem>
                             </SelectContent>
                           </Select>
                         </FormControl>
