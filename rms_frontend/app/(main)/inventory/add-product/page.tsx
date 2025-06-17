@@ -277,6 +277,20 @@ export default function AddProductPage() {
 
   // Function to add a new color to a size variant
   const addColorVariant = (sizeId: string) => {
+    const availableColors = getAvailableColorsForVariant(sizeId);
+
+    if (availableColors.length === 0) {
+      toast({
+        title: "No Available Colors",
+        description:
+          "All colors have been added for this size. Please remove a color first to add a new one.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const firstAvailableColor = availableColors[0];
+
     setVariants(
       variants.map((variant) => {
         if (variant.id === sizeId) {
@@ -286,8 +300,8 @@ export default function AddProductPage() {
               ...variant.colors,
               {
                 id: Date.now().toString() + "-color",
-                color: "Black",
-                colorHex: "#000000",
+                color: firstAvailableColor,
+                colorHex: COLORS[firstAvailableColor as keyof typeof COLORS],
                 stock: 0,
               },
             ],
@@ -314,6 +328,25 @@ export default function AddProductPage() {
     field: keyof ColorVariant,
     value: string | number
   ) => {
+    // If updating color name, check for duplicates
+    if (field === "color" && typeof value === "string") {
+      const currentVariant = variants.find((v) => v.id === sizeId);
+      if (currentVariant) {
+        const existingColors = currentVariant.colors
+          .filter((color) => color.id !== colorId) // Exclude current color being updated
+          .map((color) => color.color.toLowerCase());
+
+        if (existingColors.includes(value.toLowerCase())) {
+          toast({
+            title: "Duplicate Color",
+            description: `Color "${value}" already exists for this size. Please choose a different color.`,
+            variant: "destructive",
+          });
+          return; // Don't update if duplicate
+        }
+      }
+    }
+
     setVariants(
       variants.map((variant) => {
         if (variant.id === sizeId) {
@@ -369,6 +402,19 @@ export default function AddProductPage() {
     return availableSizes.filter((size) => !usedSizes.includes(size));
   };
 
+  // Function to get available colors for a specific size variant
+  const getAvailableColorsForVariant = (sizeId: string) => {
+    const currentVariant = variants.find((v) => v.id === sizeId);
+    if (!currentVariant) return Object.keys(COLORS);
+
+    const usedColors = currentVariant.colors.map((color) =>
+      color.color.toLowerCase()
+    );
+    return Object.keys(COLORS).filter(
+      (color) => !usedColors.includes(color.toLowerCase())
+    );
+  };
+
   // Function to handle form submission
   const onSubmit = async (data: ProductFormValues) => {
     try {
@@ -396,6 +442,32 @@ export default function AddProductPage() {
         toast({
           title: "Color Required",
           description: `Please add at least one color for size ${invalidVariants[0].size}`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check for duplicate size-color combinations
+      const sizeColorCombinations: string[] = [];
+      const duplicates: string[] = [];
+
+      variants.forEach((variant) => {
+        variant.colors.forEach((color) => {
+          const combination = `${variant.size}-${color.color}`.toLowerCase();
+          if (sizeColorCombinations.includes(combination)) {
+            duplicates.push(`${variant.size} - ${color.color}`);
+          } else {
+            sizeColorCombinations.push(combination);
+          }
+        });
+      });
+
+      if (duplicates.length > 0) {
+        toast({
+          title: "Duplicate Variants Found",
+          description: `The following combinations already exist: ${duplicates.join(
+            ", "
+          )}. Please remove duplicates before saving.`,
           variant: "destructive",
         });
         return;
@@ -892,24 +964,24 @@ export default function AddProductPage() {
                                           <SelectValue placeholder="Select color" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                          {Object.entries(COLORS).map(
-                                            ([name, hex]) => (
-                                              <SelectItem
-                                                key={name}
-                                                value={name}
-                                              >
-                                                <div className="flex items-center gap-2">
-                                                  <div
-                                                    className="w-4 h-4 rounded-full border border-gray-200"
-                                                    style={{
-                                                      backgroundColor: hex,
-                                                    }}
-                                                  />
-                                                  <span>{name}</span>
-                                                </div>
-                                              </SelectItem>
-                                            )
-                                          )}
+                                          {getAvailableColorsForVariant(
+                                            variant.id
+                                          ).map((name) => (
+                                            <SelectItem key={name} value={name}>
+                                              <div className="flex items-center gap-2">
+                                                <div
+                                                  className="w-4 h-4 rounded-full border border-gray-200"
+                                                  style={{
+                                                    backgroundColor:
+                                                      COLORS[
+                                                        name as keyof typeof COLORS
+                                                      ],
+                                                  }}
+                                                />
+                                                <span>{name}</span>
+                                              </div>
+                                            </SelectItem>
+                                          ))}
                                         </SelectContent>
                                       </Select>
                                     </div>

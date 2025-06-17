@@ -161,16 +161,17 @@ export default function EditProductPage() {
       minimum_stock: 10,
       size_type: undefined,
       gender: undefined,
+      size_category: undefined,
     },
   });
 
   // State for variants
   const [variants, setVariants] = useState<SizeVariant[]>([]);
-  const [sizeCategory, setSizeCategory] = useState<string>("");
 
   // Watch form values for dynamic updates
   const watchedSizeType = form.watch("size_type");
   const watchedGender = form.watch("gender");
+  const watchedSizeCategory = form.watch("size_category");
 
   // Load product data into form when available
   useEffect(() => {
@@ -187,10 +188,11 @@ export default function EditProductPage() {
         minimum_stock: product.minimum_stock,
         size_type: (product.size_type || "pants") as SizeType,
         gender: (product.gender || "MALE") as GenderType,
+        size_category: product.size_category || undefined,
       });
 
       // Set size category
-      setSizeCategory(product.size_category || "");
+      form.setValue("size_category", product.size_category || "");
 
       // Set variants with proper typing
       if (product.variations) {
@@ -224,7 +226,7 @@ export default function EditProductPage() {
 
   // Update the availableSizes useMemo with proper typing and data access
   const availableSizes = useMemo(() => {
-    if (!watchedSizeType || !sizeCategory) return [];
+    if (!watchedSizeType || !watchedSizeCategory) return [];
 
     const sizeTypeData =
       globalSizes[watchedSizeType as keyof typeof globalSizes];
@@ -232,7 +234,9 @@ export default function EditProductPage() {
 
     // Handle different size type structures
     if (watchedSizeType === "belts" || watchedSizeType === "jersey") {
-      return sizeTypeData[sizeCategory as keyof typeof sizeTypeData] || [];
+      return (
+        sizeTypeData[watchedSizeCategory as keyof typeof sizeTypeData] || []
+      );
     } else if (
       watchedSizeType === "pants" ||
       watchedSizeType === "shoes" ||
@@ -250,12 +254,12 @@ export default function EditProductPage() {
       const genderData =
         sizeTypeData[frontendGender as keyof typeof sizeTypeData];
       if (genderData) {
-        return genderData[sizeCategory as keyof typeof genderData] || [];
+        return genderData[watchedSizeCategory as keyof typeof genderData] || [];
       }
     }
 
     return [];
-  }, [watchedSizeType, watchedGender, sizeCategory]);
+  }, [watchedSizeType, watchedGender, watchedSizeCategory]);
 
   // Update the size category select content
   <SelectContent>
@@ -309,14 +313,14 @@ export default function EditProductPage() {
   const handleSizeTypeChange = (value: string) => {
     if (isValidSizeType(value)) {
       form.setValue("size_type", value);
-      setSizeCategory(""); // Reset size category when size type changes
+      form.setValue("size_category", undefined); // Reset size category when size type changes
     }
   };
 
   const handleGenderChange = (value: string) => {
     if (isValidGender(value)) {
       form.setValue("gender", value);
-      setSizeCategory(""); // Reset size category when gender changes
+      form.setValue("size_category", undefined); // Reset size category when gender changes
     }
   };
 
@@ -365,10 +369,21 @@ export default function EditProductPage() {
       return;
     }
 
-    setSizeCategory(value);
+    form.setValue("size_category", value);
   };
 
   const addSizeVariant = () => {
+    const currentSizeCategory = form.getValues("size_category");
+
+    if (!currentSizeCategory) {
+      toast({
+        title: "Size Category Required",
+        description: "Please select a size category first",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const newVariant: SizeVariant = {
       id: Math.random().toString(36).substr(2, 9),
       size: "",
@@ -378,6 +393,20 @@ export default function EditProductPage() {
   };
 
   const addColorVariant = (sizeId: string) => {
+    const availableColors = getAvailableColorsForVariant(sizeId);
+
+    if (availableColors.length === 0) {
+      toast({
+        title: "No Available Colors",
+        description:
+          "All colors have been added for this size. Please remove a color first to add a new one.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const firstAvailableColor = availableColors[0];
+
     setVariants(
       variants.map((variant) =>
         variant.id === sizeId
@@ -387,8 +416,8 @@ export default function EditProductPage() {
                 ...variant.colors,
                 {
                   id: Math.random().toString(36).substr(2, 9),
-                  color: "",
-                  colorHex: "#000000",
+                  color: firstAvailableColor,
+                  colorHex: COLORS[firstAvailableColor as keyof typeof COLORS],
                   stock: 0,
                 },
               ],
@@ -412,6 +441,25 @@ export default function EditProductPage() {
     field: keyof ColorVariant,
     value: string | number
   ) => {
+    // If updating color name, check for duplicates
+    if (field === "color" && typeof value === "string") {
+      const currentVariant = variants.find((v) => v.id === sizeId);
+      if (currentVariant) {
+        const existingColors = currentVariant.colors
+          .filter((color) => color.id !== colorId) // Exclude current color being updated
+          .map((color) => color.color.toLowerCase());
+
+        if (existingColors.includes(value.toLowerCase())) {
+          toast({
+            title: "Duplicate Color",
+            description: `Color "${value}" already exists for this size. Please choose a different color.`,
+            variant: "destructive",
+          });
+          return; // Don't update if duplicate
+        }
+      }
+    }
+
     setVariants(
       variants.map((variant) =>
         variant.id === sizeId
@@ -452,10 +500,23 @@ export default function EditProductPage() {
     );
   };
 
+  // Function to get available colors for a specific size variant
+  const getAvailableColorsForVariant = (sizeId: string) => {
+    const currentVariant = variants.find((v) => v.id === sizeId);
+    if (!currentVariant) return Object.keys(COLORS);
+
+    const usedColors = currentVariant.colors.map((color) =>
+      color.color.toLowerCase()
+    );
+    return Object.keys(COLORS).filter(
+      (color) => !usedColors.includes(color.toLowerCase())
+    );
+  };
+
   // Submit handler
   const onSubmit = async (data: ProductFormValues) => {
     try {
-      if (!sizeCategory) {
+      if (!data.size_category) {
         toast({
           title: "Size Category Required",
           description: "Please select a size category",
@@ -484,6 +545,32 @@ export default function EditProductPage() {
         return;
       }
 
+      // Check for duplicate size-color combinations
+      const sizeColorCombinations: string[] = [];
+      const duplicates: string[] = [];
+
+      variants.forEach((variant) => {
+        variant.colors.forEach((color) => {
+          const combination = `${variant.size}-${color.color}`.toLowerCase();
+          if (sizeColorCombinations.includes(combination)) {
+            duplicates.push(`${variant.size} - ${color.color}`);
+          } else {
+            sizeColorCombinations.push(combination);
+          }
+        });
+      });
+
+      if (duplicates.length > 0) {
+        toast({
+          title: "Duplicate Variants Found",
+          description: `The following combinations already exist: ${duplicates.join(
+            ", "
+          )}. Please remove duplicates before saving.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Prepare the product data with proper typing
       const productData = {
         name: data.name,
@@ -495,7 +582,7 @@ export default function EditProductPage() {
         minimum_stock: data.minimum_stock,
         is_active: data.status === "active",
         size_type: data.size_type,
-        size_category: sizeCategory as SizeCategoryType,
+        size_category: data.size_category as SizeCategoryType,
         gender: data.gender,
         variations: variants.flatMap((sizeVariant) =>
           sizeVariant.colors.map((colorVariant) => ({
@@ -842,71 +929,80 @@ export default function EditProductPage() {
                   )}
                 />
 
-                <FormItem>
-                  <FormLabel>Size Category</FormLabel>
-                  <Select
-                    value={sizeCategory}
-                    onValueChange={handleSizeCategoryChange}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select size category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {watchedSizeType &&
-                        watchedGender &&
-                        (() => {
-                          try {
-                            const sizeTypeData =
-                              globalSizes[watchedSizeType as SizeType];
-                            if (!sizeTypeData) return null;
+                <FormField
+                  control={form.control}
+                  name="size_category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Size Category</FormLabel>
+                      <Select
+                        value={field.value}
+                        onValueChange={handleSizeCategoryChange}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select size category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {watchedSizeType &&
+                            watchedGender &&
+                            (() => {
+                              try {
+                                const sizeTypeData =
+                                  globalSizes[watchedSizeType as SizeType];
+                                if (!sizeTypeData) return null;
 
-                            let categories: string[] = [];
+                                let categories: string[] = [];
 
-                            if (
-                              watchedSizeType === "belts" ||
-                              watchedSizeType === "jersey"
-                            ) {
-                              // For belts and jersey, categories are direct keys
-                              categories = Object.keys(sizeTypeData);
-                            } else if (
-                              watchedSizeType === "pants" ||
-                              watchedSizeType === "shoes" ||
-                              watchedSizeType === "underwear" ||
-                              watchedSizeType === "shirts" ||
-                              watchedSizeType === "tshirts"
-                            ) {
-                              // Convert backend gender values to frontend gender values
-                              const frontendGender =
-                                watchedGender === "MALE"
-                                  ? "men"
-                                  : watchedGender === "FEMALE"
-                                  ? "women"
-                                  : "unisex";
-                              const genderData =
-                                sizeTypeData[
-                                  frontendGender as keyof typeof sizeTypeData
-                                ];
-                              if (genderData) {
-                                categories = Object.keys(genderData);
+                                if (
+                                  watchedSizeType === "belts" ||
+                                  watchedSizeType === "jersey"
+                                ) {
+                                  // For belts and jersey, categories are direct keys
+                                  categories = Object.keys(sizeTypeData);
+                                } else if (
+                                  watchedSizeType === "pants" ||
+                                  watchedSizeType === "shoes" ||
+                                  watchedSizeType === "underwear" ||
+                                  watchedSizeType === "shirts" ||
+                                  watchedSizeType === "tshirts"
+                                ) {
+                                  // Convert backend gender values to frontend gender values
+                                  const frontendGender =
+                                    watchedGender === "MALE"
+                                      ? "men"
+                                      : watchedGender === "FEMALE"
+                                      ? "women"
+                                      : "unisex";
+                                  const genderData =
+                                    sizeTypeData[
+                                      frontendGender as keyof typeof sizeTypeData
+                                    ];
+                                  if (genderData) {
+                                    categories = Object.keys(genderData);
+                                  }
+                                }
+
+                                return categories.map((category) => (
+                                  <SelectItem key={category} value={category}>
+                                    {category}
+                                  </SelectItem>
+                                ));
+                              } catch (error) {
+                                console.error(
+                                  "Error getting size categories:",
+                                  error
+                                );
+                                return null;
                               }
-                            }
-
-                            return categories.map((category) => (
-                              <SelectItem key={category} value={category}>
-                                {category}
-                              </SelectItem>
-                            ));
-                          } catch (error) {
-                            console.error(
-                              "Error getting size categories:",
-                              error
-                            );
-                            return null;
-                          }
-                        })()}
-                    </SelectContent>
-                  </Select>
-                </FormItem>
+                            })()}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
               {/* Size Variants */}
