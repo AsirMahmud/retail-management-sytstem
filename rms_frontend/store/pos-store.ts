@@ -297,13 +297,13 @@ export const usePOSStore = create<POSState>((set, get) => ({
                 };
             });
 
-            // Calculate subtotal before global discount
+            // Calculate subtotal before any discounts
             const subtotalBeforeDiscount = itemsWithDiscounts.reduce((sum, item) => sum + item.itemTotal, 0);
 
             // Calculate total item discounts
             const totalItemDiscounts = itemsWithDiscounts.reduce((sum, item) => sum + item.itemDiscount, 0);
 
-            // Calculate global discount
+            // Calculate global discount (only from cartDiscount, not from item discounts)
             const globalDiscount = cartDiscount ? (cartDiscount.type === 'percentage' ?
                 subtotalBeforeDiscount * (cartDiscount.value / 100) :
                 cartDiscount.value) : 0;
@@ -321,7 +321,7 @@ export const usePOSStore = create<POSState>((set, get) => ({
                 customer_phone: selectedCustomer?.phone,
                 subtotal: subtotalBeforeDiscount,
                 tax,
-                discount: totalItemDiscounts + globalDiscount, // Total of all discounts
+                discount: globalDiscount, // Only global discount, not item discounts
                 total,
                 payment_method: paymentMethod,
                 items: itemsWithDiscounts.map(item => ({
@@ -330,7 +330,7 @@ export const usePOSStore = create<POSState>((set, get) => ({
                     color: item.color,
                     quantity: item.quantity,
                     unit_price: item.price,
-                    discount: item.itemDiscount,
+                    discount: item.itemDiscount, // Item-level discount
                     total: item.discountedTotal
                 }))
             };

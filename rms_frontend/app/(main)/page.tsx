@@ -42,6 +42,8 @@ import { useDashboard } from "@/hooks/queries/use-dashboard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 const COLORS = [
   "#0088FE",
@@ -67,8 +69,14 @@ const item = {
   show: { opacity: 1, y: 0 },
 };
 
-export default function Dashboard() {
+function DashboardContent() {
   const { data: stats, isLoading, error, refetch } = useDashboard();
+  const [isClient, setIsClient] = useState(false);
+
+  // Prevent hydration issues
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   if (isLoading) {
     return (
@@ -110,9 +118,37 @@ export default function Dashboard() {
     );
   }
 
-  if (!stats) {
+  if (!stats || !isClient) {
     return null;
   }
+
+  // Safe data access with fallbacks
+  const safeStats = {
+    today: {
+      sales: stats.today?.sales || 0,
+      expenses: stats.today?.expenses || 0,
+      profit: stats.today?.profit || 0,
+    },
+    counts: {
+      customers: stats.counts?.customers || 0,
+      products: stats.counts?.products || 0,
+      suppliers: stats.counts?.suppliers || 0,
+    },
+    sales_trend: Array.isArray(stats.sales_trend) ? stats.sales_trend : [],
+    expense_trend: Array.isArray(stats.expense_trend)
+      ? stats.expense_trend
+      : [],
+    top_products: Array.isArray(stats.top_products) ? stats.top_products : [],
+    expense_categories: Array.isArray(stats.expense_categories)
+      ? stats.expense_categories
+      : [],
+    low_stock_items: Array.isArray(stats.low_stock_items)
+      ? stats.low_stock_items
+      : [],
+    recent_suppliers: Array.isArray(stats.recent_suppliers)
+      ? stats.recent_suppliers
+      : [],
+  };
 
   return (
     <motion.div
@@ -164,7 +200,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-gray-900">
-                {formatCurrency(stats.today.sales)}
+                {formatCurrency(safeStats.today.sales)}
               </div>
               <div className="flex items-center text-xs text-blue-600 font-medium mt-1">
                 <ArrowUpRight className="h-4 w-4 mr-1" />
@@ -184,7 +220,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-gray-900">
-                {stats.counts.customers}
+                {safeStats.counts.customers}
               </div>
               <div className="flex items-center text-xs text-purple-600 font-medium mt-1">
                 <span>Registered customers</span>
@@ -203,7 +239,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-gray-900">
-                {stats.counts.products}
+                {safeStats.counts.products}
               </div>
               <div className="flex items-center text-xs text-orange-600 font-medium mt-1">
                 <span>Active products</span>
@@ -234,44 +270,50 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={stats.sales_trend}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis
-                      dataKey="sale__date__date"
-                      stroke="#64748b"
-                      fontSize={12}
-                      tickFormatter={(value) =>
-                        new Date(value).toLocaleDateString()
-                      }
-                    />
-                    <YAxis stroke="#64748b" fontSize={12} />
-                    <Tooltip
-                      formatter={(value) => formatCurrency(value as number)}
-                      labelFormatter={(label) =>
-                        new Date(label).toLocaleDateString()
-                      }
-                      contentStyle={{
-                        backgroundColor: "white",
-                        border: "none",
-                        borderRadius: "8px",
-                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="total"
-                      stroke="#3b82f6"
-                      strokeWidth={2}
-                      dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
-                      activeDot={{
-                        r: 6,
-                        stroke: "#3b82f6",
-                        strokeWidth: 2,
-                      }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                {safeStats.sales_trend.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={safeStats.sales_trend}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis
+                        dataKey="sale__date__date"
+                        stroke="#64748b"
+                        fontSize={12}
+                        tickFormatter={(value) =>
+                          value ? new Date(value).toLocaleDateString() : ""
+                        }
+                      />
+                      <YAxis stroke="#64748b" fontSize={12} />
+                      <Tooltip
+                        formatter={(value) => formatCurrency(value as number)}
+                        labelFormatter={(label) =>
+                          label ? new Date(label).toLocaleDateString() : ""
+                        }
+                        contentStyle={{
+                          backgroundColor: "white",
+                          border: "none",
+                          borderRadius: "8px",
+                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="total"
+                        stroke="#3b82f6"
+                        strokeWidth={2}
+                        dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
+                        activeDot={{
+                          r: 6,
+                          stroke: "#3b82f6",
+                          strokeWidth: 2,
+                        }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500">
+                    No sales data available
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -293,44 +335,50 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={stats.expense_trend}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis
-                      dataKey="date"
-                      stroke="#64748b"
-                      fontSize={12}
-                      tickFormatter={(value) =>
-                        new Date(value).toLocaleDateString()
-                      }
-                    />
-                    <YAxis stroke="#64748b" fontSize={12} />
-                    <Tooltip
-                      formatter={(value) => formatCurrency(value as number)}
-                      labelFormatter={(label) =>
-                        new Date(label).toLocaleDateString()
-                      }
-                      contentStyle={{
-                        backgroundColor: "white",
-                        border: "none",
-                        borderRadius: "8px",
-                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                      }}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="amount"
-                      stroke="#ef4444"
-                      strokeWidth={2}
-                      dot={{ fill: "#ef4444", strokeWidth: 2, r: 4 }}
-                      activeDot={{
-                        r: 6,
-                        stroke: "#ef4444",
-                        strokeWidth: 2,
-                      }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                {safeStats.expense_trend.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={safeStats.expense_trend}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis
+                        dataKey="date"
+                        stroke="#64748b"
+                        fontSize={12}
+                        tickFormatter={(value) =>
+                          value ? new Date(value).toLocaleDateString() : ""
+                        }
+                      />
+                      <YAxis stroke="#64748b" fontSize={12} />
+                      <Tooltip
+                        formatter={(value) => formatCurrency(value as number)}
+                        labelFormatter={(label) =>
+                          label ? new Date(label).toLocaleDateString() : ""
+                        }
+                        contentStyle={{
+                          backgroundColor: "white",
+                          border: "none",
+                          borderRadius: "8px",
+                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="amount"
+                        stroke="#ef4444"
+                        strokeWidth={2}
+                        dot={{ fill: "#ef4444", strokeWidth: 2, r: 4 }}
+                        activeDot={{
+                          r: 6,
+                          stroke: "#ef4444",
+                          strokeWidth: 2,
+                        }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500">
+                    No expense data available
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -358,26 +406,32 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={stats.top_products}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                    <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
-                    <YAxis stroke="#64748b" fontSize={12} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "white",
-                        border: "none",
-                        borderRadius: "8px",
-                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                      }}
-                    />
-                    <Bar
-                      dataKey="total_sales"
-                      fill="#3b82f6"
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+                {safeStats.top_products.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={safeStats.top_products}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                      <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
+                      <YAxis stroke="#64748b" fontSize={12} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "white",
+                          border: "none",
+                          borderRadius: "8px",
+                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        }}
+                      />
+                      <Bar
+                        dataKey="total_sales"
+                        fill="#3b82f6"
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500">
+                    No product data available
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -399,39 +453,45 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={stats.expense_categories}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="amount"
-                      label={({ name, percent }) =>
-                        `${name} ${(percent * 100).toFixed(0)}%`
-                      }
-                    >
-                      {stats.expense_categories.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={COLORS[index % COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value) => formatCurrency(value as number)}
-                      contentStyle={{
-                        backgroundColor: "white",
-                        border: "none",
-                        borderRadius: "8px",
-                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                      }}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+                {safeStats.expense_categories.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={safeStats.expense_categories}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="amount"
+                        label={({ name, percent }) =>
+                          `${name} ${(percent * 100).toFixed(0)}%`
+                        }
+                      >
+                        {safeStats.expense_categories.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value) => formatCurrency(value as number)}
+                        contentStyle={{
+                          backgroundColor: "white",
+                          border: "none",
+                          borderRadius: "8px",
+                          boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                        }}
+                      />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-500">
+                    No expense categories available
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -453,28 +513,36 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-4">
-                {stats.low_stock_items.map((item, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="flex items-center justify-between p-3 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <AlertTriangle className="h-5 w-5 text-red-500" />
-                      <div>
-                        <p className="font-medium text-gray-900">{item.name}</p>
-                        <p className="text-sm text-red-600">
-                          Only {item.stock_quantity} units left
-                        </p>
+                {safeStats.low_stock_items.length > 0 ? (
+                  safeStats.low_stock_items.map((item, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="flex items-center justify-between p-3 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <AlertTriangle className="h-5 w-5 text-red-500" />
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {item.name}
+                          </p>
+                          <p className="text-sm text-red-600">
+                            Only {item.stock_quantity} units left
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      Min: {item.minimum_stock}
-                    </div>
-                  </motion.div>
-                ))}
+                      <div className="text-sm text-gray-500">
+                        Min: {item.minimum_stock}
+                      </div>
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="text-center text-gray-500 py-8">
+                    No low stock items
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -496,44 +564,58 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent className="p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {stats.recent_suppliers.map((supplier, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="p-4 bg-white rounded-lg border border-gray-100 hover:shadow-md transition-all duration-300 hover:-translate-y-1"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
-                        <Truck className="h-5 w-5 text-white" />
+                {safeStats.recent_suppliers.length > 0 ? (
+                  safeStats.recent_suppliers.map((supplier, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className="p-4 bg-white rounded-lg border border-gray-100 hover:shadow-md transition-all duration-300 hover:-translate-y-1"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+                          <Truck className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {supplier.name}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {supplier.phone}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {supplier.name}
+                      <div className="mt-3 space-y-1">
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Email:</span>{" "}
+                          {supplier.email}
                         </p>
-                        <p className="text-sm text-gray-500">
-                          {supplier.phone}
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Address:</span>{" "}
+                          {supplier.address}
                         </p>
                       </div>
-                    </div>
-                    <div className="mt-3 space-y-1">
-                      <p className="text-sm text-gray-600">
-                        <span className="font-medium">Email:</span>{" "}
-                        {supplier.email}
-                      </p>
-                      <p className="text-sm text-gray-600">
-                        <span className="font-medium">Address:</span>{" "}
-                        {supplier.address}
-                      </p>
-                    </div>
-                  </motion.div>
-                ))}
+                    </motion.div>
+                  ))
+                ) : (
+                  <div className="text-center text-gray-500 py-8 col-span-full">
+                    No suppliers available
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
         </motion.div>
       </div>
     </motion.div>
+  );
+}
+
+export default function Dashboard() {
+  return (
+    <ErrorBoundary>
+      <DashboardContent />
+    </ErrorBoundary>
   );
 }

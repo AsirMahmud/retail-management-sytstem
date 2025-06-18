@@ -89,42 +89,44 @@ class Sale(models.Model):
         
         # Apply global discount if exists
         if self.discount > 0:
-            # Calculate the proportion of global discount to apply to each item
-            global_discount_ratio = self.discount / total_after_item_discounts if total_after_item_discounts > 0 else 0
+            # Validate global discount doesn't exceed total after item discounts
+            if self.discount > total_after_item_discounts:
+                self.discount = total_after_item_discounts
+        
+        # Calculate final total
+        self.total = total_after_item_discounts - self.discount
+        
+        # Calculate profit/loss for each item based on final selling price
+        total_profit = Decimal('0.00')
+        total_loss = Decimal('0.00')
+        
+        for item in items:
+            # Calculate item's final selling price after all discounts
+            item_total_before_discounts = item.unit_price * item.quantity
+            item_discounted_total = item_total_before_discounts - item.discount
             
-            # Calculate profit/loss for each item considering both item and global discounts
-            total_profit = Decimal('0.00')
-            total_loss = Decimal('0.00')
+            # Calculate item's share of global discount (proportional to discounted total)
+            if self.discount > 0 and total_after_item_discounts > 0:
+                global_discount_ratio = self.discount / total_after_item_discounts
+                item_global_discount_share = item_discounted_total * global_discount_ratio
+                final_selling_price = item_discounted_total - item_global_discount_share
+            else:
+                final_selling_price = item_discounted_total
             
-            for item in items:
-                # Calculate item's share of global discount
-                item_global_discount = (item.unit_price * item.quantity - item.discount) * global_discount_ratio
-                
-                # Calculate total discount for this item (item discount + share of global discount)
-                total_item_discount = item.discount + item_global_discount
-                
-                # Calculate selling price after all discounts
-                selling_price = item.unit_price * item.quantity - total_item_discount
-                
-                # Calculate cost
-                cost = item.product.cost_price * item.quantity if item.product.cost_price else Decimal('0.00')
-                
-                # Calculate profit/loss
-                difference = selling_price - cost
-                
-                if difference >= 0:
-                    total_profit += difference
-                else:
-                    total_loss += abs(difference)
-        else:
-            # If no global discount, calculate profit/loss normally
-            total_profit = sum(item.profit for item in items)
-            total_loss = sum(item.loss for item in items)
+            # Calculate cost
+            cost = item.product.cost_price * item.quantity if item.product.cost_price else Decimal('0.00')
+            
+            # Calculate profit/loss
+            difference = final_selling_price - cost
+            
+            if difference >= 0:
+                total_profit += difference
+            else:
+                total_loss += abs(difference)
         
         # Set the final totals
         self.total_profit = total_profit
         self.total_loss = total_loss
-        self.total = self.subtotal - total_item_discounts - self.discount
         
         # Save the updated totals
         self.save(update_fields=['subtotal', 'total', 'total_profit', 'total_loss'])
@@ -168,22 +170,37 @@ class SaleItem(models.Model):
 
     def calculate_profit_loss(self):
         """Calculate profit or loss for this sale item"""
-        variation = self.get_variation()
-        if variation and self.product.cost_price:
-            # Calculate cost total
-            cost_total = self.product.cost_price * self.quantity
+        if not self.product.cost_price:
+            return Decimal('0.00'), Decimal('0.00')
+        
+        # Calculate cost total
+        cost_total = self.product.cost_price * self.quantity
+        
+        # Calculate item's final selling price after all discounts
+        item_total_before_discounts = self.unit_price * self.quantity
+        item_discounted_total = item_total_before_discounts - self.discount
+        
+        # Calculate item's share of global discount (proportional to discounted total)
+        if self.sale.discount > 0 and self.sale.subtotal > 0:
+            # Calculate total after item discounts for the entire sale
+            total_after_item_discounts = self.sale.subtotal - sum(item.discount for item in self.sale.items.all())
             
-            # Calculate selling total with discount
-            selling_total = self.total  # This already includes the discount
-            
-            # Calculate profit/loss
-            difference = selling_total - cost_total
-            
-            if difference >= 0:
-                return difference, Decimal('0.00')  # profit, loss
+            if total_after_item_discounts > 0:
+                global_discount_ratio = self.sale.discount / total_after_item_discounts
+                item_global_discount_share = item_discounted_total * global_discount_ratio
+                final_selling_price = item_discounted_total - item_global_discount_share
             else:
-                return Decimal('0.00'), abs(difference)  # profit, loss
-        return Decimal('0.00'), Decimal('0.00')
+                final_selling_price = item_discounted_total
+        else:
+            final_selling_price = item_discounted_total
+        
+        # Calculate profit/loss
+        difference = final_selling_price - cost_total
+        
+        if difference >= 0:
+            return difference, Decimal('0.00')  # profit, loss
+        else:
+            return Decimal('0.00'), abs(difference)  # profit, loss
 
     def save(self, *args, **kwargs):
         # Calculate total before saving (with discount)

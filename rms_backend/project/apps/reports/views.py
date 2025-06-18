@@ -268,12 +268,14 @@ class ReportViewSet(viewsets.ModelViewSet):
         date_from = request.query_params.get('date_from')
         date_to = request.query_params.get('date_to')
 
-        # Calculate revenue
+        # Calculate revenue and profit using Sale model
         sales = Sale.objects.filter(
             date__range=[date_from, date_to],
             status='completed'
         )
         total_revenue = sales.aggregate(total=Sum('total'))['total'] or Decimal('0.00')
+        total_profit = sales.aggregate(profit=Sum('total_profit'))['profit'] or Decimal('0.00')
+        total_loss = sales.aggregate(loss=Sum('total_loss'))['loss'] or Decimal('0.00')
 
         # Calculate expenses
         expenses = Expense.objects.filter(
@@ -283,7 +285,7 @@ class ReportViewSet(viewsets.ModelViewSet):
         total_expenses = expenses.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
 
         # Calculate net profit and margin
-        net_profit = total_revenue - total_expenses
+        net_profit = total_profit - total_expenses
         profit_margin = (net_profit / total_revenue * 100) if total_revenue > 0 else Decimal('0.00')
 
         # Revenue by date
@@ -300,15 +302,15 @@ class ReportViewSet(viewsets.ModelViewSet):
             amount=Sum('amount')
         ).order_by('date')
 
-        # Profit by category
+        # Profit by category using properly calculated profit fields
         profit_by_category = SaleItem.objects.filter(
             sale__in=sales
         ).values(
             'product__category__name'
         ).annotate(
             revenue=Sum('total'),
-            cost=Sum(F('quantity') * F('product__cost_price')),
-            profit=Sum('total') - Sum(F('quantity') * F('product__cost_price'))
+            profit=Sum('profit'),  # Use the properly calculated profit field
+            items_sold=Sum('quantity')
         ).order_by('-profit')
 
         data = {
@@ -318,7 +320,15 @@ class ReportViewSet(viewsets.ModelViewSet):
             'profit_margin': profit_margin,
             'revenue_by_date': list(revenue_by_date),
             'expenses_by_date': list(expenses_by_date),
-            'profit_by_category': list(profit_by_category)
+            'profit_by_category': [
+                {
+                    'category_name': item['product__category__name'] or 'Uncategorized',
+                    'revenue': item['revenue'],
+                    'cost': item['revenue'] - item['profit'],  # Calculate cost from revenue and profit
+                    'profit': item['profit'],
+                    'items_sold': item['items_sold']
+                } for item in profit_by_category
+            ]
         }
 
         serializer = ProfitLossReportSerializer(data)
@@ -333,7 +343,7 @@ class ReportViewSet(viewsets.ModelViewSet):
         products = Product.objects.all()
         total_products = products.count()
 
-        # Calculate sales and profit
+        # Calculate sales and profit using Sale model
         sales = Sale.objects.filter(
             date__range=[date_from, date_to],
             status='completed'
@@ -342,7 +352,7 @@ class ReportViewSet(viewsets.ModelViewSet):
         total_profit = sales.aggregate(profit=Sum('total_profit'))['profit'] or Decimal('0.00')
         average_profit_margin = (total_profit / total_sales * 100) if total_sales > 0 else Decimal('0.00')
 
-        # Top performing products
+        # Top performing products using properly calculated profit fields
         top_performing_products = SaleItem.objects.filter(
             sale__in=sales
         ).values(
@@ -350,12 +360,12 @@ class ReportViewSet(viewsets.ModelViewSet):
             'product__category__name'
         ).annotate(
             total_sales=Sum('total'),
-            total_profit=Sum('total') - Sum(F('quantity') * F('product__cost_price')),
+            total_profit=Sum('profit'),  # Use the properly calculated profit field
             quantity_sold=Sum('quantity'),
-            profit_margin=(Sum('total') - Sum(F('quantity') * F('product__cost_price'))) / Sum('total') * 100
+            profit_margin=(Sum('profit') / Sum('total') * 100)  # Calculate margin from profit field
         ).order_by('-total_profit')[:10]
 
-        # Low performing products
+        # Low performing products using properly calculated profit fields
         low_performing_products = SaleItem.objects.filter(
             sale__in=sales
         ).values(
@@ -363,9 +373,9 @@ class ReportViewSet(viewsets.ModelViewSet):
             'product__category__name'
         ).annotate(
             total_sales=Sum('total'),
-            total_profit=Sum('total') - Sum(F('quantity') * F('product__cost_price')),
+            total_profit=Sum('profit'),  # Use the properly calculated profit field
             quantity_sold=Sum('quantity'),
-            profit_margin=(Sum('total') - Sum(F('quantity') * F('product__cost_price'))) / Sum('total') * 100
+            profit_margin=(Sum('profit') / Sum('total') * 100)  # Calculate margin from profit field
         ).order_by('total_profit')[:10]
 
         # Sales by product
@@ -379,14 +389,14 @@ class ReportViewSet(viewsets.ModelViewSet):
             average_price=Sum('total') / Sum('quantity')
         ).order_by('-total_sales')
 
-        # Profit by product
+        # Profit by product using properly calculated profit fields
         profit_by_product = SaleItem.objects.filter(
             sale__in=sales
         ).values(
             'product__name'
         ).annotate(
-            total_profit=Sum('total') - Sum(F('quantity') * F('product__cost_price')),
-            profit_margin=(Sum('total') - Sum(F('quantity') * F('product__cost_price'))) / Sum('total') * 100
+            total_profit=Sum('profit'),  # Use the properly calculated profit field
+            profit_margin=(Sum('profit') / Sum('total') * 100)  # Calculate margin from profit field
         ).order_by('-total_profit')
 
         data = {

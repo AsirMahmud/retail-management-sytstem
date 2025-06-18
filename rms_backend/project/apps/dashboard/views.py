@@ -16,24 +16,26 @@ class DashboardStatsView(APIView):
         today = timezone.now().date()
         thirty_days_ago = today - timedelta(days=30)
         
-        # Get today's metrics using SaleItem
-        today_sales = SaleItem.objects.filter(
-            sale__date__date=today,
-            sale__status='completed'
+        # Get today's metrics using Sale model for accurate profit calculation
+        today_sales = Sale.objects.filter(
+            date__date=today,
+            status='completed'
         ).aggregate(
             total=Sum('total'),
-            total_profit=Sum('profit')
+            total_profit=Sum('total_profit'),
+            total_loss=Sum('total_loss')
         )
         
         today_expenses = Expense.objects.filter(date=today).aggregate(total=Sum('amount'))['total'] or 0
         
-        # Get monthly metrics using SaleItem
-        monthly_sales = SaleItem.objects.filter(
-            sale__date__date__gte=thirty_days_ago,
-            sale__status='completed'
+        # Get monthly metrics using Sale model for accurate profit calculation
+        monthly_sales = Sale.objects.filter(
+            date__date__gte=thirty_days_ago,
+            status='completed'
         ).aggregate(
             total=Sum('total'),
-            total_profit=Sum('profit')
+            total_profit=Sum('total_profit'),
+            total_loss=Sum('total_loss')
         )
         
         monthly_expenses = Expense.objects.filter(date__gte=thirty_days_ago).aggregate(total=Sum('amount'))['total'] or 0
@@ -43,16 +45,17 @@ class DashboardStatsView(APIView):
         total_products = Product.objects.count()
         total_suppliers = Supplier.objects.count()
         
-        # Get sales trend using SaleItem
-        sales_trend = SaleItem.objects.filter(
-            sale__date__date__gte=thirty_days_ago,
-            sale__status='completed'
-        ).values('sale__date__date')\
+        # Get sales trend using Sale model for accurate profit calculation
+        sales_trend = Sale.objects.filter(
+            date__date__gte=thirty_days_ago,
+            status='completed'
+        ).values('date__date')\
             .annotate(
                 total=Sum('total'),
-                profit=Sum('profit')
+                profit=Sum('total_profit'),
+                loss=Sum('total_loss')
             )\
-            .order_by('sale__date__date')
+            .order_by('date__date')
             
         # Get expense trend
         expense_trend = Expense.objects.filter(date__gte=thirty_days_ago)\
@@ -60,14 +63,14 @@ class DashboardStatsView(APIView):
             .annotate(amount=Sum('amount'))\
             .order_by('date')
             
-        # Get top selling products using SaleItem
+        # Get top selling products using SaleItem but with proper profit calculation
         top_products = SaleItem.objects.filter(
             sale__status='completed'
         ).values('product__name')\
             .annotate(
                 total_sales=Sum('quantity'),
                 total_revenue=Sum('total'),
-                total_profit=Sum('profit')
+                total_profit=Sum('profit')  # This uses the properly calculated profit field
             )\
             .order_by('-total_sales')[:5]
         
