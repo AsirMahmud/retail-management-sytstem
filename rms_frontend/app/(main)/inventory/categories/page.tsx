@@ -33,14 +33,11 @@ import {
   Search,
   Tag,
   Package,
-  DollarSign,
-  AlertTriangle,
   MoreHorizontal,
   Edit3,
   Eye,
   Trash2,
-  Users,
-  TrendingUp,
+  Calendar,
 } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -85,19 +82,15 @@ export default function CategoriesPage() {
     category.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Calculate statistics
+  // Calculate statistics based on actual API fields
   const totalCategories = categories.length;
-  const activeCategories = categories.filter(
-    (c: Category) => c.is_active
-  ).length;
   const totalProducts = categories.reduce(
-    (sum: number, category: Category) => sum + (category.products_count || 0),
+    (sum: number, category: Category) => sum + (category.product_count || 0),
     0
   );
-  const totalValue = categories.reduce(
-    (sum: number, category: Category) => sum + (category.total_value || 0),
-    0
-  );
+  const categoriesWithChildren = categories.filter(
+    (c: Category) => c.children && c.children.length > 0
+  ).length;
 
   if (isLoading) {
     return (
@@ -115,8 +108,8 @@ export default function CategoriesPage() {
             <Skeleton className="h-10 w-80" />
           </div>
 
-          <div className="grid gap-4 md:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => (
+          <div className="grid gap-4 md:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="h-24 w-full" />
             ))}
           </div>
@@ -146,7 +139,7 @@ export default function CategoriesPage() {
                 </CardTitle>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Package className="h-3 w-3" />
-                  {category.products_count || 0} Products
+                  {category.product_count || 0} Products
                 </div>
               </div>
             </div>
@@ -191,26 +184,33 @@ export default function CategoriesPage() {
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Products</p>
             <p className="text-lg font-bold text-blue-600">
-              {category.products_count || 0}
+              {category.product_count || 0}
             </p>
           </div>
           <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Total Value</p>
+            <p className="text-xs text-muted-foreground">Subcategories</p>
             <p className="text-lg font-bold text-green-600">
-              ${category.total_value?.toLocaleString() || 0}
+              {category.children?.length || 0}
             </p>
           </div>
         </div>
 
+        {category.description && (
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">Description</p>
+            <p className="text-sm text-gray-700 line-clamp-2">
+              {category.description}
+            </p>
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Status</p>
-            <Badge
-              variant={category.is_active ? "default" : "secondary"}
-              className="ml-auto"
-            >
-              {category.is_active ? "Active" : "Inactive"}
-            </Badge>
+            <p className="text-xs text-muted-foreground">Created</p>
+            <div className="flex items-center gap-1 text-xs text-gray-600">
+              <Calendar className="h-3 w-3" />
+              {new Date(category.created_at).toLocaleDateString()}
+            </div>
           </div>
         </div>
       </CardContent>
@@ -247,7 +247,7 @@ export default function CategoriesPage() {
         </div>
 
         {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="bg-gradient-to-br from-blue-50 to-indigo-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-700">
@@ -262,7 +262,7 @@ export default function CategoriesPage() {
                 {totalCategories}
               </div>
               <p className="text-xs text-blue-600 font-medium mt-1">
-                {activeCategories} Active Categories
+                All categories
               </p>
             </CardContent>
           </Card>
@@ -286,40 +286,21 @@ export default function CategoriesPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-orange-50 to-amber-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+          <Card className="bg-gradient-to-br from-purple-50 to-violet-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-700">
-                Total Value
+                With Subcategories
               </CardTitle>
-              <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-white" />
+              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-violet-500 rounded-full flex items-center justify-center">
+                <Tag className="h-5 w-5 text-white" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-gray-900">
-                ${totalValue.toLocaleString()}
+                {categoriesWithChildren}
               </div>
-              <p className="text-xs text-orange-600 font-medium mt-1">
-                Inventory value
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-red-50 to-rose-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">
-                Average Products
-              </CardTitle>
-              <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-rose-500 rounded-full flex items-center justify-center">
-                <Users className="h-5 w-5 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900">
-                {Math.round(totalProducts / (totalCategories || 1))}
-              </div>
-              <p className="text-xs text-red-600 font-medium mt-1">
-                Per category
+              <p className="text-xs text-purple-600 font-medium mt-1">
+                Parent categories
               </p>
             </CardContent>
           </Card>

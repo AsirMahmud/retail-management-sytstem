@@ -5,10 +5,9 @@ export interface Category {
     description?: string;
     parent?: number;
     product_count?: number;
-    products_count?: number;
-    total_value?: number;
-    is_active?: boolean;
     children?: Category[];
+    created_at: string;
+    updated_at: string;
 }
 
 export interface Supplier {
