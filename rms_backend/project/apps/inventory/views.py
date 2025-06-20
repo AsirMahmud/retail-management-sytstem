@@ -377,7 +377,7 @@ class DashboardViewSet(viewsets.ViewSet):
         
         # Calculate total inventory value
         total_inventory_value = Product.objects.aggregate(
-            total=Sum(F('selling_price') * F('stock_quantity'))
+            total=Sum(F('cost_price') * F('stock_quantity'))
         )['total'] or 0
 
         # Stock movement metrics

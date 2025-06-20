@@ -20,8 +20,7 @@ class SupplierViewSet(viewsets.ModelViewSet):
         serializer.save()
 
     def perform_destroy(self, instance):
-        instance.is_active = False
-        instance.save()
+        instance.delete()
 
     @action(detail=False, methods=['get'])
     def active_suppliers(self, request):

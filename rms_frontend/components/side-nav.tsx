@@ -18,6 +18,7 @@ import {
   LineChart,
   CheckSquare,
   LogOut,
+  ChartBarBigIcon,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -73,6 +74,11 @@ const mainNavItems = [
     title: "Expenses",
     icon: DollarSign,
     href: "/expenses",
+  },
+  {
+    title: "Reports",
+    icon: ChartBarBigIcon,
+    href: "/reports",
   },
 ];
 

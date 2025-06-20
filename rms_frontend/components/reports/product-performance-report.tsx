@@ -33,9 +33,12 @@ export function ProductPerformanceReport({
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i}>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Card
+              key={i}
+              className="bg-gradient-to-br from-pink-50 to-fuchsia-100 border-0 shadow-xl"
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <Skeleton className="h-4 w-[100px]" />
               </CardHeader>
@@ -46,8 +49,8 @@ export function ProductPerformanceReport({
             </Card>
           ))}
         </div>
-        <Card>
-          <CardHeader>
+        <Card className="border-0 shadow-lg overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
             <Skeleton className="h-6 w-[200px]" />
           </CardHeader>
           <CardContent>
@@ -84,7 +87,7 @@ export function ProductPerformanceReport({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${productData.total_sales.toFixed(2)}
+              ${parseFloat(productData.total_sales).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
               {productData.sales_by_product.length} products sold
@@ -97,10 +100,11 @@ export function ProductPerformanceReport({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${productData.total_profit.toFixed(2)}
+              ${parseFloat(productData.total_profit).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {productData.average_profit_margin.toFixed(1)}% average margin
+              {parseFloat(productData.average_profit_margin || "0").toFixed(2)}%
+              average margin
             </p>
           </CardContent>
         </Card>
@@ -146,12 +150,21 @@ export function ProductPerformanceReport({
               {productData.top_performing_products.map((product) => (
                 <TableRow key={product.product_name}>
                   <TableCell>{product.product_name}</TableCell>
-                  <TableCell>{product.category_name}</TableCell>
-                  <TableCell>${product.total_sales.toFixed(2)}</TableCell>
-                  <TableCell>{product.quantity_sold}</TableCell>
-                  <TableCell>${product.total_profit.toFixed(2)}</TableCell>
+                  <TableCell>{product.category_name || "N/A"}</TableCell>
                   <TableCell className="text-right">
-                    {product.profit_margin.toFixed(1)}%
+                    ${parseFloat(product.total_sales).toFixed(2)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {product.quantity_sold ?? 0}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    ${parseFloat(product.total_profit).toFixed(2)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {product.profit_margin !== undefined &&
+                    product.profit_margin !== null
+                      ? `${parseFloat(product.profit_margin).toFixed(2)}%`
+                      : "0.00%"}
                   </TableCell>
                 </TableRow>
               ))}
@@ -180,12 +193,21 @@ export function ProductPerformanceReport({
               {productData.low_performing_products.map((product) => (
                 <TableRow key={product.product_name}>
                   <TableCell>{product.product_name}</TableCell>
-                  <TableCell>{product.category_name}</TableCell>
-                  <TableCell>${product.total_sales.toFixed(2)}</TableCell>
-                  <TableCell>{product.quantity_sold}</TableCell>
-                  <TableCell>${product.total_profit.toFixed(2)}</TableCell>
+                  <TableCell>{product.category_name || "N/A"}</TableCell>
                   <TableCell className="text-right">
-                    {product.profit_margin.toFixed(1)}%
+                    ${parseFloat(product.total_sales).toFixed(2)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {product.quantity_sold ?? 0}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    ${parseFloat(product.total_profit).toFixed(2)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {product.profit_margin !== undefined &&
+                    product.profit_margin !== null
+                      ? `${parseFloat(product.profit_margin).toFixed(2)}%`
+                      : "0.00%"}
                   </TableCell>
                 </TableRow>
               ))}
@@ -218,14 +240,18 @@ export function ProductPerformanceReport({
                 return (
                   <TableRow key={product.product_name}>
                     <TableCell>{product.product_name}</TableCell>
-                    <TableCell>${product.total_sales.toFixed(2)}</TableCell>
-                    <TableCell>{product.quantity_sold}</TableCell>
-                    <TableCell>${product.average_price.toFixed(2)}</TableCell>
                     <TableCell>
-                      ${profitInfo?.total_profit.toFixed(2) || "0.00"}
+                      ${parseFloat(product.total_sales).toFixed(2)}
+                    </TableCell>
+                    <TableCell>{product.quantity_sold}</TableCell>
+                    <TableCell>
+                      ${parseFloat(product.average_price).toFixed(2)}
+                    </TableCell>
+                    <TableCell>
+                      ${parseFloat(profitInfo?.total_profit || "0").toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right">
-                      {profitInfo?.profit_margin.toFixed(1) || "0.0"}%
+                      {parseFloat(profitInfo?.profit_margin || "0").toFixed(2)}%
                     </TableCell>
                   </TableRow>
                 );

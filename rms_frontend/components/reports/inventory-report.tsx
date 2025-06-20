@@ -23,19 +23,18 @@ import { useInventoryReport } from "@/hooks/queries/use-reports";
 import { DateRange } from "react-day-picker";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function InventoryReport({
-  dateRange,
-}: {
-  dateRange: { from: Date | undefined; to: Date | undefined };
-}) {
+export function InventoryReport() {
   const { data: inventoryData, isLoading } = useInventoryReport();
 
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i}>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Card
+              key={i}
+              className="bg-gradient-to-br from-purple-50 to-indigo-100 border-0 shadow-xl"
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <Skeleton className="h-4 w-[100px]" />
               </CardHeader>
@@ -46,8 +45,8 @@ export function InventoryReport({
             </Card>
           ))}
         </div>
-        <Card>
-          <CardHeader>
+        <Card className="border-0 shadow-lg overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
             <Skeleton className="h-6 w-[200px]" />
           </CardHeader>
           <CardContent>
@@ -86,7 +85,7 @@ export function InventoryReport({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${inventoryData.total_stock_value.toFixed(2)}
+              ${parseFloat(inventoryData.total_stock_value).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
               {inventoryData.stock_by_category.length} categories
@@ -140,7 +139,10 @@ export function InventoryReport({
                   <XAxis dataKey="category_name" />
                   <YAxis />
                   <Tooltip />
-                  <Bar dataKey="total_value" fill="#82ca9d" />
+                  <Bar
+                    dataKey={(data) => parseFloat(data.total_value)}
+                    fill="#82ca9d"
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -169,7 +171,7 @@ export function InventoryReport({
                   <TableCell>{item.stock}</TableCell>
                   <TableCell>{item.reorder_level}</TableCell>
                   <TableCell className="text-right">
-                    ${item.price.toFixed(2)}
+                    ${parseFloat(item.price).toFixed(2)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -201,7 +203,7 @@ export function InventoryReport({
                     {movement.total_quantity}
                   </TableCell>
                   <TableCell className="text-right">
-                    ${movement.total_value.toFixed(2)}
+                    ${parseFloat(movement.total_value).toFixed(2)}
                   </TableCell>
                 </TableRow>
               ))}
@@ -232,7 +234,9 @@ export function InventoryReport({
               />
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>Total Stock: {category.total_stock}</span>
-                <span>Value: ${category.total_value.toFixed(2)}</span>
+                <span>
+                  Value: ${parseFloat(category.total_value).toFixed(2)}
+                </span>
               </div>
             </div>
           ))}

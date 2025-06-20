@@ -169,7 +169,7 @@ export default function SuppliersPage() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="cursor-pointer">
-                <Link href={`/inventory/edit-supplier/${supplier.id}`}>
+                <Link href={`/inventory/suppliers/edit/${supplier.id}`}>
                   <Edit3 className="mr-2 h-4 w-4" />
                   Edit Supplier
                 </Link>
@@ -318,25 +318,6 @@ export default function SuppliersPage() {
               </div>
               <p className="text-xs text-orange-600 font-medium mt-1">
                 Inventory value
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-red-50 to-rose-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-700">
-                Average Products
-              </CardTitle>
-              <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-rose-500 rounded-full flex items-center justify-center">
-                <Users className="h-5 w-5 text-white" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-gray-900">
-                {Math.round(totalProducts / (totalSuppliers || 1))}
-              </div>
-              <p className="text-xs text-red-600 font-medium mt-1">
-                Per supplier
               </p>
             </CardContent>
           </Card>

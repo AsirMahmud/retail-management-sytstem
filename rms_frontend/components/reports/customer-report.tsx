@@ -85,7 +85,7 @@ export function CustomerReport({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${customerData.total_sales.toFixed(2)}
+              ${parseFloat(customerData.total_sales).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
               {customerData.top_customers.length} active customers
@@ -100,7 +100,7 @@ export function CustomerReport({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${customerData.average_customer_value.toFixed(2)}
+              ${parseFloat(customerData.average_customer_value).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">Per customer</p>
           </CardContent>
@@ -152,7 +152,9 @@ export function CustomerReport({
                 <TableRow key={`${customer.first_name}-${customer.last_name}`}>
                   <TableCell>{`${customer.first_name} ${customer.last_name}`}</TableCell>
                   <TableCell>{customer.phone}</TableCell>
-                  <TableCell>${customer.total_sales.toFixed(2)}</TableCell>
+                  <TableCell>
+                    ${parseFloat(customer.total_sales).toFixed(2)}
+                  </TableCell>
                   <TableCell>{customer.items_purchased}</TableCell>
                   <TableCell>{customer.unique_products}</TableCell>
                   <TableCell className="text-right">

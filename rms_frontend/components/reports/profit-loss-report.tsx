@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  Legend,
 } from "recharts";
 import {
   Table,
@@ -34,9 +35,12 @@ export function ProfitLossReport({
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i}>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Card
+              key={i}
+              className="bg-gradient-to-br from-orange-50 to-amber-100 border-0 shadow-xl"
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <Skeleton className="h-4 w-[100px]" />
               </CardHeader>
@@ -47,8 +51,8 @@ export function ProfitLossReport({
             </Card>
           ))}
         </div>
-        <Card>
-          <CardHeader>
+        <Card className="border-0 shadow-lg overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
             <Skeleton className="h-6 w-[200px]" />
           </CardHeader>
           <CardContent>
@@ -61,6 +65,44 @@ export function ProfitLossReport({
 
   if (!profitLossData) return null;
 
+  // --- Patch: Construct chart data if missing from API ---
+  // Build a map for quick lookup
+  const revenueMap = Object.fromEntries(
+    (profitLossData.revenue_by_date || []).map((item) => [
+      item.date,
+      parseFloat(item.revenue),
+    ])
+  );
+  const expenseMap = Object.fromEntries(
+    (profitLossData.expenses_by_date || []).map((item) => [
+      item.date,
+      parseFloat(item.total),
+    ])
+  );
+  // Get all unique dates
+  const allDates = Array.from(
+    new Set([...Object.keys(revenueMap), ...Object.keys(expenseMap)])
+  ).sort();
+  // Build revenue_vs_expense_by_date
+  const revenueVsExpenseData =
+    profitLossData.revenue_vs_expense_by_date ??
+    allDates.map((date) => ({
+      date,
+      revenue: revenueMap[date] || 0,
+      expense: expenseMap[date] || 0,
+    }));
+  // Build expenses_over_time
+  const expensesOverTimeData =
+    profitLossData.expenses_over_time ??
+    (profitLossData.expenses_by_date || []).map((item) => ({
+      date: item.date,
+      amount: item.total,
+    }));
+
+  console.log(profitLossData);
+  console.log(expensesOverTimeData);
+  // --- End Patch ---
+
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -70,7 +112,7 @@ export function ProfitLossReport({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${profitLossData.total_revenue.toFixed(2)}
+              ${parseFloat(profitLossData.total_revenue).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
               {profitLossData.revenue_by_date.length} days of sales
@@ -85,7 +127,7 @@ export function ProfitLossReport({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${profitLossData.total_expenses.toFixed(2)}
+              ${parseFloat(profitLossData.total_expenses).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
               {profitLossData.expenses_by_date.length} days of expenses
@@ -98,11 +140,22 @@ export function ProfitLossReport({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${profitLossData.net_profit.toFixed(2)}
+              ${parseFloat(profitLossData.net_profit).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {profitLossData.profit_margin.toFixed(1)}% profit margin
+              {parseFloat(profitLossData.profit_margin).toFixed(1)}% profit
+              margin
             </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Profit Margin</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {parseFloat(profitLossData.profit_margin).toFixed(2)}%
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -110,49 +163,66 @@ export function ProfitLossReport({
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Revenue Trend</CardTitle>
+            <CardTitle>Revenue vs Expenses Over Time</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={profitLossData.revenue_by_date}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="#8884d8"
-                    name="Revenue"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+          <CardContent className="h-96">
+            <ResponsiveContainer>
+              <LineChart
+                data={revenueVsExpenseData}
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip
+                  formatter={(value: string) =>
+                    `$${parseFloat(value).toFixed(2)}`
+                  }
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="#0088FE"
+                  name="Revenue"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="expense"
+                  stroke="#FF8042"
+                  name="Expense"
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader>
-            <CardTitle>Expenses Trend</CardTitle>
+            <CardTitle>Expenses Over Time</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={profitLossData.expenses_by_date}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="amount"
-                    stroke="#82ca9d"
-                    name="Expenses"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+          <CardContent className="h-96">
+            <ResponsiveContainer>
+              <LineChart
+                data={expensesOverTimeData}
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip
+                  formatter={(value: string) =>
+                    `$${parseFloat(value).toFixed(2)}`
+                  }
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="amount"
+                  stroke="#FF8042"
+                  name="Expenses"
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
@@ -161,20 +231,39 @@ export function ProfitLossReport({
         <CardHeader>
           <CardTitle>Profit by Category</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={profitLossData.profit_by_category}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="category_name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="profit" fill="#8884d8" name="Profit" />
-                <Bar dataKey="revenue" fill="#82ca9d" name="Revenue" />
-                <Bar dataKey="cost" fill="#ff8042" name="Cost" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+        <CardContent className="h-96">
+          <ResponsiveContainer>
+            <BarChart
+              data={profitLossData.profit_by_category}
+              layout="vertical"
+              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" />
+              <YAxis type="category" dataKey="category_name" width={100} />
+              <Tooltip
+                formatter={(value: string) =>
+                  `$${parseFloat(value).toFixed(2)}`
+                }
+              />
+              <Legend />
+              <Bar
+                dataKey={(data) => parseFloat(data.profit)}
+                name="Profit"
+                fill="#8884d8"
+              />
+              <Bar
+                dataKey={(data) => parseFloat(data.revenue)}
+                fill="#82ca9d"
+                name="Revenue"
+              />
+              <Bar
+                dataKey={(data) => parseFloat(data.cost)}
+                fill="#ff8042"
+                name="Cost"
+              />
+            </BarChart>
+          </ResponsiveContainer>
         </CardContent>
       </Card>
 
@@ -195,15 +284,19 @@ export function ProfitLossReport({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {profitLossData.profit_by_category.map((category) => (
-                <TableRow key={category.category_name}>
-                  <TableCell>{category.category_name}</TableCell>
-                  <TableCell>${category.revenue.toFixed(2)}</TableCell>
-                  <TableCell>${category.cost.toFixed(2)}</TableCell>
-                  <TableCell>${category.profit.toFixed(2)}</TableCell>
-                  <TableCell>{category.items_sold}</TableCell>
+              {profitLossData.profit_by_category.map((item) => (
+                <TableRow key={item.category_name}>
+                  <TableCell>{item.category_name}</TableCell>
+                  <TableCell>${parseFloat(item.revenue).toFixed(2)}</TableCell>
+                  <TableCell>${parseFloat(item.cost).toFixed(2)}</TableCell>
+                  <TableCell>${parseFloat(item.profit).toFixed(2)}</TableCell>
+                  <TableCell>{item.items_sold}</TableCell>
                   <TableCell className="text-right">
-                    {((category.profit / category.revenue) * 100).toFixed(1)}%
+                    {(
+                      (parseFloat(item.profit) / parseFloat(item.revenue)) *
+                      100
+                    ).toFixed(1)}
+                    %
                   </TableCell>
                 </TableRow>
               ))}

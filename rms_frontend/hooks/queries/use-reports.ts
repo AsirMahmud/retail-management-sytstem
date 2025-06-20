@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { DateRange } from 'react-day-picker';
-import { reportsApi, formatDateRange, ReportDateRange } from '@/lib/api/reports';
+import { reportsApi, formatDateRange, ReportDateRange, SalesReport, ExpenseReport, InventoryReport, CustomerReport, CategoryReport, ProfitLossReport, ProductPerformanceReport, OverviewReport } from '@/lib/api/reports';
 
 export const useSalesReport = (dateRange: DateRange | undefined) => {
     const formattedDateRange = formatDateRange(dateRange);
@@ -64,4 +64,13 @@ export const useProductPerformanceReport = (dateRange: DateRange | undefined) =>
         queryFn: () => reportsApi.getProductPerformanceReport(formattedDateRange!),
         enabled: !!formattedDateRange,
     });
-}; 
+};
+
+export function useOverviewReport(dateRange: DateRange) {
+    const formattedDateRange = formatDateRange(dateRange);
+    return useQuery<OverviewReport, Error>({
+        queryKey: ['overviewReport', formattedDateRange],
+        queryFn: () => reportsApi.getOverviewReport(formattedDateRange!),
+        enabled: !!formattedDateRange,
+    });
+} 

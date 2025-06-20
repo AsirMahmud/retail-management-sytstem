@@ -131,7 +131,7 @@ export default function ProductsPage() {
   ).length;
   const totalValue = products.reduce(
     (sum: number, product: Product) =>
-      sum + product.selling_price * product.stock_quantity,
+      sum + product.cost_price * product.stock_quantity,
     0
   );
 

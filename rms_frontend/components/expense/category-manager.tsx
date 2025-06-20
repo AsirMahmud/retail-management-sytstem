@@ -37,73 +37,15 @@ import {
 } from "@/hooks/queries/use-expenses";
 import { ExpenseCategory } from "@/lib/api/expenses";
 import { toast } from "@/hooks/use-toast";
+import Link from "next/link";
 
 export function CategoryManager() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] =
-    useState<ExpenseCategory | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    color: "#8884d8",
-  });
 
   const { data: categories } = useCategories();
   const createCategory = useCreateCategory();
   const updateCategory = useUpdateCategory();
   const deleteCategory = useDeleteCategory();
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (editingCategory) {
-      updateCategory.mutate(
-        {
-          id: editingCategory.id,
-          name: formData.name,
-          description: formData.description,
-          color: formData.color,
-        },
-        {
-          onSuccess: () => {
-            setEditingCategory(null);
-            setFormData({ name: "", description: "", color: "#8884d8" });
-            toast({
-              title: "Success",
-              description: "Category updated successfully",
-            });
-          },
-        }
-      );
-    } else {
-      createCategory.mutate(
-        {
-          name: formData.name,
-          description: formData.description,
-          color: formData.color,
-        },
-        {
-          onSuccess: () => {
-            setIsAddDialogOpen(false);
-            setFormData({ name: "", description: "", color: "#8884d8" });
-            toast({
-              title: "Success",
-              description: "Category created successfully",
-            });
-          },
-        }
-      );
-    }
-  };
-
-  const handleEdit = (category: ExpenseCategory) => {
-    setEditingCategory(category);
-    setFormData({
-      name: category.name,
-      description: category.description,
-      color: category.color,
-    });
-  };
 
   const handleDelete = (categoryId: number) => {
     deleteCategory.mutate(categoryId, {
@@ -138,84 +80,6 @@ export function CategoryManager() {
                 Add Category
               </Button>
             </DialogTrigger>
-            <DialogContent className="border-0 shadow-2xl rounded-2xl">
-              <DialogHeader>
-                <DialogTitle className="text-xl">
-                  {editingCategory ? "Edit Category" : "Add New Category"}
-                </DialogTitle>
-                <DialogDescription>
-                  {editingCategory
-                    ? "Update the category details"
-                    : "Create a new expense category"}
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-3">
-                  <Label
-                    htmlFor="name"
-                    className="text-sm font-semibold text-gray-700"
-                  >
-                    Category Name
-                  </Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, name: e.target.value }))
-                    }
-                    placeholder="Enter category name"
-                    required
-                    className="h-12 border-2 border-gray-200 focus:border-purple-500 rounded-xl transition-colors"
-                  />
-                </div>
-                <div className="space-y-3">
-                  <Label
-                    htmlFor="description"
-                    className="text-sm font-semibold text-gray-700"
-                  >
-                    Description
-                  </Label>
-                  <Input
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        description: e.target.value,
-                      }))
-                    }
-                    placeholder="Enter category description"
-                    className="h-12 border-2 border-gray-200 focus:border-purple-500 rounded-xl transition-colors"
-                  />
-                </div>
-                <div className="space-y-3">
-                  <Label
-                    htmlFor="color"
-                    className="text-sm font-semibold text-gray-700"
-                  >
-                    Color
-                  </Label>
-                  <Input
-                    id="color"
-                    type="color"
-                    value={formData.color}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        color: e.target.value,
-                      }))
-                    }
-                    className="h-12 border-2 border-gray-200 focus:border-purple-500 rounded-xl transition-colors"
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl h-12"
-                >
-                  {editingCategory ? "Update Category" : "Create Category"}
-                </Button>
-              </form>
-            </DialogContent>
           </Dialog>
         </CardHeader>
         <CardContent className="p-6">
@@ -237,12 +101,13 @@ export function CategoryManager() {
                       </CardTitle>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEdit(category)}
-                      >
-                        <Edit className="h-4 w-4" />
+                      <Button variant="ghost" size="icon" asChild>
+                        <Link
+                          href={`/expenses/edit-category/${category.id}`}
+                          prefetch={false}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Link>
                       </Button>
                       <Button
                         variant="ghost"

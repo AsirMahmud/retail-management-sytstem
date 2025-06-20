@@ -9,6 +9,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Cell,
 } from "recharts";
 import {
   Table,
@@ -22,12 +23,21 @@ import { useCategoryReport } from "@/hooks/queries/use-reports";
 import { DateRange } from "react-day-picker";
 import { Skeleton } from "@/components/ui/skeleton";
 
+const COLORS = [
+  "#0088FE",
+  "#00C49F",
+  "#FFBB28",
+  "#FF8042",
+  "#8884d8",
+  "#82ca9d",
+];
+
 export function CategoryReport({
   dateRange,
 }: {
   dateRange: { from: Date | undefined; to: Date | undefined };
 }) {
-  const { data: categoryData, isLoading } = useCategoryReport();
+  const { data: categoryData, isLoading } = useCategoryReport(dateRange);
 
   if (isLoading) {
     return (
@@ -45,6 +55,14 @@ export function CategoryReport({
             </Card>
           ))}
         </div>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-[200px]" />
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-[300px] w-full" />
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <Skeleton className="h-6 w-[200px]" />
@@ -87,7 +105,9 @@ export function CategoryReport({
             </div>
             <p className="text-xs text-muted-foreground">
               $
-              {categoryData.top_categories[0]?.total_sales.toFixed(2) || "0.00"}{" "}
+              {parseFloat(
+                categoryData.top_categories[0]?.total_sales || "0"
+              ).toFixed(2)}{" "}
               in sales
             </p>
           </CardContent>
@@ -100,9 +120,11 @@ export function CategoryReport({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {Math.round(
-                categoryData.total_products / categoryData.total_categories
-              )}
+              {categoryData.total_categories > 0
+                ? Math.round(
+                    categoryData.total_products / categoryData.total_categories
+                  )
+                : 0}
             </div>
             <p className="text-xs text-muted-foreground">Per category</p>
           </CardContent>
@@ -121,8 +143,19 @@ export function CategoryReport({
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="category_name" />
                   <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="total_sales" fill="#8884d8" />
+                  <Tooltip
+                    formatter={(value: string) =>
+                      `$${parseFloat(value).toFixed(2)}`
+                    }
+                  />
+                  <Bar dataKey="total_sales" name="Total Sales">
+                    {categoryData.sales_by_category.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -140,46 +173,25 @@ export function CategoryReport({
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="category_name" />
                   <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="total_stock" fill="#82ca9d" />
+                  <Tooltip
+                    formatter={(value: string) =>
+                      `$${parseFloat(value).toFixed(2)}`
+                    }
+                  />
+                  <Bar dataKey="total_value" name="Total Value">
+                    {categoryData.stock_by_category.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Top Categories</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Category</TableHead>
-                <TableHead>Total Sales</TableHead>
-                <TableHead>Items Sold</TableHead>
-                <TableHead>Products</TableHead>
-                <TableHead className="text-right">Average Price</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {categoryData.top_categories.map((category) => (
-                <TableRow key={category.name}>
-                  <TableCell>{category.name}</TableCell>
-                  <TableCell>${category.total_sales.toFixed(2)}</TableCell>
-                  <TableCell>{category.items_sold}</TableCell>
-                  <TableCell>{category.product_count}</TableCell>
-                  <TableCell className="text-right">
-                    ${category.average_price.toFixed(2)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader>
@@ -205,12 +217,14 @@ export function CategoryReport({
                 return (
                   <TableRow key={category.category_name}>
                     <TableCell>{category.category_name}</TableCell>
-                    <TableCell>${category.total_sales.toFixed(2)}</TableCell>
+                    <TableCell>
+                      ${parseFloat(category.total_sales).toFixed(2)}
+                    </TableCell>
                     <TableCell>{category.items_sold}</TableCell>
                     <TableCell>{category.unique_products}</TableCell>
                     <TableCell>{stockInfo?.total_stock || 0}</TableCell>
                     <TableCell className="text-right">
-                      ${stockInfo?.total_value.toFixed(2) || "0.00"}
+                      ${parseFloat(stockInfo?.total_value || "0").toFixed(2)}
                     </TableCell>
                   </TableRow>
                 );

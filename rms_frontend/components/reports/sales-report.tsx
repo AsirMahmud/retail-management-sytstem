@@ -47,9 +47,12 @@ export function SalesReport({
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i}>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Card
+              key={i}
+              className="bg-gradient-to-br from-blue-50 to-indigo-100 border-0 shadow-xl"
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <Skeleton className="h-4 w-[100px]" />
               </CardHeader>
@@ -60,8 +63,8 @@ export function SalesReport({
             </Card>
           ))}
         </div>
-        <Card>
-          <CardHeader>
+        <Card className="border-0 shadow-lg overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
             <Skeleton className="h-6 w-[200px]" />
           </CardHeader>
           <CardContent>
@@ -83,7 +86,7 @@ export function SalesReport({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${salesData.total_sales.toFixed(2)}
+              ${parseFloat(salesData.total_sales).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
               {salesData.total_orders} orders
@@ -98,7 +101,7 @@ export function SalesReport({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${salesData.average_order_value.toFixed(2)}
+              ${parseFloat(salesData.average_order_value).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
               {salesData.total_items_sold} items sold
@@ -113,7 +116,7 @@ export function SalesReport({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${salesData.average_item_price.toFixed(2)}
+              ${parseFloat(salesData.average_item_price).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground">
               {salesData.total_items_sold} items sold
@@ -143,7 +146,11 @@ export function SalesReport({
                     <XAxis dataKey="date" />
                     <YAxis />
                     <Tooltip />
-                    <Line type="monotone" dataKey="total" stroke="#8884d8" />
+                    <Line
+                      type="monotone"
+                      dataKey={(data) => parseFloat(data.total)}
+                      stroke="#8884d8"
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -168,7 +175,7 @@ export function SalesReport({
                         labelLine={false}
                         outerRadius={80}
                         fill="#8884d8"
-                        dataKey="total"
+                        dataKey={(data) => parseFloat(data.total)}
                         label={({ category_name, percent }) =>
                           `${category_name} ${(percent * 100).toFixed(0)}%`
                         }
@@ -206,7 +213,7 @@ export function SalesReport({
                       <TableRow key={category.category_name}>
                         <TableCell>{category.category_name}</TableCell>
                         <TableCell className="text-right">
-                          ${category.total.toFixed(2)}
+                          ${parseFloat(category.total).toFixed(2)}
                         </TableCell>
                         <TableCell className="text-right">
                           {category.items_count}
@@ -246,16 +253,16 @@ export function SalesReport({
                       <TableCell>{product.product_name}</TableCell>
                       <TableCell>{product.category_name}</TableCell>
                       <TableCell className="text-right">
-                        ${product.total_sales.toFixed(2)}
+                        ${parseFloat(product.total_sales).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right">
                         {product.quantity_sold}
                       </TableCell>
                       <TableCell className="text-right">
-                        ${product.average_price.toFixed(2)}
+                        ${parseFloat(product.average_price).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-right">
-                        ${product.profit.toFixed(2)}
+                        ${parseFloat(product.profit).toFixed(2)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -279,7 +286,10 @@ export function SalesReport({
                       <XAxis dataKey="payment_method" />
                       <YAxis />
                       <Tooltip />
-                      <Bar dataKey="total" fill="#8884d8" />
+                      <Bar
+                        dataKey={(data) => parseFloat(data.total)}
+                        fill="#8884d8"
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -305,7 +315,7 @@ export function SalesReport({
                       <TableRow key={method.payment_method}>
                         <TableCell>{method.payment_method}</TableCell>
                         <TableCell className="text-right">
-                          ${method.total.toFixed(2)}
+                          ${parseFloat(method.total).toFixed(2)}
                         </TableCell>
                         <TableCell className="text-right">
                           {method.orders_count}

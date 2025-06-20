@@ -7,90 +7,85 @@ export interface ReportDateRange {
 }
 
 export interface SalesReport {
-    total_sales: number;
+    total_sales: string;
     total_orders: number;
     total_items_sold: number;
-    average_order_value: number;
-    average_item_price: number;
+    average_order_value: string;
+    average_item_price: string;
     sales_by_date: Array<{
         date: string;
-        total: number;
+        total: string;
         items_count: number;
     }>;
     sales_by_category: Array<{
         category_name: string;
-        total: number;
+        total: string;
         items_count: number;
         quantity_sold: number;
     }>;
     top_products: Array<{
         product_name: string;
         category_name: string;
-        total_sales: number;
+        total_sales: string;
         quantity_sold: number;
-        average_price: number;
-        profit: number;
+        average_price: string;
+        profit: string;
     }>;
     payment_methods: Array<{
         payment_method: string;
-        total: number;
+        total: string;
         orders_count: number;
         items_count: number;
     }>;
 }
 
 export interface ExpenseReport {
-    total_expenses: number;
+    total_expenses: string;
     expenses_by_category: Array<{
         category_name: string;
-        total: number;
+        total: string;
         count: number;
     }>;
     expenses_by_date: Array<{
         date: string;
-        total: number;
-        count: number;
-    }>;
-    payment_methods: Array<{
-        payment_method: string;
-        total: number;
+        total: string;
         count: number;
     }>;
 }
 
 export interface InventoryReport {
     total_products: number;
-    total_stock_value: number;
+    total_stock_value: string;
     low_stock_items: Array<{
         name: string;
         stock: number;
         reorder_level: number;
-        price: number;
+        price: string;
     }>;
     stock_by_category: Array<{
         category_name: string;
         total_products: number;
         total_stock: number;
-        total_value: number;
+        total_value: string;
     }>;
     stock_movements: Array<{
         date: string;
         movement_type: string;
         total_quantity: number;
-        total_value: number;
+        total_value: string;
     }>;
 }
 
 export interface CustomerReport {
     total_customers: number;
     new_customers: number;
-    total_sales: number;
-    average_customer_value: number;
+    total_sales: string;
+    average_customer_value: string;
     top_customers: Array<{
         first_name: string;
         last_name: string;
         phone: string;
-        total_sales: number;
+        total_sales: string;
         items_purchased: number;
         unique_products: number;
         last_purchase_date: string;
@@ -106,84 +101,109 @@ export interface CategoryReport {
     total_products: number;
     sales_by_category: Array<{
         category_name: string;
-        total_sales: number;
+        total_sales: string;
         items_sold: number;
-        quantity_sold: number;
         unique_products: number;
     }>;
     stock_by_category: Array<{
         category_name: string;
         total_products: number;
         total_stock: number;
-        total_value: number;
+        total_value: string;
     }>;
     top_categories: Array<{
         name: string;
-        total_sales: number;
+        total_sales: string;
         items_sold: number;
         product_count: number;
-        average_price: number;
+        average_price: string;
     }>;
 }
 
 export interface ProfitLossReport {
-    total_revenue: number;
-    total_expenses: number;
-    net_profit: number;
-    profit_margin: number;
+    total_revenue: string;
+    total_expenses: string;
+    net_profit: string;
+    profit_margin: string;
     revenue_by_date: Array<{
         date: string;
-        revenue: number;
+        revenue: string;
         items_sold: number;
     }>;
     expenses_by_date: Array<{
+        total: any;
         date: string;
-        amount: number;
+        amount: string;
         count: number;
     }>;
     profit_by_category: Array<{
         category_name: string;
-        revenue: number;
-        cost: number;
-        profit: number;
+        revenue: string;
+        cost: string;
+        profit: string;
         items_sold: number;
+    }>;
+    revenue_vs_expense_by_date: Array<{
+        date: string;
+        revenue: string;
+        expense: string;
+    }>;
+    expenses_over_time: Array<{
+        date: string;
+        amount: string;
     }>;
 }
 
 export interface ProductPerformanceReport {
     total_products: number;
-    total_sales: number;
-    total_profit: number;
-    average_profit_margin: number;
+    total_sales: string;
+    total_profit: string;
+    average_profit_margin: string;
     top_performing_products: Array<{
         product_name: string;
         category_name: string;
-        total_sales: number;
+        total_sales: string;
         quantity_sold: number;
-        total_profit: number;
-        profit_margin: number;
-        average_price: number;
+        total_profit: string;
+        profit_margin: string;
+        average_price: string;
     }>;
     low_performing_products: Array<{
         product_name: string;
         category_name: string;
-        total_sales: number;
+        total_sales: string;
         quantity_sold: number;
-        total_profit: number;
-        profit_margin: number;
-        average_price: number;
+        total_profit: string;
+        profit_margin: string;
+        average_price: string;
     }>;
     sales_by_product: Array<{
         product_name: string;
-        total_sales: number;
+        total_sales: string;
         quantity_sold: number;
-        average_price: number;
+        average_price: string;
     }>;
     profit_by_product: Array<{
         product_name: string;
-        total_profit: number;
-        profit_margin: number;
+        total_profit: string;
+        profit_margin: string;
         quantity_sold: number;
+    }>;
+}
+
+export interface OverviewReport {
+    total_sales: string;
+    total_orders: number;
+    total_expenses: string;
+    net_profit: string;
+    profit_margin: string;
+    sales_by_date: Array<{
+        date: string;
+        total: string;
+    }>;
+    expenses_by_date: Array<{
+        date: string;
+        total: string;
     }>;
 }
 
@@ -228,6 +248,11 @@ export const reportsApi = {
 
     getProductPerformanceReport: async (dateRange: ReportDateRange): Promise<ProductPerformanceReport> => {
         const response = await axios.get('/reports/product-performance/', { params: dateRange });
+        return response.data;
+    },
+
+    getOverviewReport: async (dateRange: ReportDateRange): Promise<OverviewReport> => {
+        const response = await axios.get('/reports/overview/', { params: dateRange });
         return response.data;
     },
 }; 
