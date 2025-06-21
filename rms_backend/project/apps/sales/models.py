@@ -76,6 +76,9 @@ class Sale(models.Model):
  
     def calculate_totals(self):
         """Calculate sale totals based on items and discounts"""
+        # Set flag to prevent recursion
+        self._calculating_totals = True
+        
         items = self.items.all()
         
         # Calculate subtotal from items (before any discounts)
@@ -100,9 +103,15 @@ class Sale(models.Model):
         total_profit = Decimal('0.00')
         total_loss = Decimal('0.00')
 
-        # Recalculate profit for all items
+        # Recalculate profit for all items and save them directly
         for item in items:
             item.calculate_profit_loss(total_after_item_discounts=total_after_item_discounts)
+            # Save item directly without triggering its save method
+            SaleItem.objects.filter(id=item.id).update(
+                total=item.total,
+                profit=item.profit,
+                loss=item.loss
+            )
             total_profit += item.profit
             total_loss += item.loss
 
@@ -112,6 +121,9 @@ class Sale(models.Model):
         
         # Save the updated totals
         self.save(update_fields=['subtotal', 'total', 'total_profit', 'total_loss', 'discount'])
+        
+        # Remove the flag
+        delattr(self, '_calculating_totals')
 
 class SaleItem(models.Model):
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='items')
@@ -185,38 +197,17 @@ class SaleItem(models.Model):
         # Update item's total to reflect final selling price
         self.total = final_selling_price
 
-        # Create stock movement record and update stock when sale is completed
-        if self.sale.status == 'completed':
-            variation = self.get_variation()
-            if variation:
-                # Create stock movement record
-                StockMovement.objects.create(
-                    product=self.product,
-                    variation=variation,
-                    movement_type='OUT',
-                    quantity=self.quantity,
-                    reference_number=self.sale.invoice_number,
-                    notes=f"Sale item from {self.sale.invoice_number}"
-                )
-                
-                # Update variation stock
-                variation.stock -= self.quantity
-                variation.save()
-                
-                # Update product stock
-                self.product.stock_quantity -= self.quantity
-                self.product.save()
-        
-        self.save(update_fields=['total', 'profit', 'loss'])
-
     def save(self, *args, **kwargs):
         # Calculate total before saving (with discount)
         self.total = (self.quantity * self.unit_price) - self.discount
         
-        # Calculate profit and loss
+        # Calculate profit and loss without triggering save
         self.calculate_profit_loss(total_after_item_discounts=self.sale.subtotal - sum(item.discount for item in self.sale.items.all()))
         
-        # Create stock movement record and update stock when sale is completed
+        # Save the item first
+        super().save(*args, **kwargs)
+        
+        # Handle stock movement and updates after saving
         if self.sale.status == 'completed':
             variation = self.get_variation()
             if variation:
@@ -234,14 +225,12 @@ class SaleItem(models.Model):
                 variation.stock -= self.quantity
                 variation.save()
                 
-                # Update product stock
+                # Update product stock without triggering recursion
                 self.product.stock_quantity -= self.quantity
-                self.product.save()
+                Product.objects.filter(id=self.product.id).update(stock_quantity=self.product.stock_quantity)
         
-        super().save(*args, **kwargs)
-        
-        # Update sale totals after saving the item
-        if self.sale:
+        # Update sale totals after saving the item (but only if not already being calculated)
+        if self.sale and not hasattr(self.sale, '_calculating_totals'):
             self.sale.calculate_totals()
 
 class Payment(models.Model):
@@ -317,8 +306,8 @@ class ReturnItem(models.Model):
                 notes=f"Return item from {self.return_order.return_number}"
             )
             
-            # Update product stock
+            # Update product stock without triggering recursion
             self.sale_item.product.stock_quantity += self.quantity
-            self.sale_item.product.save()
+            Product.objects.filter(id=self.sale_item.product.id).update(stock_quantity=self.sale_item.product.stock_quantity)
         
         super().save(*args, **kwargs) 
