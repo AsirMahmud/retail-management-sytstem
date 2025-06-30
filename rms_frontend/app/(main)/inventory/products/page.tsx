@@ -402,7 +402,7 @@ export default function ProductsPage() {
           <Card className="border-0 shadow-xl bg-white/70 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-700">
-                Total Value
+                Total Cost
               </CardTitle>
               <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
                 <DollarSign className="h-5 w-5 text-white" />
@@ -421,8 +421,8 @@ export default function ProductsPage() {
           <Card className="border-0 shadow-xl bg-white/70 backdrop-blur-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-700">
-                Potential Revenue
-              </CardTitle>
+                 Total Value
+                </CardTitle>
               <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
                 <TrendingUp className="h-5 w-5 text-white" />
               </div>
