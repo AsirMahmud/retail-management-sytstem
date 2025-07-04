@@ -35,16 +35,10 @@ import {
   DollarSign,
 } from "lucide-react";
 import Link from "next/link";
-import {
-  usePreorderStats,
-  usePreorderDashboard,
-} from "@/hooks/queries/use-preorder";
+import { usePreorderStats } from "@/hooks/queries/use-preorder";
 import { PreorderList } from "@/components/preorder/preorder-list";
 
-import {
-  PreorderDashboard as PreorderDashboardType,
-  PreorderStats,
-} from "@/types/preorder";
+import { PreorderStats } from "@/types/preorder";
 import { formatCurrency } from "@/lib/utils";
 
 const COLORS = [
@@ -59,10 +53,8 @@ const COLORS = [
 export default function PreorderPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const { data: stats, isLoading: statsLoading } = usePreorderStats();
-  const { data: dashboardData, isLoading: dashboardLoading } =
-    usePreorderDashboard();
 
-  const isLoading = statsLoading || dashboardLoading;
+  const isLoading = statsLoading;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -88,9 +80,6 @@ export default function PreorderPage() {
   };
 
   const typedStats = stats as PreorderStats | undefined;
-  const typedDashboardData = dashboardData?.data as
-    | PreorderDashboardType[]
-    | undefined;
 
   // Prepare chart data
   const statusChartData = typedStats?.status_breakdown
@@ -100,13 +89,6 @@ export default function PreorderPage() {
         color: getStatusColor(status).split(" ")[0].replace("bg-", ""),
       }))
     : [];
-
-  const topProductsData =
-    typedDashboardData?.slice(0, 5).map((product) => ({
-      name: product.name,
-      orders: product.total_orders,
-      revenue: product.total_revenue,
-    })) || [];
 
   if (isLoading) {
     return (
@@ -330,7 +312,7 @@ export default function PreorderPage() {
                 <CardContent className="p-6">
                   <div className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={topProductsData} layout="horizontal">
+                      <BarChart data={[]} layout="horizontal">
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                         <XAxis type="number" stroke="#64748b" fontSize={12} />
                         <YAxis
@@ -394,50 +376,6 @@ export default function PreorderPage() {
                         </div>
                       )
                     )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Top Products List */}
-            {typedDashboardData && typedDashboardData.length > 0 && (
-              <Card className="border-0 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
-                  <CardTitle className="text-lg font-semibold text-slate-900">
-                    Top Performing Products
-                  </CardTitle>
-                  <CardDescription>
-                    Detailed view of products with highest orders
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    {typedDashboardData
-                      .slice(0, 5)
-                      .map((product: PreorderDashboardType) => (
-                        <div
-                          key={product.id}
-                          className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-lg shadow-sm hover:shadow-md transition-shadow"
-                        >
-                          <div>
-                            <h4 className="font-semibold text-gray-900">
-                              {product.name}
-                            </h4>
-                            <p className="text-sm text-gray-600">
-                              {product.total_orders} orders •{" "}
-                              {formatCurrency(product.total_revenue)}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <Badge
-                              variant="outline"
-                              className="bg-blue-50 text-blue-700 border-blue-200"
-                            >
-                              {product.pending_orders} pending
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
                   </div>
                 </CardContent>
               </Card>

@@ -43,7 +43,7 @@ class PreorderVariationAdmin(admin.ModelAdmin):
 
 @admin.register(Preorder)
 class PreorderAdmin(admin.ModelAdmin):
-    list_display = ['id', 'customer_name', 'customer_phone', 'preorder_product', 'total_amount', 'status', 'created_at']
+    list_display = ['id', 'customer_name', 'customer_phone', 'preorder_product', 'total_amount', 'quantity', 'unit_price', 'cost_price', 'profit', 'status', 'created_at']
     list_filter = ['status', 'created_at', 'preorder_product']
     search_fields = ['customer_name', 'customer_phone', 'customer_email', 'preorder_product__name']
     readonly_fields = ['created_at', 'updated_at']
@@ -54,7 +54,7 @@ class PreorderAdmin(admin.ModelAdmin):
             'fields': ('customer_name', 'customer_phone', 'customer_email')
         }),
         ('Order Details', {
-            'fields': ('preorder_product', 'items', 'total_amount', 'deposit_paid')
+            'fields': ('preorder_product', 'items', 'total_amount', 'deposit_paid', 'quantity', 'unit_price', 'cost_price', 'profit')
         }),
         ('Status & Notes', {
             'fields': ('status', 'notes', 'expected_delivery_date')

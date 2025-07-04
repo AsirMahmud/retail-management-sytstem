@@ -387,6 +387,7 @@ export function PreorderList() {
                 <TableHead>Deposit Paid</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Date</TableHead>
+                <TableHead>Expected Delivery Date</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -432,6 +433,13 @@ export function PreorderList() {
                     <div className="text-sm">
                       {new Date(preorder.created_at).toLocaleDateString()}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    {preorder.expected_delivery_date
+                      ? new Date(
+                          preorder.expected_delivery_date
+                        ).toLocaleDateString()
+                      : "-"}
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">

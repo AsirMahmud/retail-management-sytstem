@@ -26,6 +26,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PreorderReport } from "@/components/reports/preorder-report";
 
 export default function ReportsPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -95,7 +96,7 @@ export default function ReportsPage() {
           </div>
         </div>
         <Tabs defaultValue="overview" className="space-y-8">
-          <TabsList className="grid w-full grid-cols-7 bg-white/70 backdrop-blur-sm border border-white/20 shadow-lg rounded-xl p-1">
+          <TabsList className="grid w-full grid-cols-8 bg-white/70 backdrop-blur-sm border border-white/20 shadow-lg rounded-xl p-1">
             <TabsTrigger
               value="overview"
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
@@ -137,6 +138,12 @@ export default function ReportsPage() {
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
             >
               Product Performance
+            </TabsTrigger>
+            <TabsTrigger
+              value="preorder"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
+            >
+              Preorder Analytics
             </TabsTrigger>
           </TabsList>
           <TabsContent value="overview" className="space-y-8">
@@ -249,6 +256,12 @@ export default function ReportsPage() {
           </TabsContent>
           <TabsContent value="product-performance">
             <ProductPerformanceReport dateRange={formattedDateRange} />
+          </TabsContent>
+          <TabsContent value="preorder" className="space-y-8">
+            <PreorderReport
+              overviewData={overviewData}
+              isLoading={isLoadingOverview}
+            />
           </TabsContent>
         </Tabs>
       </div>

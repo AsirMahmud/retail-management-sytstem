@@ -279,9 +279,16 @@ export const useCustomerLookup = (phone: string) => {
     });
 };
 
-export const useDashboardStats = () => {
+export const useDashboardStats = (params?: {
+    period?: string;
+    start_date?: string;
+    end_date?: string;
+    status?: string;
+    payment_method?: string;
+    customer_phone?: string;
+}) => {
     return useQuery({
-        queryKey: ['dashboard-stats'],
-        queryFn: getDashboardStats
+        queryKey: ['dashboard-stats', params],
+        queryFn: () => getDashboardStats(params)
     });
 }; 

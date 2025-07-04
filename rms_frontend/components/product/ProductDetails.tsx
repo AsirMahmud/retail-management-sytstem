@@ -3,7 +3,6 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { formatDate } from "@/lib/utils";
 import Image from "next/image";
 
 interface ProductDetailsProps {
@@ -196,6 +195,57 @@ export function ProductDetails({ product }: ProductDetailsProps) {
                 <pre className="text-sm">
                   {JSON.stringify(variation, null, 2)}
                 </pre>
+                <button
+                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  onClick={() => {
+                    const labelWindow = window.open(
+                      "",
+                      "_blank",
+                      "width=220,height=120"
+                    );
+                    if (!labelWindow) return;
+                    const style = `
+                      <style>
+                        body { margin: 0; padding: 0; }
+                        .label {
+                          width: 57mm;
+                          height: 30mm;
+                          display: flex;
+                          flex-direction: column;
+                          justify-content: center;
+                          align-items: center;
+                          font-family: Arial, sans-serif;
+                          font-size: 14px;
+                          border: 1px dashed #333;
+                          box-sizing: border-box;
+                        }
+                        .sku { font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+                        .price { font-size: 16px; margin-bottom: 4px; }
+                        .size { font-size: 14px; }
+                      </style>
+                    `;
+                    const sku = variation.sku || product.sku;
+                    const price = variation.price || product.selling_price;
+                    const size =
+                      variation.size ||
+                      variation.size_name ||
+                      variation.Size ||
+                      "";
+                    labelWindow.document.write(`
+                      <html><head><title>Print Label</title>${style}</head><body>
+                        <div class="label">
+                          <div class="sku">SKU: ${sku}</div>
+                          <div class="price">Price: $${price}</div>
+                          <div class="size">Size: ${size}</div>
+                        </div>
+                        <script>window.onload = function() { window.print(); window.onafterprint = window.close; }<\/script>
+                      </body></html>
+                    `);
+                    labelWindow.document.close();
+                  }}
+                >
+                  Print Label
+                </button>
               </div>
             ))}
           </div>

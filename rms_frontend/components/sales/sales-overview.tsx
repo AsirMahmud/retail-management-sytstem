@@ -43,6 +43,10 @@ import {
 } from "recharts";
 import { useDashboardStats } from "@/hooks/queries/use-sales";
 import type { DashboardStats } from "@/types/sales";
+import { Dialog, DialogContent, DialogOverlay } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import type { DateRange } from "react-day-picker";
 
 const COLORS = [
   "#6366f1",
@@ -67,7 +71,31 @@ interface SalesDistributionDataPoint {
 
 export default function SalesOverview() {
   const [timeFilter, setTimeFilter] = useState<"7d" | "30d" | "90d">("7d");
-  const { data: stats, isLoading, error } = useDashboardStats();
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [status, setStatus] = useState<string>("");
+  const [paymentMethod, setPaymentMethod] = useState<string>("");
+  const [customerPhone, setCustomerPhone] = useState<string>("");
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: undefined,
+    to: undefined,
+  });
+
+  const {
+    data: stats,
+    isLoading,
+    error,
+  } = useDashboardStats({
+    period: timeFilter,
+    status: status || undefined,
+    payment_method: paymentMethod || undefined,
+    customer_phone: customerPhone || undefined,
+    start_date: dateRange.from
+      ? dateRange.from.toISOString().slice(0, 10)
+      : undefined,
+    end_date: dateRange.to
+      ? dateRange.to.toISOString().slice(0, 10)
+      : undefined,
+  });
 
   const metrics = {
     totalRevenue: stats?.monthly.total_sales || 0,
@@ -82,7 +110,7 @@ export default function SalesOverview() {
   const salesTrendData = useMemo<SalesTrendDataPoint[]>(() => {
     if (!stats?.sales_trend) return [];
     return stats.sales_trend.map((item) => ({
-      date: item.date__date,
+      date: item.sale__date__date,
       sales: item.sales,
       profit: item.profit,
       orders: item.orders,
@@ -131,12 +159,69 @@ export default function SalesOverview() {
             <Button
               variant="outline"
               className="bg-white border-gray-200 shadow-sm hover:bg-gray-50"
+              onClick={() => setAdvancedOpen(true)}
             >
               <Filter className="w-4 h-4 mr-2" />
               Advanced Filters
             </Button>
           </div>
         </div>
+        {/* Advanced Filter Modal */}
+        <Dialog open={advancedOpen} onOpenChange={setAdvancedOpen}>
+          <DialogContent className="p-6 w-full max-w-md space-y-4">
+            <h2 className="text-lg font-semibold">Advanced Filters</h2>
+            <div className="space-y-2">
+              <label>Status</label>
+              <Select
+                value={status}
+                onValueChange={(value) =>
+                  setStatus(value === "all" ? "" : value)
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+              <label>Payment Method</label>
+              <Select
+                value={paymentMethod}
+                onValueChange={(value) =>
+                  setPaymentMethod(value === "all" ? "" : value)
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="All Methods" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Methods</SelectItem>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="card">Card</SelectItem>
+                  <SelectItem value="due">Due</SelectItem>
+                </SelectContent>
+              </Select>
+              <label>Customer Phone</label>
+              <Input
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                placeholder="Phone number"
+              />
+              <label>Date Range</label>
+              <DatePickerWithRange value={dateRange} onChange={setDateRange} />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setAdvancedOpen(false)}>
+                Close
+              </Button>
+              <Button onClick={() => setAdvancedOpen(false)}>Apply</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Key Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">

@@ -6,7 +6,7 @@ from django.utils import timezone
 from decimal import Decimal
 from django.conf import settings
 from apps.supplier.models import Supplier
-from apps.inventory.models import Category
+from apps.inventory.models import Category, Product
 from django.db.models import Sum
 from django.contrib.postgres.fields import JSONField
 from apps.sales.models import Sale, SaleItem
@@ -101,6 +101,10 @@ class Preorder(models.Model):
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='PENDING')
     notes = models.TextField(blank=True)
     expected_delivery_date = models.DateField(null=True, blank=True)
+    quantity = models.IntegerField(default=0)
+    profit = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    cost_price = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -111,12 +115,33 @@ class Preorder(models.Model):
         # Calculate total amount if not set
         if not self.total_amount and self.items:
             self.total_amount = sum(item.get('total', 0) for item in self.items)
+        # Calculate total quantity and profit using actual Product
+        if self.items:
+            total_qty = 0
+            total_profit = Decimal('0.00')
+            unit_price = Decimal('0.00')
+            cost_price = Decimal('0.00')
+            for item in self.items:
+                qty = int(item.get('quantity', 0))
+                total_qty += qty
+                try:
+                    product = Product.objects.get(id=item['product_id'])
+                    item_unit_price = Decimal(str(product.selling_price))
+                    item_cost_price = Decimal(str(product.cost_price))
+                except Product.DoesNotExist:
+                    item_unit_price = Decimal('0.00')
+                    item_cost_price = Decimal('0.00')
+                unit_price = item_unit_price  # last one, or you could average if needed
+                cost_price = item_cost_price  # last one, or you could average if needed
+                total_profit += (item_unit_price - item_cost_price) * Decimal(str(qty))
+            self.quantity = total_qty
+            self.unit_price = unit_price
+            self.cost_price = cost_price
+            self.profit = total_profit
         # Update product and variant order counts for each item
         if self.pk is None and self.items:
             for item in self.items:
-                # Update product current_orders
                 self.preorder_product.current_orders += item.get('quantity', 0)
-                # If you want to update variant stock, you can do so here if you have a way to look up the variant
             self.preorder_product.save()
         super().save(*args, **kwargs)
 

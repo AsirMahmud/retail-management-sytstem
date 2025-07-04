@@ -310,6 +310,9 @@ export const usePreorderDashboard = () => {
 export const usePreorderStats = () => {
     return useQuery({
         queryKey: ['preorder-stats'],
-        queryFn: preordersApi.dashboard,
+        queryFn: async () => {
+            const res = await preordersApi.dashboard();
+            return res.data;
+        },
     });
 }; 

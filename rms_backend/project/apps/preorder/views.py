@@ -92,7 +92,7 @@ class PreorderViewSet(viewsets.ModelViewSet):
     def dashboard(self, request):
         """Get dashboard statistics"""
         total_orders = Preorder.objects.count()
-        total_revenue = Preorder.objects.aggregate(total=Sum('total_amount'))['total'] or 0
+        total_revenue = Preorder.objects.filter(status='COMPLETED').aggregate(total=Sum('total_amount'))['total'] or 0
         pending_orders = Preorder.objects.filter(status__in=['PENDING', 'CONFIRMED', 'DEPOSIT_PAID']).count()
         completed_orders = Preorder.objects.filter(status='COMPLETED').count()
         
@@ -172,13 +172,7 @@ class PreorderViewSet(viewsets.ModelViewSet):
                 {'error': 'Invalid status'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        # If status is being set to COMPLETED, trigger sale creation
-        if new_status == 'COMPLETED' and preorder.status in ['DELIVERED', 'FULLY_PAID', 'ARRIVED', 'CONFIRMED', 'PENDING', 'DEPOSIT_PAID']:
-            sale = preorder.complete_and_convert_to_sale()
-            if sale:
-                return Response({'message': 'Preorder completed and converted to sale', 'sale_id': sale.id})
-            else:
-                return Response({'error': 'Failed to convert preorder to sale'}, status=status.HTTP_400_BAD_REQUEST)
+        # Only update status, do not create sale here
         preorder.status = new_status
         preorder.save()
         return Response({'message': f'Status updated to {new_status}'}) 

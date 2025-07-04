@@ -18,6 +18,10 @@ from apps.sales.models import Sale, SaleItem
 from apps.expenses.models import Expense, ExpenseCategory
 from apps.inventory.models import Product, Category, StockMovement
 from apps.customer.models import Customer
+from apps.preorder.models import Preorder, PreorderProduct
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ReportViewSet(viewsets.ModelViewSet):
     queryset = Report.objects.all()
@@ -58,6 +62,17 @@ class ReportViewSet(viewsets.ModelViewSet):
         net_profit = total_profit # Simplified for overview
         profit_margin = (net_profit / total_sales * 100) if total_sales > 0 else Decimal('0.00')
 
+        # Preorder analysis
+        preorders = Preorder.objects.filter(created_at__range=[date_from, date_to])
+        preorder_status_breakdown = {}
+        for status_choice in Preorder.STATUS_CHOICES:
+            preorder_status_breakdown[status_choice[0]] = preorders.filter(status=status_choice[0]).count()
+        # Only count revenue and profit for COMPLETED preorders
+        completed_preorders = preorders.filter(status='COMPLETED')
+        preorder_total_orders = completed_preorders.count()
+        preorder_total_revenue = completed_preorders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+        preorder_profit = completed_preorders.aggregate(total=Sum('profit'))['total'] or Decimal('0.00')
+
         # Data for charts
         sales_by_date = sales.values('date__date').annotate(date=F('date__date'), total=Sum('total')).order_by('date')
         expenses_by_date = expenses.values('date').annotate(total=Sum('amount')).order_by('date')
@@ -69,7 +84,12 @@ class ReportViewSet(viewsets.ModelViewSet):
             "net_profit": net_profit,
             "profit_margin": profit_margin,
             "sales_by_date": list(sales_by_date),
-            "expenses_by_date": list(expenses_by_date)
+            "expenses_by_date": list(expenses_by_date),
+            # Preorder analytics
+            "preorder_total_orders": preorder_total_orders,
+            "preorder_total_revenue": preorder_total_revenue,
+            "preorder_profit": preorder_profit,
+            "preorder_status_breakdown": preorder_status_breakdown,
         }
         
         return Response(data)
@@ -380,6 +400,17 @@ class ReportViewSet(viewsets.ModelViewSet):
         net_profit = total_revenue - total_expenses
         profit_margin = (net_profit / total_revenue * 100) if total_revenue > 0 else Decimal('0.00')
 
+        # Preorder analysis
+        preorders = Preorder.objects.filter(created_at__range=[date_from, date_to])
+        preorder_status_breakdown = {}
+        for status_choice in Preorder.STATUS_CHOICES:
+            preorder_status_breakdown[status_choice[0]] = preorders.filter(status=status_choice[0]).count()
+        # Only count revenue and profit for COMPLETED preorders
+        completed_preorders = preorders.filter(status='COMPLETED')
+        preorder_total_orders = completed_preorders.count()
+        preorder_total_revenue = completed_preorders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+        preorder_profit = completed_preorders.aggregate(total=Sum('profit'))['total'] or Decimal('0.00')
+
         # Revenue by date
         revenue_by_date = sales.annotate(
             sale_date=Cast('date', DateField())
@@ -438,7 +469,12 @@ class ReportViewSet(viewsets.ModelViewSet):
             'expenses_by_date': list(expenses_by_date),
             'expenses_over_time': expenses_over_time,
             'revenue_vs_expense_by_date': revenue_vs_expense_by_date,
-            'profit_by_category': list(profit_by_category)
+            'profit_by_category': list(profit_by_category),
+            # Preorder analytics
+            'preorder_total_orders': preorder_total_orders,
+            'preorder_total_revenue': preorder_total_revenue,
+            'preorder_profit': preorder_profit,
+            'preorder_status_breakdown': preorder_status_breakdown,
         }
         serializer = ProfitLossReportSerializer(data)
         return Response(serializer.data)

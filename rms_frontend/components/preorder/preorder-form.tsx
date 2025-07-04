@@ -206,7 +206,7 @@ export function PreorderForm({
         .map((variantId) => {
           const variant = productVariants.find((v: any) => v.id === variantId);
           if (!variant) return null;
-          const qty = variant.stock;
+          const qty = variantQuantities[variantId] || 1;
           if (qty < 1) return null;
           return {
             product_id: currentProduct.id,
@@ -479,41 +479,63 @@ export function PreorderForm({
                   </label>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {productVariants.map((variant: any) => (
-                    <label
-                      key={variant.id}
-                      className="flex items-center gap-1 text-xs border rounded px-2 py-1 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedVariants.includes(variant.id)}
-                        disabled={variant.stock === 0}
-                        onChange={(e) => {
-                          let newSelected: number[];
-                          let newQuantities = { ...variantQuantities };
-                          if (e.target.checked) {
-                            newSelected = [...selectedVariants, variant.id];
-                            newQuantities[variant.id] = variant.stock; // auto-set to stock
-                          } else {
-                            newSelected = selectedVariants.filter(
-                              (id) => id !== variant.id
-                            );
-                            delete newQuantities[variant.id];
-                            setSelectAllVariants(false);
-                          }
-                          setSelectedVariants(newSelected);
-                          setVariantQuantities(newQuantities);
-                        }}
-                      />
-                      {variant.size} / {variant.color}
-                      <span className="ml-2 text-gray-500">
-                        Qty: {variant.stock}
-                      </span>
-                      <span className="ml-1 text-gray-400">
-                        / {variant.stock} in stock
-                      </span>
-                    </label>
-                  ))}
+                  {productVariants.map((variant: any) => {
+                    const isSelected = selectedVariants.includes(variant.id);
+                    return (
+                      <label
+                        key={variant.id}
+                        className="flex items-center gap-1 text-xs border rounded px-2 py-1 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          disabled={variant.stock === 0}
+                          onChange={(e) => {
+                            let newSelected: number[];
+                            let newQuantities = { ...variantQuantities };
+                            if (e.target.checked) {
+                              newSelected = [...selectedVariants, variant.id];
+                              newQuantities[variant.id] = 1; // default to 1
+                            } else {
+                              newSelected = selectedVariants.filter(
+                                (id) => id !== variant.id
+                              );
+                              delete newQuantities[variant.id];
+                              setSelectAllVariants(false);
+                            }
+                            setSelectedVariants(newSelected);
+                            setVariantQuantities(newQuantities);
+                          }}
+                        />
+                        {variant.size} / {variant.color}
+                        <span className="ml-2 text-gray-500">Qty:</span>
+                        {isSelected && (
+                          <input
+                            type="number"
+                            min={1}
+                            max={variant.stock}
+                            value={variantQuantities[variant.id] || 1}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value, 10) || 1;
+                              setVariantQuantities((prev) => ({
+                                ...prev,
+                                [variant.id]:
+                                  value > variant.stock
+                                    ? variant.stock
+                                    : value < 1
+                                    ? 1
+                                    : value,
+                              }));
+                            }}
+                            className="w-14 border rounded px-1 py-0.5 ml-1"
+                          />
+                        )}
+                        <span className="ml-1 text-gray-400">
+                          / {variant.stock} in stock
+                        </span>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -531,7 +553,8 @@ export function PreorderForm({
                         )
                     ).map((variant: any) => (
                       <li key={variant.id}>
-                        {variant.size} / {variant.color} - Qty: {variant.stock}
+                        {variant.size} / {variant.color} - Qty:{" "}
+                        {variantQuantities[variant.id] || 1}
                       </li>
                     ))}
                   </ul>

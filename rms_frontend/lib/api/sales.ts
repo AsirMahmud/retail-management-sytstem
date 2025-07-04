@@ -118,7 +118,14 @@ export const lookupCustomer = async (phone: string) => {
 };
 
 // Dashboard Stats
-export const getDashboardStats = async () => {
-    const response = await axios.get<DashboardStats>('/sales/sales/dashboard_stats/');
+export const getDashboardStats = async (params?: {
+    period?: string;
+    start_date?: string;
+    end_date?: string;
+    status?: string;
+    payment_method?: string;
+    customer_phone?: string;
+}) => {
+    const response = await axios.get<DashboardStats>('/sales/sales/dashboard_stats/', { params });
     return response.data;
 };

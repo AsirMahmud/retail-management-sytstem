@@ -81,6 +81,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
+import { saveAs } from "file-saver";
+import { format } from "date-fns";
+import type { DateRange } from "react-day-picker";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 
 // The backend returns customer details in a nested object
 interface SaleWithCustomerDetails extends Omit<Sale, "customer"> {
@@ -116,6 +122,10 @@ export default function SalesHistory() {
     useState<SaleWithCustomerDetails | null>(null);
   const [salesToDelete, setSalesToDelete] = useState<number[]>([]);
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: undefined,
+    to: undefined,
+  });
   const { toast } = useToast();
 
   const {
@@ -134,6 +144,10 @@ export default function SalesHistory() {
     ordering: sortOrder === "desc" ? `-${sortBy}` : sortBy,
     page,
     page_size: pageSize,
+    start_date: dateRange.from
+      ? format(dateRange.from, "yyyy-MM-dd")
+      : undefined,
+    end_date: dateRange.to ? format(dateRange.to, "yyyy-MM-dd") : undefined,
   });
 
   // Cast the sales array to the correct type since we know the backend returns customer details
@@ -244,6 +258,75 @@ export default function SalesHistory() {
 
   const totalPages = Math.ceil((pagination?.count || 0) / pageSize);
 
+  // CSV Export utility
+  function salesToCSV(sales: SaleWithCustomerDetails[]) {
+    const header = [
+      "Invoice Number",
+      "Customer Name",
+      "Customer Phone",
+      "Date",
+      "Status",
+      "Payment Method",
+      "Total",
+      "Profit",
+      "Items",
+    ];
+    const rows = sales.map((sale) => [
+      sale.invoice_number,
+      sale.customer
+        ? `${sale.customer.first_name} ${sale.customer.last_name}`
+        : "Guest",
+      sale.customer_phone || sale.customer?.phone || "",
+      formatDate(sale.date),
+      sale.status,
+      sale.payment_method,
+      sale.total,
+      sale.total_profit,
+      sale.items?.length || 0,
+    ]);
+    return [header, ...rows].map((row) => row.join(",")).join("\n");
+  }
+
+  function handleExport() {
+    const csv = salesToCSV(typedSales);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    saveAs(blob, `sales_export_${Date.now()}.csv`);
+  }
+
+  function handleReport() {
+    // Generate PDF using jsPDF
+    const doc = new jsPDF();
+    doc.text("Sales Report", 14, 16);
+    // Prepare table data
+    const tableColumn = [
+      "Invoice Number",
+      "Customer Name",
+      "Customer Phone",
+      "Date",
+      "Status",
+      "Payment Method",
+      "Total",
+      "Profit",
+      "Items",
+    ];
+    const tableRows = typedSales.map((sale) => [
+      sale.invoice_number,
+      sale.customer
+        ? `${sale.customer.first_name} ${sale.customer.last_name}`
+        : "Guest",
+      sale.customer_phone || sale.customer?.phone || "",
+      formatDate(sale.date),
+      sale.status,
+      sale.payment_method,
+      sale.total,
+      sale.total_profit,
+      sale.items?.length || 0,
+    ]);
+    // @ts-ignore: jsPDF autotable is attached at runtime
+    doc.autoTable({ head: [tableColumn], body: tableRows, startY: 24 });
+    doc.save(`sales_report_${Date.now()}.pdf`);
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
@@ -284,18 +367,16 @@ export default function SalesHistory() {
             <Button
               variant="outline"
               className="bg-white border-gray-200 shadow-sm hover:bg-gray-50"
+              onClick={handleExport}
             >
               <Download className="w-4 h-4 mr-2" />
               Export Data
             </Button>
+            <DatePickerWithRange value={dateRange} onChange={setDateRange} />
             <Button
-              variant="outline"
-              className="bg-white border-gray-200 shadow-sm hover:bg-gray-50"
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
+              onClick={handleReport}
             >
-              <Calendar className="w-4 h-4 mr-2" />
-              Date Range
-            </Button>
-            <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg">
               <FileText className="w-4 h-4 mr-2" />
               Generate Report
             </Button>

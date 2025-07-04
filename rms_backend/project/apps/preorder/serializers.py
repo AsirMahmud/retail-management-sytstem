@@ -34,6 +34,10 @@ class PreorderSerializer(serializers.ModelSerializer):
     preorder_product = PreorderProductSerializer(read_only=True)
     variation = PreorderVariationSerializer(read_only=True)
     items = serializers.JSONField()
+    quantity = serializers.IntegerField(read_only=True)
+    profit = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    unit_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    cost_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     
     class Meta:
         model = Preorder
@@ -51,6 +55,10 @@ class PreorderSerializer(serializers.ModelSerializer):
 
 class PreorderCreateSerializer(serializers.ModelSerializer):
     items = serializers.JSONField()
+    quantity = serializers.IntegerField(read_only=True)
+    profit = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    unit_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    cost_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     class Meta:
         model = Preorder
         fields = '__all__'

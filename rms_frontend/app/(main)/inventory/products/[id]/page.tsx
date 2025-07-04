@@ -23,6 +23,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import React, { useState } from "react";
 
 export default function ProductPage() {
   const params = useParams();
@@ -492,11 +493,18 @@ function ProductDetails({ product }: ProductDetailsProps) {
       {/* Product variations */}
       {product.variations && product.variations.length > 0 && (
         <Card className="overflow-hidden border-0 shadow-lg">
-          <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 p-6 border-b">
+          <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 p-6 border-b flex items-center justify-between">
             <h3 className="text-lg font-semibold flex items-center gap-2">
               <Tag className="h-5 w-5 text-blue-500" />
               Product Variations
             </h3>
+            <Button
+              size="sm"
+              variant="default"
+              onClick={() => handlePrintAllVariantsByStock(product)}
+            >
+              Print All by Stock
+            </Button>
           </div>
           <div className="p-6">
             <div className="overflow-x-auto">
@@ -515,56 +523,18 @@ function ProductDetails({ product }: ProductDetailsProps) {
                     <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">
                       Status
                     </th>
+                    <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">
+                      Print Label
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
                   {product.variations.map((variation) => (
-                    <tr
+                    <VariantPrintRow
                       key={variation.id}
-                      className="hover:bg-muted/30 transition-colors"
-                    >
-                      <td className="px-6 py-4 font-medium">
-                        {variation.size}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-4 h-4 rounded-full border"
-                            style={{
-                              backgroundColor:
-                                variation.color.toLowerCase() === "white"
-                                  ? "#ffffff"
-                                  : variation.color.toLowerCase() === "blue"
-                                  ? "#3b82f6"
-                                  : variation.color.toLowerCase() === "black"
-                                  ? "#000000"
-                                  : variation.color.toLowerCase(),
-                            }}
-                          />
-                          <span>{variation.color}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 font-medium">
-                        {variation.stock}
-                      </td>
-                      <td className="px-6 py-4">
-                        <Badge
-                          variant={
-                            variation.stock <= 0
-                              ? "destructive"
-                              : variation.stock <= 5
-                              ? "outline"
-                              : "default"
-                          }
-                        >
-                          {variation.stock <= 0
-                            ? "Out of Stock"
-                            : variation.stock <= 5
-                            ? "Low Stock"
-                            : "In Stock"}
-                        </Badge>
-                      </td>
-                    </tr>
+                      product={product}
+                      variation={variation}
+                    />
                   ))}
                 </tbody>
               </table>
@@ -609,4 +579,318 @@ function ProductDetails({ product }: ProductDetailsProps) {
       )}
     </div>
   );
+}
+
+function VariantPrintRow({
+  product,
+  variation,
+}: {
+  product: Product;
+  variation: any;
+}) {
+  const [customCount, setCustomCount] = useState(1);
+  return (
+    <tr className="hover:bg-muted/30 transition-colors">
+      <td className="px-6 py-4 font-medium">{variation.size}</td>
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-2">
+          <div
+            className="w-4 h-4 rounded-full border"
+            style={{
+              backgroundColor:
+                variation.color.toLowerCase() === "white"
+                  ? "#ffffff"
+                  : variation.color.toLowerCase() === "blue"
+                  ? "#3b82f6"
+                  : variation.color.toLowerCase() === "black"
+                  ? "#000000"
+                  : variation.color.toLowerCase(),
+            }}
+          />
+          <span>{variation.color}</span>
+        </div>
+      </td>
+      <td className="px-6 py-4 font-medium">{variation.stock}</td>
+      <td className="px-6 py-4">
+        <Badge
+          variant={
+            variation.stock <= 0
+              ? "destructive"
+              : variation.stock <= 5
+              ? "outline"
+              : "default"
+          }
+        >
+          {variation.stock <= 0
+            ? "Out of Stock"
+            : variation.stock <= 5
+            ? "Low Stock"
+            : "In Stock"}
+        </Badge>
+      </td>
+      <td className="px-6 py-4 space-x-1 flex items-center">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => handlePrintLabel(product, variation, 1)}
+        >
+          Print 1
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => handlePrintLabel(product, variation, variation.stock)}
+          disabled={variation.stock <= 0}
+        >
+          Print by Stock
+        </Button>
+        <input
+          type="number"
+          min={1}
+          max={variation.stock}
+          value={customCount}
+          onChange={(e) => setCustomCount(Number(e.target.value))}
+          className="w-14 px-1 py-0.5 border rounded text-sm mx-1"
+        />
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => handlePrintLabel(product, variation, customCount)}
+          disabled={customCount < 1}
+        >
+          Print Custom
+        </Button>
+      </td>
+    </tr>
+  );
+}
+
+function handlePrintLabel(product: Product, variation: any, count: number) {
+  if (!count || count < 1) return;
+  const printWindow = window.open("", "_blank", "width=220,height=120");
+  if (!printWindow) return;
+  const style = `
+    <style>
+      @media print {
+        body { margin: 0; padding: 5mm; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 5mm; }
+        .label {
+          width: 57mm;
+          height: 25mm;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          font-family: 'Arial', sans-serif;
+          font-size: 12px;
+          border: 1px dashed #eee;
+          page-break-inside: avoid;
+          padding: 2mm;
+        }
+        .sku {
+          font-size: 12px;
+          font-weight: bold;
+          margin-bottom: 1mm;
+          color: #333;
+          white-space: normal;
+          word-break: break-all;
+          width: 100%;
+          text-align: center;
+        }
+        .price, .size, .color {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          width: 100%;
+          text-align: center;
+        }
+        .price { font-size: 15px; font-weight: bold; margin-bottom: 1mm; color: #0056b3; }
+        .size { font-size: 12px; color: #555; }
+        .color { font-size: 12px; color: #555; }
+        .label { border: none !important; }
+      }
+      body { margin: 0; padding: 10px; display: flex; flex-wrap: wrap; gap: 10px; background-color: #f0f2f5; }
+      .label {
+        width: 57mm;
+        height: 25mm;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        font-family: 'Arial', sans-serif;
+        font-size: 12px;
+        border: 1px dashed #ccc;
+        background-color: #fff;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        padding: 2mm;
+      }
+      .sku {
+        font-size: 12px;
+        font-weight: bold;
+        margin-bottom: 1mm;
+        color: #333;
+        white-space: normal;
+        word-break: break-all;
+        width: 100%;
+        text-align: center;
+      }
+      .price, .size, .color {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
+        text-align: center;
+      }
+      .price { font-size: 15px; font-weight: bold; margin-bottom: 1mm; color: #0056b3; }
+      .size { font-size: 12px; color: #555; }
+      .color { font-size: 12px; color: #555; }
+    </style>
+  `;
+  let labels = "";
+  for (let i = 0; i < count; i++) {
+    labels += `
+      <div class="label">
+        <div class="sku">SKU: ${product.sku}</div>
+        <div class="price">Price: ৳${product.selling_price}</div>
+        <div class="size">Size: ${variation.size}</div>
+        <div class="color">Color: <span style="display:inline-block;width:12px;height:12px;vertical-align:middle;margin-right:4px;border:1px solid #333;background:${variation.color};"></span>${variation.color}</div>
+      </div>
+    `;
+  }
+  const html = `
+    <html>
+      <head>
+        <title>Print Label</title>
+        ${style}
+      </head>
+      <body>
+        ${labels}
+        <script>
+        window.onload = function() {
+          setTimeout(function() {
+            window.print();
+            window.onafterprint = function() { window.close(); };
+          }, 300);
+        };
+        </script>
+      </body>
+    </html>
+  `;
+  printWindow.document.write(html);
+  printWindow.document.close();
+}
+
+function handlePrintAllVariantsByStock(product: Product) {
+  const printWindow = window.open("", "_blank", "width=220,height=120");
+  if (!printWindow) return;
+  const style = `
+    <style>
+      @media print {
+        body { margin: 0; padding: 5mm; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 5mm; }
+        .label {
+          width: 57mm;
+          height: 25mm;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          font-family: 'Arial', sans-serif;
+          font-size: 12px;
+          border: 1px dashed #eee;
+          page-break-inside: avoid;
+          padding: 2mm;
+        }
+        .sku {
+          font-size: 12px;
+          font-weight: bold;
+          margin-bottom: 1mm;
+          color: #333;
+          white-space: normal;
+          word-break: break-all;
+          width: 100%;
+          text-align: center;
+        }
+        .price, .size, .color {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          width: 100%;
+          text-align: center;
+        }
+        .price { font-size: 15px; font-weight: bold; margin-bottom: 1mm; color: #0056b3; }
+        .size { font-size: 12px; color: #555; }
+        .color { font-size: 12px; color: #555; }
+        .label { border: none !important; }
+      }
+      body { margin: 0; padding: 10px; display: flex; flex-wrap: wrap; gap: 10px; background-color: #f0f2f5; }
+      .label {
+        width: 57mm;
+        height: 25mm;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        font-family: 'Arial', sans-serif;
+        font-size: 12px;
+        border: 1px dashed #ccc;
+        background-color: #fff;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        padding: 2mm;
+      }
+      .sku {
+        font-size: 12px;
+        font-weight: bold;
+        margin-bottom: 1mm;
+        color: #333;
+        white-space: normal;
+        word-break: break-all;
+        width: 100%;
+        text-align: center;
+      }
+      .price, .size, .color {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        width: 100%;
+        text-align: center;
+      }
+      .price { font-size: 15px; font-weight: bold; margin-bottom: 1mm; color: #0056b3; }
+      .size { font-size: 12px; color: #555; }
+      .color { font-size: 12px; color: #555; }
+    </style>
+  `;
+  let labels = "";
+  const variations = product.variations ?? [];
+  for (const variation of variations) {
+    for (let i = 0; i < variation.stock; i++) {
+      labels += `
+        <div class="label">
+          <div class="sku">SKU: ${product.sku}</div>
+          <div class="price">Price: ৳${product.selling_price}</div>
+          <div class="size">Size: ${variation.size}</div>
+          <div class="color">Color: <span style="display:inline-block;width:12px;height:12px;vertical-align:middle;margin-right:4px;border:1px solid #333;background:${variation.color};"></span>${variation.color}</div>
+        </div>
+      `;
+    }
+  }
+  const html = `
+    <html>
+      <head>
+        <title>Print All Labels</title>
+        ${style}
+      </head>
+      <body>
+        ${labels}
+        <script>
+        window.onload = function() {
+          setTimeout(function() {
+            window.print();
+            window.onafterprint = function() { window.close(); };
+          }, 300);
+        };
+        </script>
+      </body>
+    </html>
+  `;
+  printWindow.document.write(html);
+  printWindow.document.close();
 }

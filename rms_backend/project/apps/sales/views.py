@@ -131,12 +131,33 @@ class SaleViewSet(viewsets.ModelViewSet):
     def dashboard_stats(self, request):
         today = timezone.now().date()
         start_of_month = today.replace(day=1)
-        
-        # Today's sales with more detailed metrics using SaleItem
-        today_sales = SaleItem.objects.filter(
-            sale__date__date=today,
-            sale__status='completed'
-        ).aggregate(
+
+        # Get filters from query params
+        status = request.query_params.get('status')
+        payment_method = request.query_params.get('payment_method')
+        customer_phone = request.query_params.get('customer_phone')
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        period = request.query_params.get('period', '7d')
+
+        # Helper to build filtered SaleItem queryset
+        def filtered_saleitems(base_qs=None, date_field='sale__date__date', date_from=None, date_to=None):
+            qs = base_qs if base_qs is not None else SaleItem.objects.all()
+            if status:
+                qs = qs.filter(sale__status=status)
+            else:
+                qs = qs.filter(sale__status='completed')
+            if payment_method:
+                qs = qs.filter(sale__payment_method=payment_method)
+            if customer_phone:
+                qs = qs.filter(sale__customer_phone=customer_phone)
+            if date_from and date_to:
+                kwargs = {f"{date_field}__range": [date_from, date_to]}
+                qs = qs.filter(**kwargs)
+            return qs
+
+        # Today's sales
+        today_sales = filtered_saleitems(date_from=today, date_to=today).aggregate(
             total_sales=Sum('total'),
             total_transactions=Count('sale', distinct=True),
             total_profit=Sum('profit'),
@@ -145,12 +166,9 @@ class SaleViewSet(viewsets.ModelViewSet):
             average_transaction_value=Avg('sale__total'),
             total_discount=Sum('sale__discount')
         )
-        
-        # Monthly sales with more detailed metrics using SaleItem
-        monthly_sales = SaleItem.objects.filter(
-            sale__date__date__gte=start_of_month,
-            sale__status='completed'
-        ).aggregate(
+
+        # Monthly sales
+        monthly_sales = filtered_saleitems(date_from=start_of_month, date_to=today).aggregate(
             total_sales=Sum('total'),
             total_transactions=Count('sale', distinct=True),
             total_profit=Sum('profit'),
@@ -165,15 +183,9 @@ class SaleViewSet(viewsets.ModelViewSet):
             'new_customers_today': Customer.objects.filter(
                 created_at__date=today
             ).count(),
-            'active_customers_today': SaleItem.objects.filter(
-                sale__date__date=today,
-                sale__status='completed'
-            ).values('sale__customer').distinct().count(),
+            'active_customers_today': filtered_saleitems(date_from=today, date_to=today).values('sale__customer').distinct().count(),
             'customer_retention_rate': self._calculate_customer_retention_rate(),
-            'top_customers': SaleItem.objects.filter(
-                sale__date__date__gte=start_of_month,
-                sale__status='completed'
-            ).values(
+            'top_customers': filtered_saleitems(date_from=start_of_month, date_to=today).values(
                 'sale__customer__first_name',
                 'sale__customer__last_name',
                 'sale__customer__phone'
@@ -182,18 +194,13 @@ class SaleViewSet(viewsets.ModelViewSet):
                 visit_count=Count('sale', distinct=True)
             ).order_by('-total_spent')[:5]
         }
-
-        # Format customer names
         for customer in customer_analytics['top_customers']:
             customer['customer__name'] = f"{customer['sale__customer__first_name']} {customer['sale__customer__last_name']}".strip()
             del customer['sale__customer__first_name']
             del customer['sale__customer__last_name']
 
         # Payment method distribution
-        payment_method_distribution = SaleItem.objects.filter(
-            sale__date__date__gte=start_of_month,
-            sale__status='completed'
-        ).values('sale__payment_method').annotate(
+        payment_method_distribution = filtered_saleitems(date_from=start_of_month, date_to=today).values('sale__payment_method').annotate(
             count=Count('sale', distinct=True),
             total=Sum('sale__total')
         ).order_by('-total')
@@ -201,11 +208,7 @@ class SaleViewSet(viewsets.ModelViewSet):
         # Sales by hour distribution
         sales_by_hour = []
         for hour in range(24):
-            hour_sales = SaleItem.objects.filter(
-                sale__date__date=today,
-                sale__date__hour=hour,
-                sale__status='completed'
-            ).aggregate(
+            hour_sales = filtered_saleitems(date_from=today, date_to=today).filter(sale__date__hour=hour).aggregate(
                 count=Count('sale', distinct=True),
                 total=Sum('sale__total')
             )
@@ -216,10 +219,7 @@ class SaleViewSet(viewsets.ModelViewSet):
             })
 
         # Top selling products
-        top_products = SaleItem.objects.filter(
-            sale__date__date__gte=start_of_month,
-            sale__status='completed'
-        ).values(
+        top_products = filtered_saleitems(date_from=start_of_month, date_to=today).values(
             'product__name'
         ).annotate(
             total_quantity=Sum('quantity'),
@@ -228,52 +228,47 @@ class SaleViewSet(viewsets.ModelViewSet):
         ).order_by('-total_quantity')[:5]
 
         # Sales trend data
-        period = request.query_params.get('period', '7d')
-        if period == '7d':
-            start_date = today - timedelta(days=7)
-        elif period == '30d':
-            start_date = today - timedelta(days=30)
-        elif period == '90d':
-            start_date = today - timedelta(days=90)
+        if start_date and end_date:
+            trend_from, trend_to = start_date, end_date
         else:
-            start_date = today - timedelta(days=7)
-
-        sales_trend = SaleItem.objects.filter(
-            sale__date__date__gte=start_date,
-            sale__date__date__lte=today,
-            sale__status='completed'
-        ).values('sale__date__date').annotate(
+            if period == '7d':
+                trend_from = today - timedelta(days=7)
+            elif period == '30d':
+                trend_from = today - timedelta(days=30)
+            elif period == '90d':
+                trend_from = today - timedelta(days=90)
+            else:
+                trend_from = today - timedelta(days=7)
+            trend_to = today
+        sales_trend = filtered_saleitems(date_from=trend_from, date_to=trend_to).values('sale__date__date').annotate(
             sales=Sum('sale__total'),
             profit=Sum('profit'),
             orders=Count('sale', distinct=True)
         ).order_by('sale__date__date')
 
         # Sales distribution by category
-        sales_distribution = SaleItem.objects.filter(
-            sale__date__date__gte=start_of_month,
-            sale__status='completed'
-        ).values(
+        sales_distribution = filtered_saleitems(date_from=start_of_month, date_to=today).values(
             'product__category__name'
         ).annotate(
             value=Sum('total'),
             profit=Sum('profit')
         ).order_by('-value')
 
-        # Category distribution
+        # Category distribution (not filtered)
         category_distribution = Category.objects.annotate(
             product_count=Count('products'),
             total_value=Sum(F('products__stock_quantity') * F('products__cost_price'))
         ).values('name', 'product_count', 'total_value')
 
-        # Recent alerts
+        # Recent alerts (not filtered)
         recent_alerts = InventoryAlert.objects.filter(
             is_active=True
         ).order_by('-created_at')[:5]
 
-        # Stock movement trends
+        # Stock movement trends (not filtered)
         movement_trends = StockMovement.objects.filter(
-            created_at__date__gte=start_date,
-            created_at__date__lte=today
+            created_at__date__gte=trend_from,
+            created_at__date__lte=trend_to
         ).values('created_at__date').annotate(
             stock_in=Sum('quantity', filter=Q(movement_type='IN')),
             stock_out=Sum('quantity', filter=Q(movement_type='OUT'))
