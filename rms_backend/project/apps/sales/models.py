@@ -76,9 +76,6 @@ class Sale(models.Model):
  
     def calculate_totals(self):
         """Calculate sale totals based on items and discounts"""
-        # Set flag to prevent recursion
-        self._calculating_totals = True
-        
         items = self.items.all()
         
         # Calculate subtotal from items (before any discounts)
@@ -92,38 +89,45 @@ class Sale(models.Model):
         
         # Apply global discount if exists
         if self.discount > 0:
-            # Validate global discount doesn't exceed total after item discounts
-            if self.discount > total_after_item_discounts:
-                self.discount = total_after_item_discounts
+            # Calculate the proportion of global discount to apply to each item
+            global_discount_ratio = self.discount / total_after_item_discounts if total_after_item_discounts > 0 else 0
+            
+            # Calculate profit/loss for each item considering both item and global discounts
+            total_profit = Decimal('0.00')
+            total_loss = Decimal('0.00')
+            
+            for item in items:
+                # Calculate item's share of global discount
+                item_global_discount = (item.unit_price * item.quantity - item.discount) * global_discount_ratio
+                
+                # Calculate total discount for this item (item discount + share of global discount)
+                total_item_discount = item.discount + item_global_discount
+                
+                # Calculate selling price after all discounts
+                selling_price = item.unit_price * item.quantity - total_item_discount
+                
+                # Calculate cost
+                cost = item.product.cost_price * item.quantity if item.product.cost_price else Decimal('0.00')
+                
+                # Calculate profit/loss
+                difference = selling_price - cost
+                
+                if difference >= 0:
+                    total_profit += difference
+                else:
+                    total_loss += abs(difference)
+        else:
+            # If no global discount, calculate profit/loss normally
+            total_profit = sum(item.profit for item in items)
+            total_loss = sum(item.loss for item in items)
         
-        # Calculate final total
-        self.total = total_after_item_discounts - self.discount
-        
-        # Calculate profit/loss for each item based on final selling price
-        total_profit = Decimal('0.00')
-        total_loss = Decimal('0.00')
-
-        # Recalculate profit for all items and save them directly
-        for item in items:
-            item.calculate_profit_loss(total_after_item_discounts=total_after_item_discounts)
-            # Save item directly without triggering its save method
-            SaleItem.objects.filter(id=item.id).update(
-                total=item.total,
-                profit=item.profit,
-                loss=item.loss
-            )
-            total_profit += item.profit
-            total_loss += item.loss
-
         # Set the final totals
         self.total_profit = total_profit
         self.total_loss = total_loss
+        self.total = self.subtotal - total_item_discounts - self.discount
         
         # Save the updated totals
-        self.save(update_fields=['subtotal', 'total', 'total_profit', 'total_loss', 'discount'])
-        
-        # Remove the flag
-        delattr(self, '_calculating_totals')
+        self.save(update_fields=['subtotal', 'total', 'total_profit', 'total_loss'])
 
 class SaleItem(models.Model):
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='items')
@@ -162,52 +166,33 @@ class SaleItem(models.Model):
         if self.quantity > variation.stock:
             raise ValidationError(f"Not enough stock for {self.product.name} - Size: {self.size}, Color: {self.color}")
 
-    def calculate_profit_loss(self, total_after_item_discounts):
+    def calculate_profit_loss(self):
         """Calculate profit or loss for this sale item"""
-        if not self.product.cost_price:
-            self.profit = Decimal('0.00')
-            self.loss = Decimal('0.00')
-            return
-        
-        # Calculate cost total
-        cost_total = self.product.cost_price * self.quantity
-        
-        # Calculate item's final selling price after all discounts
-        item_total_before_discounts = self.unit_price * self.quantity
-        item_discounted_total = item_total_before_discounts - self.discount
-        
-        # Calculate item's share of global discount (proportional to discounted total)
-        if self.discount > 0 and total_after_item_discounts > 0:
-            global_discount_ratio = self.discount / total_after_item_discounts
-            item_global_discount_share = item_discounted_total * global_discount_ratio
-            final_selling_price = item_discounted_total - item_global_discount_share
-        else:
-            final_selling_price = item_discounted_total
-        
-        # Calculate profit/loss
-        difference = final_selling_price - cost_total
-        
-        if difference >= 0:
-            self.profit = difference
-            self.loss = Decimal('0.00')
-        else:
-            self.profit = Decimal('0.00')
-            self.loss = abs(difference)
-        
-        # Update item's total to reflect final selling price
-        self.total = final_selling_price
+        variation = self.get_variation()
+        if variation and self.product.cost_price:
+            # Calculate cost total
+            cost_total = self.product.cost_price * self.quantity
+            
+            # Calculate selling total with discount
+            selling_total = self.total  # This already includes the discount
+            
+            # Calculate profit/loss
+            difference = selling_total - cost_total
+            
+            if difference >= 0:
+                return difference, Decimal('0.00')  # profit, loss
+            else:
+                return Decimal('0.00'), abs(difference)  # profit, loss
+        return Decimal('0.00'), Decimal('0.00')
 
     def save(self, *args, **kwargs):
         # Calculate total before saving (with discount)
         self.total = (self.quantity * self.unit_price) - self.discount
         
-        # Calculate profit and loss without triggering save
-        self.calculate_profit_loss(total_after_item_discounts=self.sale.subtotal - sum(item.discount for item in self.sale.items.all()))
+        # Calculate profit and loss
+        self.profit, self.loss = self.calculate_profit_loss()
         
-        # Save the item first
-        super().save(*args, **kwargs)
-        
-        # Handle stock movement and updates after saving
+        # Create stock movement record and update stock when sale is completed
         if self.sale.status == 'completed':
             variation = self.get_variation()
             if variation:
@@ -225,12 +210,14 @@ class SaleItem(models.Model):
                 variation.stock -= self.quantity
                 variation.save()
                 
-                # Update product stock without triggering recursion
+                # Update product stock
                 self.product.stock_quantity -= self.quantity
-                Product.objects.filter(id=self.product.id).update(stock_quantity=self.product.stock_quantity)
+                self.product.save()
         
-        # Update sale totals after saving the item (but only if not already being calculated)
-        if self.sale and not hasattr(self.sale, '_calculating_totals'):
+        super().save(*args, **kwargs)
+        
+        # Update sale totals after saving the item
+        if self.sale:
             self.sale.calculate_totals()
 
 class Payment(models.Model):
@@ -306,8 +293,8 @@ class ReturnItem(models.Model):
                 notes=f"Return item from {self.return_order.return_number}"
             )
             
-            # Update product stock without triggering recursion
+            # Update product stock
             self.sale_item.product.stock_quantity += self.quantity
-            Product.objects.filter(id=self.sale_item.product.id).update(stock_quantity=self.sale_item.product.stock_quantity)
+            self.sale_item.product.save()
         
         super().save(*args, **kwargs) 

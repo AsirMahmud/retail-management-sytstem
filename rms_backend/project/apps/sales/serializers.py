@@ -156,34 +156,16 @@ class SaleSerializer(serializers.ModelSerializer):
         if 'items' not in data or not data['items']:
             raise serializers.ValidationError("At least one item is required")
         
-        # Calculate subtotal (before any discounts)
-        subtotal_before_discounts = Decimal('0.00')
-        total_item_discounts = Decimal('0.00')
-        
+        # Calculate totals
+        subtotal = Decimal('0.00')
         for item in data['items']:
-            item_total_before_discount = item['quantity'] * item['unit_price']
-            item_discount = item.get('discount', Decimal('0.00'))
-            
-            # Validate item discount doesn't exceed item total
-            if item_discount > item_total_before_discount:
-                raise serializers.ValidationError(f"Item discount cannot exceed item total for product {item['product_id']}")
-            
-            subtotal_before_discounts += item_total_before_discount
-            total_item_discounts += item_discount
+            item_total = (item['quantity'] * item['unit_price']) - item['discount']
+            if item_total < Decimal('0.00'):
+                raise serializers.ValidationError(f"Item total cannot be negative for product {item['product_id']}")
+            subtotal += item_total
         
-        # Set the subtotal to the amount before any discounts
-        data['subtotal'] = subtotal_before_discounts
-        
-        # Calculate total after all discounts (item discounts + global discount)
-        total_after_item_discounts = subtotal_before_discounts - total_item_discounts
-        global_discount = data.get('discount', Decimal('0.00'))
-        
-        # Validate global discount doesn't exceed total after item discounts
-        if global_discount > total_after_item_discounts:
-            raise serializers.ValidationError("Global discount cannot exceed total after item discounts")
-        
-        # Calculate final total
-        data['total'] = total_after_item_discounts - global_discount + data.get('tax', Decimal('0.00'))
+        data['subtotal'] = subtotal
+        data['total'] = subtotal + data['tax'] - data['discount']
         
         if data['total'] < Decimal('0.00'):
             raise serializers.ValidationError("Total amount cannot be negative")

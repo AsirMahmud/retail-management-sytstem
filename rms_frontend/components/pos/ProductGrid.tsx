@@ -8,6 +8,9 @@ import { AlertCircle, ShoppingBag, History, Plus, Barcode } from "lucide-react";
 import { useProducts } from "@/hooks/queries/useInventory";
 import { Product } from "@/types/inventory";
 import { usePOSStore } from "@/store/pos-store";
+import type { ProductVariation as BaseProductVariation } from "@/types/inventory";
+
+type ProductVariation = BaseProductVariation & { color_hax?: string };
 
 interface ProductGridProps {
   searchQuery?: string;
@@ -67,8 +70,8 @@ export default function ProductGrid({
 
   console.log("Filtered products:", filteredProducts);
 
-  const formatCurrency = (price: string): string => {
-    return `$${Number.parseFloat(price).toFixed(2)}`;
+  const formatCurrency = (price: number | string): string => {
+    return `$${Number(price).toFixed(2)}`;
   };
 
   const getUniqueValues = (
@@ -307,34 +310,41 @@ export default function ProductGrid({
                     )}
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    {colors.map((color) => (
-                      <button
-                        key={color}
-                        className={`group relative flex items-center gap-1.5 px-2 py-1 rounded-md border transition-all ${
-                          selectedColors[product.id] === color
-                            ? "border-blue-600 bg-blue-50"
-                            : "border-gray-200 hover:border-gray-300"
-                        }`}
-                        onClick={() => {
-                          setSelectedColors({
-                            ...selectedColors,
-                            [product.id]: color,
-                          });
-                        }}
-                        title={color}
-                        aria-label={`Select color ${color}`}
-                      >
-                        <div
-                          className={`h-4 w-4 rounded-full border transition-all ${
+                    {colors.map((color) => {
+                      // Find the color hex from the variation
+                      const colorHex =
+                        ((product.variations || []) as ProductVariation[]).find(
+                          (v) => v.color === color && v.color_hax
+                        )?.color_hax || "#9CA3AF";
+                      return (
+                        <button
+                          key={color}
+                          className={`group relative flex items-center gap-1.5 px-2 py-1 rounded-md border transition-all ${
                             selectedColors[product.id] === color
-                              ? "border-blue-600 ring-2 ring-blue-200"
-                              : "border-gray-300 group-hover:border-gray-400"
+                              ? "border-blue-600 bg-blue-50"
+                              : "border-gray-200 hover:border-gray-300"
                           }`}
-                          style={{ backgroundColor: getColorValue(color) }}
-                        />
-                        <span className="text-xs text-gray-700">{color}</span>
-                      </button>
-                    ))}
+                          onClick={() => {
+                            setSelectedColors({
+                              ...selectedColors,
+                              [product.id]: color,
+                            });
+                          }}
+                          title={color}
+                          aria-label={`Select color ${color}`}
+                        >
+                          <div
+                            className={`h-4 w-4 rounded-full border transition-all ${
+                              selectedColors[product.id] === color
+                                ? "border-blue-600 ring-2 ring-blue-200"
+                                : "border-gray-300 group-hover:border-gray-400"
+                            }`}
+                            style={{ backgroundColor: colorHex }}
+                          />
+                          <span className="text-xs text-gray-700">{color}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               )}

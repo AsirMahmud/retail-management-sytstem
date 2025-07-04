@@ -59,7 +59,8 @@ INSTALLED_APPS = [
     "apps.sales",
     "apps.expenses",
     'apps.dashboard',
-    'apps.reports'
+    'apps.reports',
+    'apps.preorder'
 ]
 
 REST_FRAMEWORK = {

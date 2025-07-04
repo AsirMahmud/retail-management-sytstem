@@ -135,6 +135,19 @@ export default function ProductsPage() {
     0
   );
 
+  const totalPotentialProfit = products.reduce(
+    (sum: number, product: Product) =>
+      sum +
+      (product.selling_price - product.cost_price) * product.stock_quantity,
+    0
+  );
+
+  const totalPotentialRevenue = products.reduce(
+    (sum: number, product: Product) =>
+      sum + product.selling_price * product.stock_quantity,
+    0
+  );
+
   // Get unique categories for filter
   const categories = Array.from(
     new Set(products.map((p: Product) => p.category?.name).filter(Boolean))
@@ -294,6 +307,25 @@ export default function ProductsPage() {
           </div>
         </div>
 
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">Total Value</p>
+            <p className="text-lg font-bold text-blue-600">
+              ${(product.cost_price * product.stock_quantity).toLocaleString()}
+            </p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">Potential Profit</p>
+            <p className="text-lg font-bold text-green-600">
+              $
+              {(
+                (product.selling_price - product.cost_price) *
+                product.stock_quantity
+              ).toLocaleString()}
+            </p>
+          </div>
+        </div>
+
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Stock Level</p>
@@ -381,7 +413,45 @@ export default function ProductsPage() {
                 ${totalValue.toLocaleString()}
               </div>
               <p className="text-xs text-blue-600 font-medium mt-1">
-                Current Inventory Value
+                Cost Value of Current Stock
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-xl bg-white/70 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700">
+                Potential Revenue
+              </CardTitle>
+              <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                <TrendingUp className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">
+                ${totalPotentialRevenue.toLocaleString()}
+              </div>
+              <p className="text-xs text-green-600 font-medium mt-1">
+                Total Selling Value
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-0 shadow-xl bg-white/70 backdrop-blur-sm">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700">
+                Potential Profit
+              </CardTitle>
+              <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                <DollarSign className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-green-600">
+                ${totalPotentialProfit.toLocaleString()}
+              </div>
+              <p className="text-xs text-green-600 font-medium mt-1">
+                Expected Gross Profit
               </p>
             </CardContent>
           </Card>

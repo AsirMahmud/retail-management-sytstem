@@ -19,6 +19,7 @@ import {
   CheckSquare,
   LogOut,
   ChartBarBigIcon,
+  Clock,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -68,6 +69,16 @@ const mainNavItems = [
       { title: "Add Product", href: "/inventory/add-product" },
       { title: "Categories", href: "/inventory/categories" },
       { title: "Suppliers", href: "/inventory/suppliers" },
+    ],
+  },
+  {
+    title: "Preorders",
+    icon: Clock,
+    href: "/preorder",
+    subItems: [
+      { title: "Dashboard", href: "/preorder" },
+      { title: "Create Preorder", href: "/preorder/create" },
+      { title: "Add Product", href: "/preorder?tab=add-product" },
     ],
   },
   {
