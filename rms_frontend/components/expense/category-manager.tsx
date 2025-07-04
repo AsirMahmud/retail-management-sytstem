@@ -19,23 +19,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import {
-  Plus,
-  Edit,
-  Trash2,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-} from "lucide-react";
+import { Plus, Edit, Trash2, TrendingUp } from "lucide-react";
 import {
   useCategories,
   useCreateCategory,
   useUpdateCategory,
   useDeleteCategory,
 } from "@/hooks/queries/use-expenses";
-import { ExpenseCategory } from "@/lib/api/expenses";
 import { toast } from "@/hooks/use-toast";
 import Link from "next/link";
 
@@ -80,6 +70,60 @@ export function CategoryManager() {
                 Add Category
               </Button>
             </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Add New Category</DialogTitle>
+                <DialogDescription>
+                  Create a new expense category to organize your spending.
+                </DialogDescription>
+              </DialogHeader>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const form = e.target as HTMLFormElement;
+                  const formData = new FormData(form);
+                  const name = formData.get("name") as string;
+                  const description = formData.get("description") as string;
+                  const color = formData.get("color") as string;
+
+                  createCategory.mutate(
+                    { name, description, color },
+                    {
+                      onSuccess: () => {
+                        toast({
+                          title: "Success",
+                          description: "Category created successfully",
+                        });
+                        form.reset();
+                        setIsAddDialogOpen(false);
+                      },
+                    }
+                  );
+                }}
+                className="space-y-4"
+              >
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input id="name" name="name" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Input id="description" name="description" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="color">Color</Label>
+                  <Input
+                    id="color"
+                    name="color"
+                    type="color"
+                    defaultValue="#4f46e5"
+                  />
+                </div>
+                <Button type="submit" className="w-full">
+                  Create Category
+                </Button>
+              </form>
+            </DialogContent>
           </Dialog>
         </CardHeader>
         <CardContent className="p-6">

@@ -1,12 +1,24 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { useCategories, useUpdateCategory } from "@/hooks/queries/use-expenses";
 import { toast } from "@/hooks/use-toast";
+
+// 1️⃣ Zod Schema
+const categorySchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  description: z.string().optional(),
+  color: z.string().regex(/^#(?:[0-9a-fA-F]{3}){1,2}$/, "Invalid color"),
+});
+
+type CategoryFormData = z.infer<typeof categorySchema>;
 
 export default function EditExpenseCategoryPage({
   params,
@@ -16,33 +28,39 @@ export default function EditExpenseCategoryPage({
   const router = useRouter();
   const { data: categories } = useCategories();
   const updateCategory = useUpdateCategory();
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    color: "#8884d8",
-  });
-  const [loading, setLoading] = useState(true);
 
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<CategoryFormData>({
+    resolver: zodResolver(categorySchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      color: "#8884d8",
+    },
+  });
+
+  // 2️⃣ Load category data
   useEffect(() => {
     if (categories) {
       const category = categories.find((cat) => String(cat.id) === params.id);
       if (category) {
-        setFormData({
-          name: category.name,
-          description: category.description,
-          color: category.color,
-        });
+        setValue("name", category.name);
+        setValue("description", category.description || "");
+        setValue("color", category.color);
       }
-      setLoading(false);
     }
-  }, [categories, params.id]);
+  }, [categories, params.id, setValue]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // 3️⃣ Submit handler
+  const onSubmit = (data: CategoryFormData) => {
     updateCategory.mutate(
       {
         id: Number(params.id),
-        ...formData,
+        ...data,
       },
       {
         onSuccess: () => {
@@ -63,46 +81,32 @@ export default function EditExpenseCategoryPage({
     );
   };
 
-  if (loading) {
-    return <div className="p-8 text-center">Loading...</div>;
-  }
-
   return (
     <div className="max-w-xl mx-auto mt-10 bg-white p-8 rounded-xl shadow-lg">
       <h2 className="text-2xl font-bold mb-4">Edit Expense Category</h2>
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <div>
           <Label htmlFor="name">Category Name</Label>
-          <Input
-            id="name"
-            value={formData.name}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, name: e.target.value }))
-            }
-            required
-          />
+          <Input id="name" {...register("name")} />
+          {errors.name && (
+            <p className="text-sm text-red-600 mt-1">{errors.name.message}</p>
+          )}
         </div>
         <div>
           <Label htmlFor="description">Description</Label>
-          <Input
-            id="description"
-            value={formData.description}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, description: e.target.value }))
-            }
-          />
+          <Input id="description" {...register("description")} />
         </div>
         <div>
           <Label htmlFor="color">Color</Label>
           <Input
             id="color"
             type="color"
-            value={formData.color}
-            onChange={(e) =>
-              setFormData((prev) => ({ ...prev, color: e.target.value }))
-            }
+            {...register("color")}
             className="w-16 h-10 p-0 border-none"
           />
+          {errors.color && (
+            <p className="text-sm text-red-600 mt-1">{errors.color.message}</p>
+          )}
         </div>
         <div className="flex gap-4">
           <Button type="button" variant="outline" onClick={() => router.back()}>
