@@ -55,6 +55,7 @@ export interface ProductVariation {
     product: number;
     size: string;
     color: string;
+    color_hax?: string;
     stock: number;
     is_active: boolean;
     created_at: string;

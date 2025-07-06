@@ -11,6 +11,7 @@ from .serializers import (
     PreorderVariationSerializer, PreorderSerializer, PreorderCreateSerializer,
     PreorderDashboardSerializer
 )
+from apps.inventory.models import Product
 
 
 class PreorderProductViewSet(viewsets.ModelViewSet):
@@ -84,7 +85,8 @@ class PreorderViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(status=status_filter)
         
         if product_filter:
-            queryset = queryset.filter(preorder_product_id=product_filter)
+            # Filter by product_id in items JSON field
+            queryset = queryset.filter(items__contains=[{'product_id': int(product_filter)}])
         
         return queryset.order_by('-created_at')
     
@@ -175,4 +177,12 @@ class PreorderViewSet(viewsets.ModelViewSet):
         # Only update status, do not create sale here
         preorder.status = new_status
         preorder.save()
-        return Response({'message': f'Status updated to {new_status}'}) 
+        return Response({'message': f'Status updated to {new_status}'})
+    
+    @action(detail=False, methods=['get'])
+    def available_products(self, request):
+        """Get all available products for preorders"""
+        products = Product.objects.filter(is_active=True)
+        from apps.inventory.serializers import ProductSerializer
+        serializer = ProductSerializer(products, many=True)
+        return Response(serializer.data) 

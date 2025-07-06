@@ -103,7 +103,27 @@ export default function ProductGrid({
     );
   };
 
-  const getColorValue = (colorName: string): string => {
+  const getColorValue = (colorName: string, product: Product): string => {
+    // Find the color hex from the product variations
+    const variations = product.variations || [];
+
+    // First, try to find a variation with this exact color and a valid hex
+    const exactMatch = variations.find(
+      (v) =>
+        v.color === colorName && v.color_hax && isValidHexColor(v.color_hax)
+    );
+
+    if (exactMatch?.color_hax) {
+      return exactMatch.color_hax;
+    }
+
+    // If no exact match with valid hex, try to find any variation with this color
+    const anyMatch = variations.find((v) => v.color === colorName);
+    if (anyMatch?.color_hax && isValidHexColor(anyMatch.color_hax)) {
+      return anyMatch.color_hax;
+    }
+
+    // If still no valid hex, use the color map
     const colorMap: Record<string, string> = {
       White: "#FFFFFF",
       Black: "#000000",
@@ -115,8 +135,41 @@ export default function ProductGrid({
       Pink: "#EC4899",
       Gray: "#6B7280",
       Navy: "#1E3A8A",
+      Orange: "#FFA500",
+      Brown: "#A52A2A",
+      Teal: "#008080",
+      Maroon: "#800000",
+      Olive: "#808000",
+      Silver: "#C0C0C0",
+      Gold: "#FFD700",
+      Beige: "#F5F5DC",
+      Burgundy: "#800020",
+      Khaki: "#F0E68C",
     };
+
     return colorMap[colorName] || "#9CA3AF";
+  };
+
+  // Helper function to validate hex colors
+  const isValidHexColor = (hex: string): boolean => {
+    if (!hex || typeof hex !== "string") return false;
+
+    // Remove # if present
+    const cleanHex = hex.startsWith("#") ? hex.slice(1) : hex;
+
+    // Check if it's a valid 3 or 6 digit hex
+    const hexRegex = /^[0-9A-Fa-f]{3}$|^[0-9A-Fa-f]{6}$/;
+    if (!hexRegex.test(cleanHex)) return false;
+
+    // Don't allow pure black or pure white as they might be defaults
+    if (
+      cleanHex.toLowerCase() === "000000" ||
+      cleanHex.toLowerCase() === "ffffff"
+    ) {
+      return false;
+    }
+
+    return true;
   };
 
   const handleViewProductHistory = (product: Product) => {
@@ -309,13 +362,9 @@ export default function ProductGrid({
                       </span>
                     )}
                   </p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5">
                     {colors.map((color) => {
-                      // Find the color hex from the variation
-                      const colorHex =
-                        ((product.variations || []) as ProductVariation[]).find(
-                          (v) => v.color === color && v.color_hax
-                        )?.color_hax || "#9CA3AF";
+                      const colorHex = getColorValue(color, product);
                       return (
                         <button
                           key={color}
@@ -334,14 +383,16 @@ export default function ProductGrid({
                           aria-label={`Select color ${color}`}
                         >
                           <div
-                            className={`h-4 w-4 rounded-full border transition-all ${
+                            className={`h-5 w-5 rounded-full border transition-all shadow-sm ${
                               selectedColors[product.id] === color
                                 ? "border-blue-600 ring-2 ring-blue-200"
                                 : "border-gray-300 group-hover:border-gray-400"
                             }`}
                             style={{ backgroundColor: colorHex }}
                           />
-                          <span className="text-xs text-gray-700">{color}</span>
+                          <span className="text-xs text-gray-700 font-medium">
+                            {color}
+                          </span>
                         </button>
                       );
                     })}

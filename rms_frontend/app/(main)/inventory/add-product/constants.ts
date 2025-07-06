@@ -49,10 +49,20 @@ export const globalSizes = {
         },
     },
     jersey: {
-        unisex: ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
-        chestInches: ["32", "34", "36", "38", "40", "42", "44"],
-        EU: ["44", "46", "48", "50", "52", "54"],
-        Asia: ["M", "L", "XL", "XXL", "3XL", "4XL"],
+        men: {
+            US: ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
+            UK: ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
+            EU: ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
+            Asia: ["M", "L", "XL", "XXL", "3XL"],
+            international: ["XS", "S", "M", "L", "XL", "XXL", "3XL"],
+        },
+        women: {
+            US: ["XS", "S", "M", "L", "XL", "XXL"],
+            UK: ["XS", "S", "M", "L", "XL", "XXL"],
+            EU: ["XS", "S", "M", "L", "XL", "XXL"],
+            Asia: ["S", "M", "L", "XL", "XXL"],
+            international: ["XS", "S", "M", "L", "XL", "XXL"],
+        },
     },
     shirts: {
         men: {

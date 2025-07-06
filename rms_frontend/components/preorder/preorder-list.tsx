@@ -284,8 +284,8 @@ export function PreorderList() {
         preorder.customer_email
           ?.toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
-        preorder.preorder_product.name
-          .toLowerCase()
+        preorder.product_details?.name
+          ?.toLowerCase()
           .includes(searchTerm.toLowerCase());
 
       const matchesStatus =
@@ -295,7 +295,7 @@ export function PreorderList() {
 
       const matchesProduct =
         productFilter === "all" ||
-        preorder.preorder_product.id.toString() === productFilter;
+        preorder.product_details?.id.toString() === productFilter;
 
       return matchesSearch && matchesStatus && matchesProduct;
     }) || [];
@@ -412,11 +412,15 @@ export function PreorderList() {
                   <TableCell>
                     <div>
                       <div className="font-medium">
-                        {preorder.preorder_product.name}
+                        {preorder.product_details?.name || "Product not found"}
                       </div>
-                      {preorder.variation && (
+                      {preorder.items && preorder.items.length > 0 && (
                         <div className="text-sm text-gray-500">
-                          {preorder.variation.size} - {preorder.variation.color}
+                          {preorder.items.map((item, index) => (
+                            <div key={index}>
+                              {item.size} - {item.color} (Qty: {item.quantity})
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
@@ -583,15 +587,19 @@ export function PreorderList() {
                   </div>
                   <div>
                     <span className="font-semibold">Product:</span>{" "}
-                    {preorderToView.preorder_product.name} <br />
-                    {preorderToView.variation && (
-                      <span className="text-sm text-gray-500">
-                        {preorderToView.variation.size} -{" "}
-                        {preorderToView.variation.color}
-                        <br />
-                      </span>
-                    )}
+                    {preorderToView.product_details?.name ||
+                      "Product not found"}
                   </div>
+                  {preorderToView.items && preorderToView.items.length > 0 && (
+                    <div>
+                      <span className="font-semibold">Items:</span>
+                      {preorderToView.items.map((item, index) => (
+                        <div key={index} className="text-sm text-gray-500 ml-2">
+                          • {item.size} - {item.color} (Qty: {item.quantity})
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <div>
                     <span className="font-semibold">Quantity:</span>{" "}
                     {preorderToView.quantity} <br />

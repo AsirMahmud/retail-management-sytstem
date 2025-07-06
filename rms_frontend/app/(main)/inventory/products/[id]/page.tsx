@@ -672,9 +672,19 @@ function handlePrintLabel(product: Product, variation: any, count: number) {
   const style = `
     <style>
       @media print {
-        body { margin: 0; padding: 5mm; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 5mm; }
+        @page {
+          margin: 0;
+          size: 58mm auto;
+        }
+        body { 
+          margin: 0; 
+          padding: 0; 
+          box-sizing: border-box; 
+          display: block;
+          width: 58mm;
+        }
         .label {
-          width: 57mm;
+          width: 58mm;
           height: 25mm;
           display: flex;
           flex-direction: column;
@@ -682,9 +692,12 @@ function handlePrintLabel(product: Product, variation: any, count: number) {
           align-items: center;
           font-family: 'Arial', sans-serif;
           font-size: 12px;
-          border: 1px dashed #eee;
+          border: none;
+          page-break-after: auto;
           page-break-inside: avoid;
           padding: 2mm;
+          margin: 0;
+          box-sizing: border-box;
         }
         .sku {
           font-size: 12px;
@@ -706,11 +719,16 @@ function handlePrintLabel(product: Product, variation: any, count: number) {
         .price { font-size: 15px; font-weight: bold; margin-bottom: 1mm; color: #0056b3; }
         .size { font-size: 12px; color: #555; }
         .color { font-size: 12px; color: #555; }
-        .label { border: none !important; }
       }
-      body { margin: 0; padding: 10px; display: flex; flex-wrap: wrap; gap: 10px; background-color: #f0f2f5; }
+      body { 
+        margin: 0; 
+        padding: 5px; 
+        display: block;
+        width: 58mm;
+        background-color: #f0f2f5; 
+      }
       .label {
-        width: 57mm;
+        width: 58mm;
         height: 25mm;
         display: flex;
         flex-direction: column;
@@ -722,6 +740,8 @@ function handlePrintLabel(product: Product, variation: any, count: number) {
         background-color: #fff;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         padding: 2mm;
+        margin-bottom: 5px;
+        box-sizing: border-box;
       }
       .sku {
         font-size: 12px;
@@ -785,9 +805,19 @@ function handlePrintAllVariantsByStock(product: Product) {
   const style = `
     <style>
       @media print {
-        body { margin: 0; padding: 5mm; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 5mm; }
+        @page {
+          margin: 0;
+          size: 58mm auto;
+        }
+        body { 
+          margin: 0; 
+          padding: 0; 
+          box-sizing: border-box; 
+          display: block;
+          width: 58mm;
+        }
         .label {
-          width: 57mm;
+          width: 58mm;
           height: 25mm;
           display: flex;
           flex-direction: column;
@@ -795,9 +825,12 @@ function handlePrintAllVariantsByStock(product: Product) {
           align-items: center;
           font-family: 'Arial', sans-serif;
           font-size: 12px;
-          border: 1px dashed #eee;
+          border: none;
+          page-break-after: auto;
           page-break-inside: avoid;
           padding: 2mm;
+          margin: 0;
+          box-sizing: border-box;
         }
         .sku {
           font-size: 12px;
@@ -819,11 +852,16 @@ function handlePrintAllVariantsByStock(product: Product) {
         .price { font-size: 15px; font-weight: bold; margin-bottom: 1mm; color: #0056b3; }
         .size { font-size: 12px; color: #555; }
         .color { font-size: 12px; color: #555; }
-        .label { border: none !important; }
       }
-      body { margin: 0; padding: 10px; display: flex; flex-wrap: wrap; gap: 10px; background-color: #f0f2f5; }
+      body { 
+        margin: 0; 
+        padding: 5px; 
+        display: block;
+        width: 58mm;
+        background-color: #f0f2f5; 
+      }
       .label {
-        width: 57mm;
+        width: 58mm;
         height: 25mm;
         display: flex;
         flex-direction: column;
@@ -835,6 +873,8 @@ function handlePrintAllVariantsByStock(product: Product) {
         background-color: #fff;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         padding: 2mm;
+        margin-bottom: 5px;
+        box-sizing: border-box;
       }
       .sku {
         font-size: 12px;

@@ -31,8 +31,7 @@ class PreorderProductCreateSerializer(serializers.ModelSerializer):
 
 
 class PreorderSerializer(serializers.ModelSerializer):
-    preorder_product = PreorderProductSerializer(read_only=True)
-    variation = PreorderVariationSerializer(read_only=True)
+    product_details = serializers.SerializerMethodField()
     items = serializers.JSONField()
     quantity = serializers.IntegerField(read_only=True)
     profit = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
@@ -42,6 +41,22 @@ class PreorderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Preorder
         fields = '__all__'
+
+    def get_product_details(self, obj):
+        """Get product details from the first item in the preorder"""
+        if obj.items and len(obj.items) > 0:
+            try:
+                from apps.inventory.models import Product
+                product = Product.objects.get(id=obj.items[0].get('product_id'))
+                return {
+                    'id': product.id,
+                    'name': product.name,
+                    'sku': product.sku,
+                    'image': product.image.url if product.image else None,
+                }
+            except Product.DoesNotExist:
+                return None
+        return None
 
     def validate_items(self, value):
         if not isinstance(value, list):

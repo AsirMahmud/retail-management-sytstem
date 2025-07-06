@@ -48,8 +48,12 @@ export interface Preorder {
     customer_name: string;
     customer_phone: string;
     customer_email: string;
-    preorder_product: PreorderProduct;
-    variation?: PreorderVariation;
+    product_details?: {
+        id: number;
+        name: string;
+        sku: string;
+        image?: string;
+    };
     quantity: number;
     deposit_paid: number;
     total_amount: number;
@@ -124,7 +128,6 @@ export interface CreatePreorderDTO {
     customer_name: string;
     customer_phone: string;
     customer_email?: string;
-    preorder_product: number;
     deposit_paid?: number;
     total_amount: number;
     notes?: string;
@@ -136,6 +139,7 @@ export interface CreatePreorderDTO {
         quantity: number;
         unit_price: number;
         discount: number;
+        variant_id?: number;
     }[];
 }
 

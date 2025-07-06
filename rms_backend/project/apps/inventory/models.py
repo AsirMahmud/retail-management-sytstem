@@ -79,7 +79,7 @@ class ProductVariation(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variations')
     size = models.CharField(max_length=50, default='Standard')
     color = models.CharField(max_length=50, default='Default')
-    color_hax = models.CharField(max_length=50, default='#FFFFF')
+    color_hax = models.CharField(max_length=50, default='#FFFFFF')
     stock = models.IntegerField(default=0, validators=[MinValueValidator(0)])
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

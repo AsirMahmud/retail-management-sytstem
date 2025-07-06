@@ -94,7 +94,7 @@ class Preorder(models.Model):
     customer_name = models.CharField(max_length=200)
     customer_phone = models.CharField(max_length=20)
     customer_email = models.EmailField(blank=True)
-    preorder_product = models.ForeignKey(PreorderProduct, on_delete=models.CASCADE, related_name='orders')
+    
     items = models.JSONField(default=list, blank=True)  # Store all product/variant snapshots
     deposit_paid = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -109,7 +109,14 @@ class Preorder(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Preorder #{self.id} - {self.customer_name} - {self.preorder_product.name}"
+        # Get the first product name from items for display
+        if self.items:
+            try:
+                product = Product.objects.get(id=self.items[0].get('product_id'))
+                return f"Preorder #{self.id} - {self.customer_name} - {product.name}"
+            except Product.DoesNotExist:
+                return f"Preorder #{self.id} - {self.customer_name}"
+        return f"Preorder #{self.id} - {self.customer_name}"
 
     def save(self, *args, **kwargs):
         # Calculate total amount if not set
@@ -138,20 +145,12 @@ class Preorder(models.Model):
             self.unit_price = unit_price
             self.cost_price = cost_price
             self.profit = total_profit
-        # Update product and variant order counts for each item
-        if self.pk is None and self.items:
-            for item in self.items:
-                self.preorder_product.current_orders += item.get('quantity', 0)
-            self.preorder_product.save()
+        # Remove the preorder_product dependency - no need to update order counts
         super().save(*args, **kwargs)
 
     def cancel(self):
         if self.status not in ['CANCELLED', 'DELIVERED', 'COMPLETED']:
-            # Reduce order counts for each item
-            if self.items:
-                for item in self.items:
-                    self.preorder_product.current_orders -= item.get('quantity', 0)
-            self.preorder_product.save()
+            # Remove the preorder_product dependency - no need to update order counts
             self.status = 'CANCELLED'
             self.save()
 
