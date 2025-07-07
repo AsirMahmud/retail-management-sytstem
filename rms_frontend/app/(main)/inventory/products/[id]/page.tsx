@@ -671,61 +671,20 @@ function handlePrintLabel(product: Product, variation: any, count: number) {
   if (!printWindow) return;
   const style = `
     <style>
-      @media print {
-        @page {
-          margin: 0;
-          size: 58mm auto;
-        }
-        body { 
-          margin: 0; 
-          padding: 0; 
-          box-sizing: border-box; 
-          display: block;
-          width: 58mm;
-        }
-        .label {
-          width: 58mm;
-          height: 25mm;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          font-family: 'Arial', sans-serif;
-          font-size: 12px;
-          border: none;
-          page-break-after: auto;
-          page-break-inside: avoid;
-          padding: 2mm;
-          margin: 0;
-          box-sizing: border-box;
-        }
-        .sku {
-          font-size: 12px;
-          font-weight: bold;
-          margin-bottom: 1mm;
-          color: #333;
-          white-space: normal;
-          word-break: break-all;
-          width: 100%;
-          text-align: center;
-        }
-        .price, .size, .color {
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          width: 100%;
-          text-align: center;
-        }
-        .price { font-size: 15px; font-weight: bold; margin-bottom: 1mm; color: #0056b3; }
-        .size { font-size: 12px; color: #555; }
-        .color { font-size: 12px; color: #555; }
+      @page {
+        size: 58mm auto;
+        margin: 0;
       }
-      body { 
-        margin: 0; 
-        padding: 5px; 
-        display: block;
+      body {
         width: 58mm;
-        background-color: #f0f2f5; 
+        margin: 0;
+        padding: 5mm;
+        font-family: 'Courier New', monospace;
+        font-size: 15px;
+        line-height: 1.4;
+        color: #000 !important;
+        font-weight: 600;
+        background: #fff !important;
       }
       .label {
         width: 58mm;
@@ -734,35 +693,49 @@ function handlePrintLabel(product: Product, variation: any, count: number) {
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        font-family: 'Arial', sans-serif;
-        font-size: 12px;
-        border: 1px dashed #ccc;
-        background-color: #fff;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        font-family: 'Courier New', monospace;
+        font-size: 15px;
+        border: 2px solid #000;
+        background: #fff;
+        font-weight: 700;
         padding: 2mm;
         margin-bottom: 5px;
         box-sizing: border-box;
       }
       .sku {
-        font-size: 12px;
-        font-weight: bold;
+        font-size: 13px;
+        font-weight: 800;
         margin-bottom: 1mm;
-        color: #333;
-        white-space: normal;
-        word-break: break-all;
+        color: #000;
         width: 100%;
         text-align: center;
       }
       .price, .size, .color {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
         width: 100%;
         text-align: center;
+        color: #000;
+        font-weight: 700;
+        font-size: 14px;
       }
-      .price { font-size: 15px; font-weight: bold; margin-bottom: 1mm; color: #0056b3; }
-      .size { font-size: 12px; color: #555; }
-      .color { font-size: 12px; color: #555; }
+      .price { font-size: 16px; font-weight: 800; margin-bottom: 1mm; }
+      .size { font-size: 14px; }
+      .color { font-size: 14px; }
+      .color-swatch {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        vertical-align: middle;
+        margin-right: 4px;
+        border: 1px solid #000;
+        background: #fff;
+      }
+      @media print {
+        body {
+          width: 58mm;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
     </style>
   `;
   let labels = "";
@@ -772,7 +745,7 @@ function handlePrintLabel(product: Product, variation: any, count: number) {
         <div class="sku">SKU: ${product.sku}</div>
         <div class="price">Price: ৳${product.selling_price}</div>
         <div class="size">Size: ${variation.size}</div>
-        <div class="color">Color: <span style="display:inline-block;width:12px;height:12px;vertical-align:middle;margin-right:4px;border:1px solid #333;background:${variation.color};"></span>${variation.color}</div>
+        <div class="color">Color: <span class="color-swatch" style="background:${variation.color};"></span>${variation.color}</div>
       </div>
     `;
   }
@@ -804,61 +777,20 @@ function handlePrintAllVariantsByStock(product: Product) {
   if (!printWindow) return;
   const style = `
     <style>
-      @media print {
-        @page {
-          margin: 0;
-          size: 58mm auto;
-        }
-        body { 
-          margin: 0; 
-          padding: 0; 
-          box-sizing: border-box; 
-          display: block;
-          width: 58mm;
-        }
-        .label {
-          width: 58mm;
-          height: 25mm;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          font-family: 'Arial', sans-serif;
-          font-size: 12px;
-          border: none;
-          page-break-after: auto;
-          page-break-inside: avoid;
-          padding: 2mm;
-          margin: 0;
-          box-sizing: border-box;
-        }
-        .sku {
-          font-size: 12px;
-          font-weight: bold;
-          margin-bottom: 1mm;
-          color: #333;
-          white-space: normal;
-          word-break: break-all;
-          width: 100%;
-          text-align: center;
-        }
-        .price, .size, .color {
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          width: 100%;
-          text-align: center;
-        }
-        .price { font-size: 15px; font-weight: bold; margin-bottom: 1mm; color: #0056b3; }
-        .size { font-size: 12px; color: #555; }
-        .color { font-size: 12px; color: #555; }
+      @page {
+        size: 58mm auto;
+        margin: 0;
       }
-      body { 
-        margin: 0; 
-        padding: 5px; 
-        display: block;
+      body {
         width: 58mm;
-        background-color: #f0f2f5; 
+        margin: 0;
+        padding: 5mm;
+        font-family: 'Courier New', monospace;
+        font-size: 15px;
+        line-height: 1.4;
+        color: #000 !important;
+        font-weight: 600;
+        background: #fff !important;
       }
       .label {
         width: 58mm;
@@ -867,35 +799,49 @@ function handlePrintAllVariantsByStock(product: Product) {
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        font-family: 'Arial', sans-serif;
-        font-size: 12px;
-        border: 1px dashed #ccc;
-        background-color: #fff;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        font-family: 'Courier New', monospace;
+        font-size: 15px;
+        border: 2px solid #000;
+        background: #fff;
+        font-weight: 700;
         padding: 2mm;
         margin-bottom: 5px;
         box-sizing: border-box;
       }
       .sku {
-        font-size: 12px;
-        font-weight: bold;
+        font-size: 13px;
+        font-weight: 800;
         margin-bottom: 1mm;
-        color: #333;
-        white-space: normal;
-        word-break: break-all;
+        color: #000;
         width: 100%;
         text-align: center;
       }
       .price, .size, .color {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
         width: 100%;
         text-align: center;
+        color: #000;
+        font-weight: 700;
+        font-size: 14px;
       }
-      .price { font-size: 15px; font-weight: bold; margin-bottom: 1mm; color: #0056b3; }
-      .size { font-size: 12px; color: #555; }
-      .color { font-size: 12px; color: #555; }
+      .price { font-size: 16px; font-weight: 800; margin-bottom: 1mm; }
+      .size { font-size: 14px; }
+      .color { font-size: 14px; }
+      .color-swatch {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        vertical-align: middle;
+        margin-right: 4px;
+        border: 1px solid #000;
+        background: #fff;
+      }
+      @media print {
+        body {
+          width: 58mm;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
     </style>
   `;
   let labels = "";
@@ -907,7 +853,7 @@ function handlePrintAllVariantsByStock(product: Product) {
           <div class="sku">SKU: ${product.sku}</div>
           <div class="price">Price: ৳${product.selling_price}</div>
           <div class="size">Size: ${variation.size}</div>
-          <div class="color">Color: <span style="display:inline-block;width:12px;height:12px;vertical-align:middle;margin-right:4px;border:1px solid #333;background:${variation.color};"></span>${variation.color}</div>
+          <div class="color">Color: <span class="color-swatch" style="background:${variation.color};"></span>${variation.color}</div>
         </div>
       `;
     }
