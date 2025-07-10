@@ -2,16 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Set default font globally */
 body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Add custom utility classes */
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
 }
 
+/* Base layer: variables, resets, browser tweaks */
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -48,6 +51,7 @@ body {
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
   .dark {
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
@@ -82,27 +86,25 @@ body {
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
-}
 
-
-
-
-@layer base {
+  /* Global reset */
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
-input[type=number]::-webkit-inner-spin-button,
-  input[type=number]::-webkit-outer-spin-button {
+
+  /* 🔧 Remove spinner arrows on number inputs - Chrome/Safari */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
   }
 
-  input[type=number] {
+  /* 🔧 Remove spinner arrows on number inputs - Firefox */
+  input[type="number"] {
     -moz-appearance: textfield;
   }
-
-
 }
