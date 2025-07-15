@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useMemo } from "react";
 import {
   Card,
@@ -8,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -18,8 +16,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  TrendingUp,
-  TrendingDown,
   DollarSign,
   ShoppingCart,
   Package,
@@ -27,7 +23,6 @@ import {
   Users,
   Target,
   Calendar,
-  ArrowUpRight,
 } from "lucide-react";
 import {
   XAxis,
@@ -42,8 +37,7 @@ import {
   AreaChart,
 } from "recharts";
 import { useDashboardStats } from "@/hooks/queries/use-sales";
-import type { DashboardStats } from "@/types/sales";
-import { Dialog, DialogContent, DialogOverlay } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import type { DateRange } from "react-day-picker";
@@ -64,9 +58,16 @@ interface SalesTrendDataPoint {
   orders: number;
 }
 
-interface SalesDistributionDataPoint {
-  name: string;
-  value: number;
+interface PaymentMethodDataPoint {
+  method: string;
+  count: number;
+  total: number;
+}
+
+interface SalesByHourDataPoint {
+  hour: number;
+  count: number;
+  total: number;
 }
 
 export default function SalesOverview() {
@@ -101,30 +102,65 @@ export default function SalesOverview() {
     totalRevenue: stats?.monthly.total_sales || 0,
     totalOrders: stats?.monthly.total_transactions || 0,
     totalProfit: stats?.monthly.total_profit || 0,
+    totalDiscount: stats?.monthly.total_discount || 0,
+    avgTransactionValue: stats?.monthly.average_transaction_value || 0,
+    totalCustomers: stats?.monthly.total_customers || 0,
     todayRevenue: stats?.today.total_sales || 0,
     todayOrders: stats?.today.total_transactions || 0,
     todayProfit: stats?.today.total_profit || 0,
+    todayCustomers: stats?.today.total_customers || 0,
   };
 
   // Format sales trend data for the chart
   const salesTrendData = useMemo<SalesTrendDataPoint[]>(() => {
     if (!stats?.sales_trend) return [];
     return stats.sales_trend.map((item) => ({
-      date: item.sale__date__date,
+      date: item.date__date,
       sales: item.sales,
       profit: item.profit,
       orders: item.orders,
     }));
   }, [stats?.sales_trend]);
 
-  // Format sales distribution data for the pie chart
-  const salesDistributionData = useMemo<SalesDistributionDataPoint[]>(() => {
-    if (!stats?.sales_distribution) return [];
-    return stats.sales_distribution.map((item) => ({
-      name: item.product__category__name || "Uncategorized",
-      value: item.value,
+  // Format payment method distribution data
+  const paymentMethodData = useMemo<PaymentMethodDataPoint[]>(() => {
+    if (!stats?.payment_method_distribution) return [];
+    return stats.payment_method_distribution.map((item) => ({
+      method: item.payment_method,
+      count: item.count,
+      total: item.total,
     }));
-  }, [stats?.sales_distribution]);
+  }, [stats?.payment_method_distribution]);
+
+  // Format sales by hour data (filter out zero values for better visualization)
+  const salesByHourData = useMemo<SalesByHourDataPoint[]>(() => {
+    if (!stats?.sales_by_hour) return [];
+    return stats.sales_by_hour.filter(
+      (item) => item.count > 0 || item.total > 0
+    );
+  }, [stats?.sales_by_hour]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-lg text-gray-600">Loading sales data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg text-red-600">Error loading sales data</p>
+          <p className="text-gray-600">{error.message}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -166,6 +202,7 @@ export default function SalesOverview() {
             </Button>
           </div>
         </div>
+
         {/* Advanced Filter Modal */}
         <Dialog open={advancedOpen} onOpenChange={setAdvancedOpen}>
           <DialogContent className="p-6 w-full max-w-md space-y-4">
@@ -236,9 +273,7 @@ export default function SalesOverview() {
                     ${metrics.totalRevenue.toLocaleString()}
                   </p>
                   <div className="flex items-center text-sm">
-                    <TrendingUp className="w-4 h-4 text-emerald-500 mr-1" />
-                    <span className="text-emerald-600 font-medium">+12.5%</span>
-                    <span className="text-gray-500 ml-1">vs last period</span>
+                    <span className="text-gray-500">Monthly total</span>
                   </div>
                 </div>
                 <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
@@ -259,9 +294,7 @@ export default function SalesOverview() {
                     {metrics.totalOrders}
                   </p>
                   <div className="flex items-center text-sm">
-                    <TrendingUp className="w-4 h-4 text-emerald-500 mr-1" />
-                    <span className="text-emerald-600 font-medium">+8.2%</span>
-                    <span className="text-gray-500 ml-1">vs last period</span>
+                    <span className="text-gray-500">Monthly total</span>
                   </div>
                 </div>
                 <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
@@ -282,12 +315,31 @@ export default function SalesOverview() {
                     ${metrics.totalProfit.toLocaleString()}
                   </p>
                   <div className="flex items-center text-sm">
-                    <TrendingUp className="w-4 h-4 text-emerald-500 mr-1" />
-                    <span className="text-emerald-600 font-medium">+15.2%</span>
-                    <span className="text-gray-500 ml-1">vs last period</span>
+                    <span className="text-gray-500">Monthly total</span>
                   </div>
                 </div>
                 <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                  <Target className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 group">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">
+                    Avg Transaction
+                  </p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    ${metrics.avgTransactionValue.toFixed(0)}
+                  </p>
+                  <div className="flex items-center text-sm">
+                    <span className="text-gray-500">Per order</span>
+                  </div>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
                   <DollarSign className="h-6 w-6 text-white" />
                 </div>
               </div>
@@ -299,42 +351,17 @@ export default function SalesOverview() {
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-gray-600">
-                    Today's Revenue
+                    Total Customers
                   </p>
                   <p className="text-3xl font-bold text-gray-900">
-                    ${metrics.todayRevenue.toLocaleString()}
+                    {metrics.totalCustomers}
                   </p>
                   <div className="flex items-center text-sm">
-                    <TrendingUp className="w-4 h-4 text-emerald-500 mr-1" />
-                    <span className="text-emerald-600 font-medium">+5.3%</span>
-                    <span className="text-gray-500 ml-1">vs yesterday</span>
-                  </div>
-                </div>
-                <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                  <Target className="h-6 w-6 text-white" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 group">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-gray-600">
-                    Today's Orders
-                  </p>
-                  <p className="text-3xl font-bold text-gray-900">
-                    {metrics.todayOrders}
-                  </p>
-                  <div className="flex items-center text-sm">
-                    <TrendingDown className="w-4 h-4 text-red-500 mr-1" />
-                    <span className="text-red-600 font-medium">-2.1%</span>
-                    <span className="text-gray-500 ml-1">vs yesterday</span>
+                    <span className="text-gray-500">Monthly total</span>
                   </div>
                 </div>
                 <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                  <Package className="h-6 w-6 text-white" />
+                  <Users className="h-6 w-6 text-white" />
                 </div>
               </div>
             </CardContent>
@@ -345,66 +372,115 @@ export default function SalesOverview() {
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-gray-600">
-                    Today's Profit
+                    Total Discount
                   </p>
                   <p className="text-3xl font-bold text-gray-900">
-                    ${metrics.todayProfit.toLocaleString()}
+                    ${metrics.totalDiscount.toLocaleString()}
                   </p>
                   <div className="flex items-center text-sm">
-                    <TrendingUp className="w-4 h-4 text-emerald-500 mr-1" />
-                    <span className="text-emerald-600 font-medium">+7.8%</span>
-                    <span className="text-gray-500 ml-1">vs yesterday</span>
+                    <span className="text-gray-500">Monthly total</span>
                   </div>
                 </div>
-                <div className="p-3 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                  <Target className="h-6 w-6 text-white" />
+                <div className="p-3 bg-gradient-to-br from-red-500 to-red-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                  <Package className="h-6 w-6 text-white" />
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Top Products */}
-        <Card className="bg-white border-0 shadow-lg">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-xl font-semibold text-gray-900">
-              Top Selling Products
-            </CardTitle>
-            <CardDescription className="text-gray-600">
-              Best performing products this month
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {stats?.top_products.map((product, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold">
-                      {index + 1}
+        {/* Top Products and Top Customers */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Top Products */}
+          <Card className="bg-white border-0 shadow-lg">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl font-semibold text-gray-900">
+                Top Selling Products
+              </CardTitle>
+              <CardDescription className="text-gray-600">
+                Best performing products this month
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {stats?.top_products?.map((product, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {product.product__name}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {product.total_quantity} units sold
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {product.product__name}
+                    <div className="text-right">
+                      <p className="font-semibold text-gray-900">
+                        ${product.total_revenue.toLocaleString()}
                       </p>
-                      <p className="text-sm text-gray-500">
-                        {product.total_quantity} units sold
+                      <p className="text-sm text-emerald-600">
+                        ${product.total_profit.toLocaleString()} profit
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-gray-900">
-                      ${product.total_revenue.toLocaleString()}
-                    </p>
-                    <p className="text-sm text-gray-500">Revenue</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Top Customers */}
+          <Card className="bg-white border-0 shadow-lg">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl font-semibold text-gray-900">
+                Top Customers
+              </CardTitle>
+              <CardDescription className="text-gray-600">
+                Highest spending customers
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {stats?.customer_analytics?.top_customers?.map(
+                  (customer, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center space-x-4">
+                        <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-teal-600 rounded-lg flex items-center justify-center text-white font-bold">
+                          {index + 1}
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">
+                            {customer.customer_name}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {customer.customer__phone}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-gray-900">
+                          ${customer.total_spent.toLocaleString()}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {customer.visit_count} visits
+                        </p>
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Sales Trend Chart */}
         <Card className="bg-white border-0 shadow-lg">
@@ -505,14 +581,14 @@ export default function SalesOverview() {
           </CardContent>
         </Card>
 
-        {/* Sales Distribution Chart */}
+        {/* Payment Method Distribution */}
         <Card className="bg-white border-0 shadow-lg">
           <CardHeader className="pb-4">
             <CardTitle className="text-xl font-semibold text-gray-900">
-              Sales Distribution
+              Payment Method Distribution
             </CardTitle>
             <CardDescription className="text-gray-600">
-              Revenue by product category
+              Revenue breakdown by payment method
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -520,18 +596,18 @@ export default function SalesOverview() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={salesDistributionData}
+                    data={paymentMethodData}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
                     outerRadius={150}
                     fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) =>
-                      `${name} ${(percent * 100).toFixed(0)}%`
+                    dataKey="total"
+                    label={({ method, total, count }) =>
+                      `${method.toUpperCase()}: $${total.toLocaleString()} (${count} orders)`
                     }
                   >
-                    {salesDistributionData.map((entry, index: number) => (
+                    {paymentMethodData.map((entry, index: number) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}
@@ -539,7 +615,7 @@ export default function SalesOverview() {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number) => [
+                    formatter={(value: number, name: string) => [
                       `$${value.toLocaleString()}`,
                       "Revenue",
                     ]}
@@ -549,6 +625,66 @@ export default function SalesOverview() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Customer Analytics */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="bg-white border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">
+                    New Customers Today
+                  </p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {stats?.customer_analytics?.new_customers_today || 0}
+                  </p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
+                  <Users className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">
+                    Active Customers Today
+                  </p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {stats?.customer_analytics?.active_customers_today || 0}
+                  </p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl">
+                  <Users className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">
+                    Customer Retention Rate
+                  </p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {stats?.customer_analytics?.customer_retention_rate?.toFixed(
+                      1
+                    ) || 0}
+                    %
+                  </p>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
+                  <Target className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

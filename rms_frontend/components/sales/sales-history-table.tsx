@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -32,8 +32,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -44,7 +42,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
   Pagination,
@@ -55,12 +52,12 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Search,
   Download,
   Eye,
   Calendar,
-  DollarSign,
   User,
   Package,
   Filter,
@@ -69,11 +66,12 @@ import {
   FileText,
   TrendingUp,
   Trash2,
+  Loader2,
+  X,
 } from "lucide-react";
 import { useSales } from "@/hooks/queries/use-sales";
-import { SaleStatus, PaymentMethod } from "@/types/sales";
+import type { SaleStatus, PaymentMethod } from "@/types/sales";
 import type { Sale, SaleItem } from "@/types/sales";
-import type { Customer } from "@/types/customer";
 import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
@@ -102,9 +100,26 @@ interface SaleWithCustomerDetails extends Omit<Sale, "customer"> {
 // Helper function to safely convert to number
 const toNumber = (value: number | string | null | undefined): number => {
   if (value === null || value === undefined) return 0;
-  if (typeof value === "string") return parseFloat(value) || 0;
+  if (typeof value === "string") return Number.parseFloat(value) || 0;
   return value;
 };
+
+// Debounce hook for search
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 export default function SalesHistory() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -126,6 +141,11 @@ export default function SalesHistory() {
     from: undefined,
     to: undefined,
   });
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Debounce search term to avoid too many API calls
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
   const { toast } = useToast();
 
   const {
@@ -140,7 +160,7 @@ export default function SalesHistory() {
   } = useSales({
     status: statusFilter !== "all" ? statusFilter : undefined,
     payment_method: paymentFilter !== "all" ? paymentFilter : undefined,
-    search: searchTerm || undefined,
+    search: debouncedSearchTerm || undefined,
     ordering: sortOrder === "desc" ? `-${sortBy}` : sortBy,
     page,
     page_size: pageSize,
@@ -149,6 +169,15 @@ export default function SalesHistory() {
       : undefined,
     end_date: dateRange.to ? format(dateRange.to, "yyyy-MM-dd") : undefined,
   });
+
+  // Show searching indicator when user is typing
+  useEffect(() => {
+    if (searchTerm !== debouncedSearchTerm) {
+      setIsSearching(true);
+    } else {
+      setIsSearching(false);
+    }
+  }, [searchTerm, debouncedSearchTerm]);
 
   // Cast the sales array to the correct type since we know the backend returns customer details
   const typedSales = sales as unknown as SaleWithCustomerDetails[];
@@ -174,9 +203,7 @@ export default function SalesHistory() {
         label: "Refunded",
       },
     };
-
     const config = statusConfig[status];
-
     return <Badge className={`${config.color}`}>{config.label}</Badge>;
   };
 
@@ -206,22 +233,17 @@ export default function SalesHistory() {
   };
 
   const handleViewSale = (sale: SaleWithCustomerDetails) => {
-    console.log("Viewing sale:", sale);
     setSelectedOrder(sale);
   };
 
   const handleDeleteSaleClick = (sale: SaleWithCustomerDetails) => {
-    console.log("Delete sale clicked:", sale);
     setSaleToDelete(sale);
   };
 
   const handleDeleteSale = async () => {
     if (!saleToDelete?.id) {
-      console.error("No sale selected for deletion");
       return;
     }
-
-    console.log("Deleting sale:", saleToDelete);
     try {
       await deleteSale(saleToDelete.id);
       toast({
@@ -230,7 +252,6 @@ export default function SalesHistory() {
       });
       setSaleToDelete(null);
     } catch (error) {
-      console.error("Error deleting sale:", error);
       toast({
         title: "Error",
         description: "Failed to delete sale. Please try again.",
@@ -240,20 +261,20 @@ export default function SalesHistory() {
   };
 
   const handleDeleteAllClick = () => {
-    console.log("Delete all clicked");
     setShowDeleteAllDialog(true);
   };
 
   const handleBulkDelete = async () => {
-    console.log("Bulk delete triggered");
     try {
-      console.log("Calling deleteAllSales");
       await deleteAllSales();
-      console.log("Delete all successful");
       setShowDeleteAllDialog(false);
     } catch (error) {
       console.error("Error in delete all:", error);
     }
+  };
+
+  const clearSearch = () => {
+    setSearchTerm("");
   };
 
   const totalPages = Math.ceil((pagination?.count || 0) / pageSize);
@@ -294,10 +315,8 @@ export default function SalesHistory() {
   }
 
   function handleReport() {
-    // Generate PDF using jsPDF
     const doc = new jsPDF();
     doc.text("Sales Report", 14, 16);
-    // Prepare table data
     const tableColumn = [
       "Invoice Number",
       "Customer Name",
@@ -327,25 +346,59 @@ export default function SalesHistory() {
     doc.save(`sales_report_${Date.now()}.pdf`);
   }
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
-        <div className="animate-pulse space-y-8">
-          <div className="h-12 bg-gray-200 rounded w-1/4"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded"></div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Loading skeleton for table rows
+  const TableSkeleton = () => (
+    <>
+      {[...Array(pageSize)].map((_, i) => (
+        <TableRow key={i} className="border-gray-100">
+          <TableCell>
+            <Skeleton className="h-4 w-20" />
+          </TableCell>
+          <TableCell>
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-3 w-24" />
+            </div>
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-4 w-24" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-6 w-16" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-6 w-20" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-4 w-16" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-4 w-16" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-6 w-20" />
+          </TableCell>
+          <TableCell>
+            <Skeleton className="h-8 w-8" />
+          </TableCell>
+        </TableRow>
+      ))}
+    </>
+  );
 
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-6">
-        <div className="text-red-500">Error loading sales history</div>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center space-y-4">
+            <div className="text-red-500 text-lg font-medium">
+              Error loading sales history
+            </div>
+            <Button onClick={() => window.location.reload()} variant="outline">
+              Try Again
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -353,7 +406,7 @@ export default function SalesHistory() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="p-6 space-y-8">
-        {/* Header */}
+        {/* Header - Always visible */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div className="space-y-2">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
@@ -368,6 +421,7 @@ export default function SalesHistory() {
               variant="outline"
               className="bg-white border-gray-200 shadow-sm hover:bg-gray-50"
               onClick={handleExport}
+              disabled={isLoading}
             >
               <Download className="w-4 h-4 mr-2" />
               Export Data
@@ -376,6 +430,7 @@ export default function SalesHistory() {
             <Button
               className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
               onClick={handleReport}
+              disabled={isLoading}
             >
               <FileText className="w-4 h-4 mr-2" />
               Generate Report
@@ -384,14 +439,19 @@ export default function SalesHistory() {
               variant="destructive"
               className="bg-red-600 hover:bg-red-700 shadow-lg flex items-center"
               onClick={handleDeleteAllClick}
+              disabled={isLoading || isDeletingAll}
             >
-              <Trash2 className="w-4 h-4 mr-2" />
+              {isDeletingAll ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="w-4 h-4 mr-2" />
+              )}
               Delete All
             </Button>
           </div>
         </div>
 
-        {/* Filters */}
+        {/* Filters - Always visible */}
         <Card className="bg-white border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex flex-col lg:flex-row gap-4">
@@ -402,15 +462,48 @@ export default function SalesHistory() {
                     placeholder="Search by invoice, customer name, or phone..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 h-12 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                    className="pl-10 pr-10 h-12 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
                   />
+                  {/* Search indicators */}
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                    {isSearching && (
+                      <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+                    )}
+                    {searchTerm && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearSearch}
+                        className="h-6 w-6 p-0 hover:bg-gray-200"
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
+                {/* Search results indicator */}
+                {debouncedSearchTerm && (
+                  <div className="mt-2 text-sm text-gray-600">
+                    {isLoading ? (
+                      <span className="flex items-center gap-2">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Searching...
+                      </span>
+                    ) : (
+                      <span>
+                        Found {pagination?.count || 0} results for "
+                        {debouncedSearchTerm}"
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
               <Select
                 value={statusFilter}
                 onValueChange={(value: SaleStatus | "all") =>
                   setStatusFilter(value)
                 }
+                disabled={isLoading}
               >
                 <SelectTrigger className="w-48 h-12 bg-gray-50 border-gray-200">
                   <SelectValue placeholder="Filter by Status" />
@@ -428,6 +521,7 @@ export default function SalesHistory() {
                 onValueChange={(value: PaymentMethod | "all") =>
                   setPaymentFilter(value)
                 }
+                disabled={isLoading}
               >
                 <SelectTrigger className="w-48 h-12 bg-gray-50 border-gray-200">
                   <SelectValue placeholder="Payment Method" />
@@ -443,6 +537,7 @@ export default function SalesHistory() {
               <Button
                 variant="outline"
                 className="h-12 px-6 bg-gray-50 border-gray-200 hover:bg-gray-100"
+                disabled={isLoading}
               >
                 <Filter className="w-4 h-4 mr-2" />
                 More Filters
@@ -460,13 +555,25 @@ export default function SalesHistory() {
                   Transaction History
                 </CardTitle>
                 <CardDescription className="text-gray-600">
-                  Showing {sales.length} of {pagination?.count || 0}{" "}
-                  transactions
+                  {isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Loading transactions...
+                    </span>
+                  ) : (
+                    `Showing ${sales.length} of ${
+                      pagination?.count || 0
+                    } transactions`
+                  )}
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500">Sort by:</span>
-                <Select value={sortBy} onValueChange={setSortBy}>
+                <Select
+                  value={sortBy}
+                  onValueChange={setSortBy}
+                  disabled={isLoading}
+                >
                   <SelectTrigger className="w-32">
                     <SelectValue />
                   </SelectTrigger>
@@ -489,6 +596,7 @@ export default function SalesHistory() {
                         variant="ghost"
                         onClick={() => handleSort("invoice_number")}
                         className="h-auto p-0 font-semibold text-gray-700 hover:text-gray-900"
+                        disabled={isLoading}
                       >
                         Invoice
                         <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -499,6 +607,7 @@ export default function SalesHistory() {
                         variant="ghost"
                         onClick={() => handleSort("customer")}
                         className="h-auto p-0 font-semibold text-gray-700 hover:text-gray-900"
+                        disabled={isLoading}
                       >
                         Customer
                         <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -509,6 +618,7 @@ export default function SalesHistory() {
                         variant="ghost"
                         onClick={() => handleSort("date")}
                         className="h-auto p-0 font-semibold text-gray-700 hover:text-gray-900"
+                        disabled={isLoading}
                       >
                         Date
                         <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -525,6 +635,7 @@ export default function SalesHistory() {
                         variant="ghost"
                         onClick={() => handleSort("total")}
                         className="h-auto p-0 font-semibold text-gray-700 hover:text-gray-900"
+                        disabled={isLoading}
                       >
                         Total
                         <ArrowUpDown className="ml-2 h-4 w-4" />
@@ -542,80 +653,99 @@ export default function SalesHistory() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {typedSales.map((sale) => (
-                    <TableRow
-                      key={sale.id}
-                      className="hover:bg-gray-50 transition-colors border-gray-100"
-                    >
-                      <TableCell className="font-medium text-blue-600">
-                        {sale.invoice_number}
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="font-medium text-gray-900">
-                            {sale.customer
-                              ? `${sale.customer.first_name} ${sale.customer.last_name}`
-                              : "Guest"}
+                  {isLoading ? (
+                    <TableSkeleton />
+                  ) : typedSales.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={9} className="text-center py-12">
+                        <div className="space-y-3">
+                          <div className="text-gray-500 text-lg">
+                            No sales found
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {sale.customer_phone || sale.customer?.phone}
-                          </div>
+                          {debouncedSearchTerm && (
+                            <div className="text-sm text-gray-400">
+                              Try adjusting your search terms or filters
+                            </div>
+                          )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm text-gray-600">
-                        {formatDate(sale.date)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className="bg-blue-50 text-blue-700 border-blue-200"
-                        >
-                          {sale.items?.length || 0} item
-                          {sale.items?.length !== 1 ? "s" : ""}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className="capitalize text-gray-700 bg-gray-100 px-2 py-1 rounded-md text-sm">
-                          {sale.payment_method}
-                        </span>
-                      </TableCell>
-                      <TableCell className="font-semibold text-gray-900">
-                        ${Number(sale.total).toFixed(2)}
-                      </TableCell>
-                      <TableCell className="font-semibold text-emerald-600">
-                        ${Number(sale.total_profit || 0).toFixed(2)}
-                      </TableCell>
-                      <TableCell>
-                        {sale.status && getStatusBadge(sale.status)}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <span className="sr-only">Open menu</span>
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => handleViewSale(sale)}
-                              className="cursor-pointer"
-                            >
-                              <Eye className="w-4 h-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDeleteSaleClick(sale)}
-                              className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete Sale
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    typedSales.map((sale) => (
+                      <TableRow
+                        key={sale.id}
+                        className="hover:bg-gray-50 transition-colors border-gray-100"
+                      >
+                        <TableCell className="font-medium text-blue-600">
+                          {sale.invoice_number}
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="font-medium text-gray-900">
+                              {sale.customer
+                                ? `${sale.customer.first_name} ${sale.customer.last_name}`
+                                : "Guest"}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {sale.customer_phone || sale.customer?.phone}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-600">
+                          {formatDate(sale.date)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className="bg-blue-50 text-blue-700 border-blue-200"
+                          >
+                            {sale.items?.length || 0} item
+                            {sale.items?.length !== 1 ? "s" : ""}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className="capitalize text-gray-700 bg-gray-100 px-2 py-1 rounded-md text-sm">
+                            {sale.payment_method}
+                          </span>
+                        </TableCell>
+                        <TableCell className="font-semibold text-gray-900">
+                          ${Number(sale.total).toFixed(2)}
+                        </TableCell>
+                        <TableCell className="font-semibold text-emerald-600">
+                          ${Number(sale.total_profit || 0).toFixed(2)}
+                        </TableCell>
+                        <TableCell>
+                          {sale.status && getStatusBadge(sale.status)}
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <span className="sr-only">Open menu</span>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => handleViewSale(sale)}
+                                className="cursor-pointer"
+                              >
+                                <Eye className="w-4 h-4 mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteSaleClick(sale)}
+                                className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete Sale
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -630,6 +760,7 @@ export default function SalesHistory() {
                     setPageSize(Number(value));
                     setPage(1);
                   }}
+                  disabled={isLoading}
                 >
                   <SelectTrigger className="w-20">
                     <SelectValue />
@@ -648,19 +779,19 @@ export default function SalesHistory() {
                     <PaginationPrevious
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
                       className={
-                        page === 1 ? "pointer-events-none opacity-50" : ""
+                        page === 1 || isLoading
+                          ? "pointer-events-none opacity-50"
+                          : ""
                       }
                     />
                   </PaginationItem>
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
                     .filter((p) => {
-                      // Show first page, last page, current page, and pages around current page
                       return (
                         p === 1 || p === totalPages || Math.abs(p - page) <= 1
                       );
                     })
                     .map((p, i, arr) => {
-                      // Add ellipsis if there are gaps
                       if (i > 0 && p - arr[i - 1] > 1) {
                         return (
                           <React.Fragment key={`ellipsis-${p}`}>
@@ -695,7 +826,7 @@ export default function SalesHistory() {
                         setPage((p) => Math.min(totalPages, p + 1))
                       }
                       className={
-                        page === totalPages
+                        page === totalPages || isLoading
                           ? "pointer-events-none opacity-50"
                           : ""
                       }
@@ -712,7 +843,6 @@ export default function SalesHistory() {
       <AlertDialog
         open={!!saleToDelete}
         onOpenChange={(open) => {
-          console.log("Delete dialog open state changed:", open);
           if (!open) setSaleToDelete(null);
         }}
       >
@@ -732,7 +862,14 @@ export default function SalesHistory() {
               className="bg-red-600 hover:bg-red-700"
               disabled={isDeleting}
             >
-              {isDeleting ? "Deleting..." : "Delete Sale"}
+              {isDeleting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Sale"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -741,10 +878,7 @@ export default function SalesHistory() {
       {/* Delete All Dialog */}
       <AlertDialog
         open={showDeleteAllDialog}
-        onOpenChange={(open) => {
-          console.log("Delete dialog open state changed:", open);
-          setShowDeleteAllDialog(open);
-        }}
+        onOpenChange={setShowDeleteAllDialog}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -762,7 +896,14 @@ export default function SalesHistory() {
               className="bg-red-600 hover:bg-red-700"
               disabled={isDeletingAll}
             >
-              {isDeletingAll ? "Deleting..." : "Delete All Sales"}
+              {isDeletingAll ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete All Sales"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -773,21 +914,9 @@ export default function SalesHistory() {
         <Dialog
           open={!!selectedOrder}
           onOpenChange={(open) => {
-            console.log("Dialog open state changed:", open);
             if (!open) setSelectedOrder(null);
           }}
         >
-          <DialogTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSelectedOrder(null)}
-              className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600"
-            >
-              <span className="sr-only">Close</span>
-              <Eye className="w-4 h-4" />
-            </Button>
-          </DialogTrigger>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl font-semibold">

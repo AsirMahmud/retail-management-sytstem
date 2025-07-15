@@ -84,47 +84,45 @@ class Sale(models.Model):
         # Calculate total item discounts
         total_item_discounts = sum(item.discount for item in items)
         
-        # Calculate total after item discounts
+        # Calculate total after item discounts but before global discount
         total_after_item_discounts = self.subtotal - total_item_discounts
         
-        # Apply global discount if exists
-        if self.discount > 0:
-            # Calculate the proportion of global discount to apply to each item
-            global_discount_ratio = self.discount / total_after_item_discounts if total_after_item_discounts > 0 else 0
-            
-            # Calculate profit/loss for each item considering both item and global discounts
-            total_profit = Decimal('0.00')
-            total_loss = Decimal('0.00')
-            
-            for item in items:
-                # Calculate item's share of global discount
-                item_global_discount = (item.unit_price * item.quantity - item.discount) * global_discount_ratio
-                
-                # Calculate total discount for this item (item discount + share of global discount)
-                total_item_discount = item.discount + item_global_discount
-                
-                # Calculate selling price after all discounts
-                selling_price = item.unit_price * item.quantity - total_item_discount
-                
-                # Calculate cost
-                cost = item.product.cost_price * item.quantity if item.product.cost_price else Decimal('0.00')
-                
-                # Calculate profit/loss
-                difference = selling_price - cost
-                
-                if difference >= 0:
-                    total_profit += difference
-                else:
-                    total_loss += abs(difference)
-        else:
-            # If no global discount, calculate profit/loss normally
-            total_profit = sum(item.profit for item in items)
-            total_loss = sum(item.loss for item in items)
+        # Calculate final total (subtotal - item discounts - global discount + tax)
+        self.total = total_after_item_discounts - self.discount + self.tax
         
-        # Set the final totals
+        # Calculate profit/loss for the entire sale
+        total_profit = Decimal('0.00')
+        total_loss = Decimal('0.00')
+        
+        for item in items:
+            # Get the cost price for this item
+            cost_per_unit = item.product.cost_price if item.product.cost_price else Decimal('0.00')
+            total_cost = cost_per_unit * item.quantity
+            
+            # Calculate selling price after item discount
+            selling_price_after_item_discount = (item.unit_price * item.quantity) - item.discount
+            
+            # Calculate this item's proportion of the total for global discount allocation
+            if total_after_item_discounts > 0:
+                item_proportion = selling_price_after_item_discount / total_after_item_discounts
+                item_global_discount = self.discount * item_proportion
+            else:
+                item_global_discount = Decimal('0.00')
+            
+            # Calculate final selling price after all discounts
+            final_selling_price = selling_price_after_item_discount - item_global_discount
+            
+            # Calculate profit/loss for this item
+            profit_loss = final_selling_price - total_cost
+            
+            if profit_loss >= 0:
+                total_profit += profit_loss
+            else:
+                total_loss += abs(profit_loss)
+        
+        # Set the calculated totals
         self.total_profit = total_profit
         self.total_loss = total_loss
-        self.total = self.subtotal - total_item_discounts - self.discount
         
         # Save the updated totals
         self.save(update_fields=['subtotal', 'total', 'total_profit', 'total_loss'])
@@ -189,32 +187,42 @@ class SaleItem(models.Model):
         # Calculate total before saving (with discount)
         self.total = (self.quantity * self.unit_price) - self.discount
         
-        # Calculate profit and loss
+        # Calculate basic profit and loss (without global discount)
+        # Global discount is handled in Sale.calculate_totals()
         self.profit, self.loss = self.calculate_profit_loss()
         
+        super().save(*args, **kwargs)
+        
         # Create stock movement record and update stock when sale is completed
-        if self.sale.status == 'completed':
+        if self.sale and self.sale.status == 'completed':
             variation = self.get_variation()
             if variation:
-                # Create stock movement record
-                StockMovement.objects.create(
+                # Check if stock movement already exists to avoid duplicates
+                existing_movement = StockMovement.objects.filter(
                     product=self.product,
                     variation=variation,
-                    movement_type='OUT',
-                    quantity=self.quantity,
                     reference_number=self.sale.invoice_number,
-                    notes=f"Sale item from {self.sale.invoice_number}"
-                )
+                    movement_type='OUT'
+                ).first()
                 
-                # Update variation stock
-                variation.stock -= self.quantity
-                variation.save()
-                
-                # Update product stock
-                self.product.stock_quantity -= self.quantity
-                self.product.save()
-        
-        super().save(*args, **kwargs)
+                if not existing_movement:
+                    # Create stock movement record
+                    StockMovement.objects.create(
+                        product=self.product,
+                        variation=variation,
+                        movement_type='OUT',
+                        quantity=self.quantity,
+                        reference_number=self.sale.invoice_number,
+                        notes=f"Sale item from {self.sale.invoice_number}"
+                    )
+                    
+                    # Update variation stock
+                    variation.stock -= self.quantity
+                    variation.save()
+                    
+                    # Update product stock
+                    self.product.stock_quantity -= self.quantity
+                    self.product.save()
         
         # Update sale totals after saving the item
         if self.sale:

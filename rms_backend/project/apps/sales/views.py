@@ -23,7 +23,7 @@ class SaleViewSet(viewsets.ModelViewSet):
     queryset = Sale.objects.all()
     serializer_class = SaleSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['invoice_number', 'customer__name', 'customer_phone', 'staff__username']
+    search_fields = ['invoice_number', 'customer__first_name', 'customer__last_name', 'customer_phone', 'notes']
     ordering_fields = ['date', 'total', 'status']
     ordering = ['-date']
     pagination_class = StandardResultsSetPagination
@@ -133,93 +133,103 @@ class SaleViewSet(viewsets.ModelViewSet):
         start_of_month = today.replace(day=1)
 
         # Get filters from query params
-        status = request.query_params.get('status')
+        status_filter = request.query_params.get('status', 'completed')
         payment_method = request.query_params.get('payment_method')
         customer_phone = request.query_params.get('customer_phone')
         start_date = request.query_params.get('start_date')
         end_date = request.query_params.get('end_date')
         period = request.query_params.get('period', '7d')
 
-        # Helper to build filtered SaleItem queryset
-        def filtered_saleitems(base_qs=None, date_field='sale__date__date', date_from=None, date_to=None):
-            qs = base_qs if base_qs is not None else SaleItem.objects.all()
-            if status:
-                qs = qs.filter(sale__status=status)
-            else:
-                qs = qs.filter(sale__status='completed')
+        # Helper to build filtered Sale queryset
+        def filtered_sales(date_from=None, date_to=None):
+            qs = Sale.objects.filter(status=status_filter)
+            
             if payment_method:
-                qs = qs.filter(sale__payment_method=payment_method)
+                qs = qs.filter(payment_method=payment_method)
             if customer_phone:
-                qs = qs.filter(sale__customer_phone=customer_phone)
+                qs = qs.filter(customer_phone=customer_phone)
             if date_from and date_to:
-                kwargs = {f"{date_field}__range": [date_from, date_to]}
-                qs = qs.filter(**kwargs)
+                qs = qs.filter(date__date__range=[date_from, date_to])
             return qs
 
         # Today's sales
-        today_sales = filtered_saleitems(date_from=today, date_to=today).aggregate(
+        today_sales_qs = filtered_sales(date_from=today, date_to=today)
+        today_sales = today_sales_qs.aggregate(
             total_sales=Sum('total'),
-            total_transactions=Count('sale', distinct=True),
-            total_profit=Sum('profit'),
-            total_customers=Count('sale__customer', distinct=True),
-            total_loss=Sum('sale__total_loss'),
-            average_transaction_value=Avg('sale__total'),
-            total_discount=Sum('sale__discount')
+            total_transactions=Count('id'),
+            total_profit=Sum('total_profit'),
+            total_loss=Sum('total_loss'),
+            total_discount=Sum('discount'),
+            average_transaction_value=Avg('total')
         )
+        
+        # Count unique customers for today
+        today_customers = today_sales_qs.values('customer').distinct().count()
+        today_sales['total_customers'] = today_customers
 
         # Monthly sales
-        monthly_sales = filtered_saleitems(date_from=start_of_month, date_to=today).aggregate(
+        monthly_sales_qs = filtered_sales(date_from=start_of_month, date_to=today)
+        monthly_sales = monthly_sales_qs.aggregate(
             total_sales=Sum('total'),
-            total_transactions=Count('sale', distinct=True),
-            total_profit=Sum('profit'),
-            total_customers=Count('sale__customer', distinct=True),
-            total_loss=Sum('sale__total_loss'),
-            average_transaction_value=Avg('sale__total'),
-            total_discount=Sum('sale__discount')
+            total_transactions=Count('id'),
+            total_profit=Sum('total_profit'),
+            total_loss=Sum('total_loss'),
+            total_discount=Sum('discount'),
+            average_transaction_value=Avg('total')
         )
+        
+        # Count unique customers for month
+        monthly_customers = monthly_sales_qs.values('customer').distinct().count()
+        monthly_sales['total_customers'] = monthly_customers
 
         # Customer analytics
         customer_analytics = {
             'new_customers_today': Customer.objects.filter(
                 created_at__date=today
             ).count(),
-            'active_customers_today': filtered_saleitems(date_from=today, date_to=today).values('sale__customer').distinct().count(),
+            'active_customers_today': today_customers,
             'customer_retention_rate': self._calculate_customer_retention_rate(),
-            'top_customers': filtered_saleitems(date_from=start_of_month, date_to=today).values(
-                'sale__customer__first_name',
-                'sale__customer__last_name',
-                'sale__customer__phone'
+            'top_customers': monthly_sales_qs.values(
+                'customer__first_name',
+                'customer__last_name',
+                'customer__phone'
             ).annotate(
-                total_spent=Sum('sale__total'),
-                visit_count=Count('sale', distinct=True)
+                total_spent=Sum('total'),
+                visit_count=Count('id')
             ).order_by('-total_spent')[:5]
         }
+        
+        # Clean up customer names
         for customer in customer_analytics['top_customers']:
-            customer['customer__name'] = f"{customer['sale__customer__first_name']} {customer['sale__customer__last_name']}".strip()
-            del customer['sale__customer__first_name']
-            del customer['sale__customer__last_name']
+            first_name = customer.get('customer__first_name', '') or ''
+            last_name = customer.get('customer__last_name', '') or ''
+            customer['customer_name'] = f"{first_name} {last_name}".strip()
+            customer.pop('customer__first_name', None)
+            customer.pop('customer__last_name', None)
 
         # Payment method distribution
-        payment_method_distribution = filtered_saleitems(date_from=start_of_month, date_to=today).values('sale__payment_method').annotate(
-            count=Count('sale', distinct=True),
-            total=Sum('sale__total')
+        payment_method_distribution = monthly_sales_qs.values('payment_method').annotate(
+            count=Count('id'),
+            total=Sum('total')
         ).order_by('-total')
 
-        # Sales by hour distribution
+        # Sales by hour distribution for today
         sales_by_hour = []
         for hour in range(24):
-            hour_sales = filtered_saleitems(date_from=today, date_to=today).filter(sale__date__hour=hour).aggregate(
-                count=Count('sale', distinct=True),
-                total=Sum('sale__total')
+            hour_sales = today_sales_qs.filter(date__hour=hour).aggregate(
+                count=Count('id'),
+                total=Sum('total')
             )
             sales_by_hour.append({
                 'hour': hour,
                 'count': hour_sales['count'] or 0,
-                'total': hour_sales['total'] or 0
+                'total': float(hour_sales['total'] or 0)
             })
 
-        # Top selling products
-        top_products = filtered_saleitems(date_from=start_of_month, date_to=today).values(
+        # Top selling products this month
+        top_products = SaleItem.objects.filter(
+            sale__in=monthly_sales_qs
+        ).values(
             'product__name'
         ).annotate(
             total_quantity=Sum('quantity'),
@@ -229,7 +239,12 @@ class SaleViewSet(viewsets.ModelViewSet):
 
         # Sales trend data
         if start_date and end_date:
-            trend_from, trend_to = start_date, end_date
+            try:
+                trend_from = datetime.strptime(start_date, '%Y-%m-%d').date()
+                trend_to = datetime.strptime(end_date, '%Y-%m-%d').date()
+            except ValueError:
+                trend_from = today - timedelta(days=7)
+                trend_to = today
         else:
             if period == '7d':
                 trend_from = today - timedelta(days=7)
@@ -240,78 +255,74 @@ class SaleViewSet(viewsets.ModelViewSet):
             else:
                 trend_from = today - timedelta(days=7)
             trend_to = today
-        sales_trend = filtered_saleitems(date_from=trend_from, date_to=trend_to).values('sale__date__date').annotate(
-            sales=Sum('sale__total'),
-            profit=Sum('profit'),
-            orders=Count('sale', distinct=True)
-        ).order_by('sale__date__date')
-
-        # Sales distribution by category
-        sales_distribution = filtered_saleitems(date_from=start_of_month, date_to=today).values(
-            'product__category__name'
+            
+        sales_trend = filtered_sales(date_from=trend_from, date_to=trend_to).values(
+            'date__date'
         ).annotate(
-            value=Sum('total'),
-            profit=Sum('profit')
-        ).order_by('-value')
+            sales=Sum('total'),
+            profit=Sum('total_profit'),
+            orders=Count('id')
+        ).order_by('date__date')
 
-        # Category distribution (not filtered)
-        category_distribution = Category.objects.annotate(
-            product_count=Count('products'),
-            total_value=Sum(F('products__stock_quantity') * F('products__cost_price'))
-        ).values('name', 'product_count', 'total_value')
+        # Convert Decimal values to float for JSON serialization
+        def convert_decimals(data):
+            if isinstance(data, dict):
+                return {k: convert_decimals(v) for k, v in data.items()}
+            elif isinstance(data, list):
+                return [convert_decimals(item) for item in data]
+            elif hasattr(data, '_meta') and hasattr(data._meta, 'get_field'):
+                # This is a model instance, convert to dict
+                return {field.name: convert_decimals(getattr(data, field.name)) for field in data._meta.fields}
+            elif str(type(data)) == "<class 'decimal.Decimal'>":
+                return float(data) if data is not None else 0.0
+            else:
+                return data
 
-        # Recent alerts (not filtered)
-        recent_alerts = InventoryAlert.objects.filter(
-            is_active=True
-        ).order_by('-created_at')[:5]
-
-        # Stock movement trends (not filtered)
-        movement_trends = StockMovement.objects.filter(
-            created_at__date__gte=trend_from,
-            created_at__date__lte=trend_to
-        ).values('created_at__date').annotate(
-            stock_in=Sum('quantity', filter=Q(movement_type='IN')),
-            stock_out=Sum('quantity', filter=Q(movement_type='OUT'))
-        ).order_by('created_at__date')
-
-        return Response({
-            'today': today_sales,
-            'monthly': monthly_sales,
-            'customer_analytics': customer_analytics,
-            'payment_method_distribution': list(payment_method_distribution),
+        # Clean and return response
+        response_data = {
+            'today': convert_decimals(today_sales),
+            'monthly': convert_decimals(monthly_sales),
+            'customer_analytics': convert_decimals(customer_analytics),
+            'payment_method_distribution': convert_decimals(list(payment_method_distribution)),
             'sales_by_hour': sales_by_hour,
-            'top_products': list(top_products),
-            'sales_trend': list(sales_trend),
-            'sales_distribution': list(sales_distribution),
-            'category_distribution': list(category_distribution),
-            'recent_alerts': list(recent_alerts),
-            'movement_trends': list(movement_trends)
-        })
+            'top_products': convert_decimals(list(top_products)),
+            'sales_trend': convert_decimals(list(sales_trend))
+        }
+
+        return Response(response_data)
 
     def _calculate_customer_retention_rate(self):
-        """Calculate customer retention rate for the current month"""
-        today = timezone.now().date()
-        start_of_month = today.replace(day=1)
-        
-        # Get total customers from previous month
-        last_month_start = (start_of_month - timedelta(days=1)).replace(day=1)
-        last_month_end = start_of_month - timedelta(days=1)
-        
-        previous_month_customers = Sale.objects.filter(
-            date__date__range=[last_month_start, last_month_end],
-            status='completed'
-        ).values('customer').distinct().count()
-        
-        if previous_month_customers == 0:
-            return 0
-        
-        # Get returning customers this month
-        returning_customers = Sale.objects.filter(
-            date__date__gte=start_of_month,
-            status='completed'
-        ).values('customer').distinct().count()
-        
-        return (returning_customers / previous_month_customers) * 100
+        """Calculate customer retention rate (customers who made purchases in both last month and this month)"""
+        try:
+            today = timezone.now().date()
+            current_month_start = today.replace(day=1)
+            last_month_end = current_month_start - timedelta(days=1)
+            last_month_start = last_month_end.replace(day=1)
+            
+            # Get customers who made purchases last month
+            last_month_customers = set(Sale.objects.filter(
+                date__date__range=[last_month_start, last_month_end],
+                status='completed',
+                customer__isnull=False
+            ).values_list('customer_id', flat=True))
+            
+            # Get customers who made purchases this month
+            current_month_customers = set(Sale.objects.filter(
+                date__date__range=[current_month_start, today],
+                status='completed',
+                customer__isnull=False
+            ).values_list('customer_id', flat=True))
+            
+            # Calculate retention rate
+            if len(last_month_customers) == 0:
+                return 0.0
+                
+            retained_customers = len(last_month_customers.intersection(current_month_customers))
+            retention_rate = (retained_customers / len(last_month_customers)) * 100
+            
+            return round(retention_rate, 2)
+        except Exception:
+            return 0.0
 
     @transaction.atomic
     def destroy(self, request, *args, **kwargs):

@@ -20,7 +20,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
 } from "recharts";
 import {
   DollarSign,
@@ -35,7 +34,6 @@ import {
   TrendingDown,
   RefreshCw,
   Calendar,
-  Clock,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useDashboard } from "@/hooks/queries/use-dashboard";
@@ -52,6 +50,8 @@ const COLORS = [
   "#FF8042",
   "#8884d8",
   "#82ca9d",
+  "#ffc658",
+  "#ff7300",
 ];
 
 const container = {
@@ -87,7 +87,7 @@ function DashboardContent() {
             <Skeleton className="h-10 w-32" />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[...Array(4)].map((_, i) => (
+            {[...Array(6)].map((_, i) => (
               <Skeleton key={i} className="h-32" />
             ))}
           </div>
@@ -127,7 +127,10 @@ function DashboardContent() {
     today: {
       sales: stats.today?.sales || 0,
       expenses: stats.today?.expenses || 0,
-      profit: stats.today?.profit || 0,
+    },
+    monthly: {
+      sales: stats.monthly?.sales || 0,
+      expenses: stats.monthly?.expenses || 0,
     },
     counts: {
       customers: stats.counts?.customers || 0,
@@ -140,7 +143,7 @@ function DashboardContent() {
       : [],
     top_products: Array.isArray(stats.top_products) ? stats.top_products : [],
     expense_categories: Array.isArray(stats.expense_categories)
-      ? stats.expense_categories
+      ? stats.expense_categories.filter((cat) => cat.amount !== null)
       : [],
     low_stock_items: Array.isArray(stats.low_stock_items)
       ? stats.low_stock_items
@@ -166,10 +169,10 @@ function DashboardContent() {
               </div>
               <div>
                 <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                  Dashboard
+                  Business Dashboard
                 </h1>
                 <p className="text-gray-600 mt-1">
-                  Overview of your retail management system
+                  Complete overview of your business performance
                 </p>
               </div>
             </div>
@@ -184,7 +187,7 @@ function DashboardContent() {
           </div>
         </motion.div>
 
-        {/* Key Metrics */}
+        {/* Key Metrics - Today's and Monthly Overview */}
         <motion.div
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
           variants={item}
@@ -209,12 +212,78 @@ function DashboardContent() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-indigo-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+          <Card className="bg-gradient-to-br from-purple-50 to-violet-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700">
+                Today's Expenses
+              </CardTitle>
+              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-violet-500 rounded-full flex items-center justify-center">
+                <TrendingDown className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">
+                {formatCurrency(safeStats.today.expenses)}
+              </div>
+              <div className="flex items-center text-xs text-purple-600 font-medium mt-1">
+                <ArrowDownRight className="h-4 w-4 mr-1" />
+                <span>Today's expenses</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-emerald-50 to-green-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700">
+                Monthly Sales
+              </CardTitle>
+              <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full flex items-center justify-center">
+                <DollarSign className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">
+                {formatCurrency(safeStats.monthly.sales)}
+              </div>
+              <div className="flex items-center text-xs text-emerald-600 font-medium mt-1">
+                <ArrowUpRight className="h-4 w-4 mr-1" />
+                <span>Total revenue</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-red-50 to-pink-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700">
+                Monthly Expenses
+              </CardTitle>
+              <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center">
+                <TrendingDown className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">
+                {formatCurrency(safeStats.monthly.expenses)}
+              </div>
+              <div className="flex items-center text-xs text-red-600 font-medium mt-1">
+                <ArrowDownRight className="h-4 w-4 mr-1" />
+                <span>Total expenses</span>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Business Counts */}
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+          variants={item}
+        >
+          <Card className="bg-gradient-to-br from-orange-50 to-amber-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-700">
                 Total Customers
               </CardTitle>
-              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center">
                 <Users className="h-5 w-5 text-white" />
               </div>
             </CardHeader>
@@ -222,18 +291,18 @@ function DashboardContent() {
               <div className="text-3xl font-bold text-gray-900">
                 {safeStats.counts.customers}
               </div>
-              <div className="flex items-center text-xs text-purple-600 font-medium mt-1">
+              <div className="flex items-center text-xs text-orange-600 font-medium mt-1">
                 <span>Registered customers</span>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-orange-50 to-amber-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+          <Card className="bg-gradient-to-br from-teal-50 to-cyan-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-700">
                 Total Products
               </CardTitle>
-              <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-teal-500 to-cyan-500 rounded-full flex items-center justify-center">
                 <Package className="h-5 w-5 text-white" />
               </div>
             </CardHeader>
@@ -241,14 +310,33 @@ function DashboardContent() {
               <div className="text-3xl font-bold text-gray-900">
                 {safeStats.counts.products}
               </div>
-              <div className="flex items-center text-xs text-orange-600 font-medium mt-1">
+              <div className="flex items-center text-xs text-teal-600 font-medium mt-1">
                 <span>Active products</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-slate-50 to-gray-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-700">
+                Total Suppliers
+              </CardTitle>
+              <div className="w-10 h-10 bg-gradient-to-r from-slate-500 to-gray-500 rounded-full flex items-center justify-center">
+                <Truck className="h-5 w-5 text-white" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">
+                {safeStats.counts.suppliers}
+              </div>
+              <div className="flex items-center text-xs text-slate-600 font-medium mt-1">
+                <span>Active suppliers</span>
               </div>
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Charts Row 1 */}
+        {/* Charts Row 1 - Sales vs Expenses */}
         <motion.div
           className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8"
           variants={item}
@@ -261,9 +349,7 @@ function DashboardContent() {
                   <CardTitle className="text-lg font-semibold text-slate-900">
                     Sales Trend
                   </CardTitle>
-                  <CardDescription>
-                    Daily sales over the last 30 days
-                  </CardDescription>
+                  <CardDescription>Daily sales over time</CardDescription>
                 </div>
                 <Calendar className="h-5 w-5 text-slate-400" />
               </div>
@@ -272,19 +358,27 @@ function DashboardContent() {
               <div className="h-[300px]">
                 {safeStats.sales_trend.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={safeStats.sales_trend}>
+                    <BarChart data={safeStats.sales_trend}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                       <XAxis
-                        dataKey="sale__date__date"
+                        dataKey="date__date"
                         stroke="#64748b"
                         fontSize={12}
                         tickFormatter={(value) =>
-                          value ? new Date(value).toLocaleDateString() : ""
+                          value
+                            ? new Date(value).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                              })
+                            : ""
                         }
                       />
                       <YAxis stroke="#64748b" fontSize={12} />
                       <Tooltip
-                        formatter={(value) => formatCurrency(value as number)}
+                        formatter={(value) => [
+                          formatCurrency(value as number),
+                          "Sales",
+                        ]}
                         labelFormatter={(label) =>
                           label ? new Date(label).toLocaleDateString() : ""
                         }
@@ -295,19 +389,13 @@ function DashboardContent() {
                           boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                         }}
                       />
-                      <Line
-                        type="monotone"
+                      <Bar
                         dataKey="total"
-                        stroke="#3b82f6"
-                        strokeWidth={2}
-                        dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
-                        activeDot={{
-                          r: 6,
-                          stroke: "#3b82f6",
-                          strokeWidth: 2,
-                        }}
+                        fill="#3b82f6"
+                        name="Sales"
+                        radius={[4, 4, 0, 0]}
                       />
-                    </LineChart>
+                    </BarChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="flex items-center justify-center h-full text-gray-500">
@@ -326,9 +414,7 @@ function DashboardContent() {
                   <CardTitle className="text-lg font-semibold text-slate-900">
                     Expense Trend
                   </CardTitle>
-                  <CardDescription>
-                    Daily expenses over the last 30 days
-                  </CardDescription>
+                  <CardDescription>Daily expenses over time</CardDescription>
                 </div>
                 <TrendingDown className="h-5 w-5 text-red-400" />
               </div>
@@ -344,7 +430,12 @@ function DashboardContent() {
                         stroke="#64748b"
                         fontSize={12}
                         tickFormatter={(value) =>
-                          value ? new Date(value).toLocaleDateString() : ""
+                          value
+                            ? new Date(value).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                              })
+                            : ""
                         }
                       />
                       <YAxis stroke="#64748b" fontSize={12} />
@@ -395,10 +486,10 @@ function DashboardContent() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-lg font-semibold text-slate-900">
-                    Top Selling Products
+                    Top Products
                   </CardTitle>
                   <CardDescription>
-                    Most sold products this month
+                    Best selling products by quantity
                   </CardDescription>
                 </div>
                 <ShoppingCart className="h-5 w-5 text-blue-400" />
@@ -410,9 +501,20 @@ function DashboardContent() {
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={safeStats.top_products}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                      <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
+                      <XAxis
+                        dataKey="name"
+                        stroke="#64748b"
+                        fontSize={12}
+                        angle={-45}
+                        textAnchor="end"
+                        height={80}
+                      />
                       <YAxis stroke="#64748b" fontSize={12} />
                       <Tooltip
+                        formatter={(value, name) => [
+                          value,
+                          name === "total_sales" ? "Units Sold" : name,
+                        ]}
                         contentStyle={{
                           backgroundColor: "white",
                           border: "none",
@@ -424,6 +526,7 @@ function DashboardContent() {
                         dataKey="total_sales"
                         fill="#3b82f6"
                         radius={[4, 4, 0, 0]}
+                        name="Units Sold"
                       />
                     </BarChart>
                   </ResponsiveContainer>
@@ -457,7 +560,7 @@ function DashboardContent() {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={safeStats.expense_categories}
+                        data={safeStats.expense_categories.slice(0, 6)}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
@@ -465,15 +568,21 @@ function DashboardContent() {
                         fill="#8884d8"
                         dataKey="amount"
                         label={({ name, percent }) =>
-                          `${name} ${(percent * 100).toFixed(0)}%`
+                          `${
+                            name.length > 10
+                              ? name.substring(0, 10) + "..."
+                              : name
+                          } ${(percent * 100).toFixed(0)}%`
                         }
                       >
-                        {safeStats.expense_categories.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={COLORS[index % COLORS.length]}
-                          />
-                        ))}
+                        {safeStats.expense_categories
+                          .slice(0, 6)
+                          .map((entry, index) => (
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={COLORS[index % COLORS.length]}
+                            />
+                          ))}
                       </Pie>
                       <Tooltip
                         formatter={(value) => formatCurrency(value as number)}
@@ -484,7 +593,6 @@ function DashboardContent() {
                           boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                         }}
                       />
-                      <Legend />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
@@ -502,7 +610,7 @@ function DashboardContent() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-lg font-semibold text-slate-900">
-                    Low Stock Items
+                    Low Stock Alert
                   </CardTitle>
                   <CardDescription>
                     Products that need restocking
@@ -512,7 +620,7 @@ function DashboardContent() {
               </div>
             </CardHeader>
             <CardContent className="p-6">
-              <div className="space-y-4">
+              <div className="space-y-4 max-h-[250px] overflow-y-auto">
                 {safeStats.low_stock_items.length > 0 ? (
                   safeStats.low_stock_items.map((item, index) => (
                     <motion.div
@@ -523,9 +631,9 @@ function DashboardContent() {
                       className="flex items-center justify-between p-3 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
                     >
                       <div className="flex items-center space-x-3">
-                        <AlertTriangle className="h-5 w-5 text-red-500" />
-                        <div>
-                          <p className="font-medium text-gray-900">
+                        <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <p className="font-medium text-gray-900 truncate">
                             {item.name}
                           </p>
                           <p className="text-sm text-red-600">
@@ -533,7 +641,7 @@ function DashboardContent() {
                           </p>
                         </div>
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-gray-500 flex-shrink-0">
                         Min: {item.minimum_stock}
                       </div>
                     </motion.div>
@@ -574,24 +682,24 @@ function DashboardContent() {
                       className="p-4 bg-white rounded-lg border border-gray-100 hover:shadow-md transition-all duration-300 hover:-translate-y-1"
                     >
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center flex-shrink-0">
                           <Truck className="h-5 w-5 text-white" />
                         </div>
-                        <div>
-                          <p className="font-medium text-gray-900">
+                        <div className="min-w-0">
+                          <p className="font-medium text-gray-900 truncate">
                             {supplier.name}
                           </p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-gray-500 truncate">
                             {supplier.phone}
                           </p>
                         </div>
                       </div>
                       <div className="mt-3 space-y-1">
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-gray-600 truncate">
                           <span className="font-medium">Email:</span>{" "}
                           {supplier.email}
                         </p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-gray-600 truncate">
                           <span className="font-medium">Address:</span>{" "}
                           {supplier.address}
                         </p>
