@@ -267,6 +267,68 @@ export default function SalesOverview() {
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-gray-600">
+                    Today's Sales
+                  </p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    ${metrics.todayRevenue.toLocaleString()}
+                  </p>
+                  <div className="flex items-center text-sm">
+                    <span className="text-gray-500">Daily total</span>
+                  </div>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                  <DollarSign className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 group">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">
+                    Today's Orders
+                  </p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {metrics.todayOrders}
+                  </p>
+                  <div className="flex items-center text-sm">
+                    <span className="text-gray-500">Daily total</span>
+                  </div>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                  <ShoppingCart className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 group">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">
+                    Today's Profit
+                  </p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    ${metrics.todayProfit.toLocaleString()}
+                  </p>
+                  <div className="flex items-center text-sm">
+                    <span className="text-gray-500">Daily total</span>
+                  </div>
+                </div>
+                <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                  <Target className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 group">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-600">
                     Total Revenue
                   </p>
                   <p className="text-3xl font-bold text-gray-900">
