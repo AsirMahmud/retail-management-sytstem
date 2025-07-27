@@ -17,13 +17,17 @@ class Sale(models.Model):
     PAYMENT_METHOD_CHOICES = [
         ('cash', 'Cash'),
         ('card', 'Card'),
-        ('mobile_money', 'Mobile Money'),
+        ('mobile', 'Mobile'),
+        ('gift', 'Gift Card'),
+        ('split', 'Split Payment'),
         ('credit', 'Credit')
     ]
     
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('completed', 'Completed'),
+        ('partially_paid', 'Partially Paid'),
+        ('gifted', 'Gifted'),
         ('cancelled', 'Cancelled'),
         ('refunded', 'Refunded')
     ]
@@ -40,6 +44,12 @@ class Sale(models.Model):
     total_loss = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(Decimal('0.00'))])
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    
+    # New payment tracking fields
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(Decimal('0.00'))])
+    amount_due = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(Decimal('0.00'))])
+    gift_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(Decimal('0.00'))])
+    
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -49,6 +59,152 @@ class Sale(models.Model):
 
     def __str__(self):
         return f"Sale {self.invoice_number}"
+
+    @property
+    def is_fully_paid(self):
+        """Check if the sale is fully paid"""
+        return self.amount_paid >= self.total
+
+    @property
+    def payment_status(self):
+        """Get the payment status based on amount paid"""
+        if self.amount_paid >= self.total:
+            return 'fully_paid'
+        elif self.amount_paid > 0:
+            return 'partially_paid'
+        else:
+            return 'unpaid'
+
+    def update_payment_status(self):
+        """Update sale status based on payments"""
+        # Store the old status to check if it changed
+        old_status = self.status
+        
+        total_payments = self.sale_payments.filter(status='completed').aggregate(
+            total=models.Sum('amount')
+        )['total'] or Decimal('0.00')
+        
+        self.amount_paid = total_payments
+        self.amount_due = self.total - self.amount_paid
+        
+        # Check if this is entirely a gift payment
+        total_gift_payments = self.sale_payments.filter(
+            payment_method='gift', 
+            status='completed'
+        ).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
+        
+        if total_gift_payments >= self.total:
+            # This is entirely a gift - set status to "gifted"
+            self.status = 'gifted'
+        elif self.amount_paid >= self.total:
+            self.status = 'completed'
+        elif self.amount_paid > 0:
+            self.status = 'partially_paid'
+        else:
+            self.status = 'pending'
+        
+        self.save(update_fields=['amount_paid', 'amount_due', 'status'])
+        
+        # Handle stock reduction when status changes to completed or gifted
+        # Note: Stock is now reduced at sale creation, so we only need to update movement type for gifts
+        if old_status != 'gifted' and self.status == 'gifted':
+            self._update_stock_movements_to_gift()
+
+    def _reduce_stock_for_sale_items(self):
+        """Reduce stock for all items in this sale when sale is completed or gifted"""
+        from apps.inventory.models import StockMovement
+        
+        for item in self.items.all():
+            variation = item.get_variation()
+            if variation:
+                # Check if stock movement already exists to avoid duplicates
+                existing_movement = StockMovement.objects.filter(
+                    product=item.product,
+                    variation=variation,
+                    reference_number=self.invoice_number,
+                    movement_type__in=['OUT', 'GIFT']  # Check for both OUT and GIFT types
+                ).first()
+                
+                if not existing_movement:
+                    # Determine movement type based on sale status
+                    movement_type = 'GIFT' if self.status == 'gifted' else 'OUT'
+                    movement_notes = f"{'Gift transaction' if self.status == 'gifted' else 'Sale item'} from {self.invoice_number}"
+                    
+                    # Create stock movement record
+                    StockMovement.objects.create(
+                        product=item.product,
+                        variation=variation,
+                        movement_type=movement_type,
+                        quantity=item.quantity,
+                        reference_number=self.invoice_number,
+                        notes=movement_notes
+                    )
+                    
+                    # Update variation stock
+                    variation.stock -= item.quantity
+                    variation.save()
+                    
+                    # Update product stock
+                    item.product.stock_quantity -= item.quantity
+                    item.product.save()
+
+    def _update_stock_movements_to_gift(self):
+        """Update existing stock movements to GIFT type when sale becomes a gift"""
+        from apps.inventory.models import StockMovement
+        
+        # Find and update existing stock movements for this sale
+        StockMovement.objects.filter(
+            reference_number=self.invoice_number,
+            movement_type='OUT'
+        ).update(
+            movement_type='GIFT',
+            notes=f"Gift transaction from {self.invoice_number}"
+        )
+
+    def record_gift_as_expense(self):
+        """Record gift payments as expenses in the expense system using cost price"""
+        from apps.expenses.models import Expense, ExpenseCategory
+        
+        # Get or create a gift card expense category
+        gift_category, created = ExpenseCategory.objects.get_or_create(
+            name="Gift Card Payments",
+            defaults={
+                'description': 'Gift card payments from sales',
+                'color': '#10b981'  # Green color
+            }
+        )
+        
+        # Calculate expense amount based on cost price of items (not selling price)
+        if self.gift_amount > 0:
+            cost_price_total = Decimal('0.00')
+            
+            # Calculate total cost price for all items in this sale
+            for item in self.items.all():
+                item_cost_price = item.product.cost_price or Decimal('0.00')
+                cost_price_total += item_cost_price * item.quantity
+            
+            # Check if expense already exists for this sale
+            existing_expense = Expense.objects.filter(
+                reference_number=self.invoice_number,
+                category=gift_category
+            ).first()
+            
+            if existing_expense:
+                # Update existing expense amount with cost price
+                existing_expense.amount = cost_price_total
+                existing_expense.save()
+            else:
+                # Create new expense record using cost price
+                Expense.objects.create(
+                    description=f"Gift given for sale {self.invoice_number}",
+                    amount=cost_price_total,
+                    date=timezone.now().date(),
+                    category=gift_category,
+                    payment_method='OTHER',
+                    status='PAID',
+                    reference_number=self.invoice_number,
+                    notes=f"Gift given for sale {self.invoice_number} - expense based on cost price (₹{cost_price_total}), not selling price (₹{self.gift_amount})"
+                )
 
     @classmethod
     def find_or_create_customer(cls, phone, name=None):
@@ -193,42 +349,74 @@ class SaleItem(models.Model):
         
         super().save(*args, **kwargs)
         
-        # Create stock movement record and update stock when sale is completed
-        if self.sale and self.sale.status == 'completed':
-            variation = self.get_variation()
-            if variation:
-                # Check if stock movement already exists to avoid duplicates
-                existing_movement = StockMovement.objects.filter(
-                    product=self.product,
-                    variation=variation,
-                    reference_number=self.sale.invoice_number,
-                    movement_type='OUT'
-                ).first()
-                
-                if not existing_movement:
-                    # Create stock movement record
-                    StockMovement.objects.create(
-                        product=self.product,
-                        variation=variation,
-                        movement_type='OUT',
-                        quantity=self.quantity,
-                        reference_number=self.sale.invoice_number,
-                        notes=f"Sale item from {self.sale.invoice_number}"
-                    )
-                    
-                    # Update variation stock
-                    variation.stock -= self.quantity
-                    variation.save()
-                    
-                    # Update product stock
-                    self.product.stock_quantity -= self.quantity
-                    self.product.save()
+        # Stock reduction is now handled in Sale.update_payment_status() 
+        # when the sale status changes to 'completed' or 'gifted'
         
         # Update sale totals after saving the item
         if self.sale:
             self.sale.calculate_totals()
 
+class SalePayment(models.Model):
+    """Enhanced payment model to support split payments and better tracking"""
+    PAYMENT_METHOD_CHOICES = [
+        ('cash', 'Cash'),
+        ('card', 'Card'),
+        ('mobile', 'Mobile'),
+        ('gift', 'Gift Card')
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('refunded', 'Refunded')
+    ]
+    
+    sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='sale_payments')
+    amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    transaction_id = models.CharField(max_length=100, blank=True)
+    payment_date = models.DateTimeField(default=timezone.now)
+    notes = models.TextField(blank=True)
+    is_gift_payment = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Payment {self.id} for Sale {self.sale.invoice_number} - {self.payment_method}"
+
+    def save(self, *args, **kwargs):
+        # Mark as gift payment if payment method is gift
+        if self.payment_method == 'gift':
+            self.is_gift_payment = True
+        
+        super().save(*args, **kwargs)
+        
+        # Update sale payment tracking when payment is completed
+        if self.status == 'completed':
+            # Update gift amount in sale if this is a gift payment
+            if self.is_gift_payment:
+                # Calculate total gift amount from all gift payments
+                total_gift_amount = self.sale.sale_payments.filter(
+                    payment_method='gift', 
+                    status='completed'
+                ).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
+                
+                self.sale.gift_amount = total_gift_amount
+                self.sale.save(update_fields=['gift_amount'])
+                
+                # Record gift payment as expense
+                try:
+                    self.sale.record_gift_as_expense()
+                except Exception as e:
+                    # Log the error but don't fail the payment
+                    print(f"Warning: Failed to create expense for gift payment: {e}")
+            
+            # Update overall payment status
+            self.sale.update_payment_status()
+
 class Payment(models.Model):
+    """Legacy payment model - keeping for backward compatibility"""
     PAYMENT_METHOD_CHOICES = [
         ('cash', 'Cash'),
         ('card', 'Card'),
@@ -254,6 +442,56 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"Payment {self.id} for Sale {self.sale.invoice_number}"
+
+class DuePayment(models.Model):
+    """Model to track due payments and partial payments made later"""
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled')
+    ]
+    
+    sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name='due_payments')
+    amount_due = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(Decimal('0.00'))])
+    due_date = models.DateField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Due Payment for Sale {self.sale.invoice_number} - {self.amount_due}"
+
+    @property
+    def remaining_amount(self):
+        """Calculate remaining amount to be paid"""
+        return self.amount_due - self.amount_paid
+
+    def add_payment(self, amount, payment_method='cash', notes=''):
+        """Add a partial payment to this due amount"""
+        if amount <= 0:
+            raise ValueError("Payment amount must be greater than 0")
+        
+        if self.amount_paid + amount > self.amount_due:
+            raise ValueError("Payment amount exceeds due amount")
+        
+        # Create a sale payment record
+        payment = SalePayment.objects.create(
+            sale=self.sale,
+            amount=amount,
+            payment_method=payment_method,
+            status='completed',
+            notes=notes
+        )
+        
+        # Update this due payment
+        self.amount_paid += amount
+        if self.amount_paid >= self.amount_due:
+            self.status = 'completed'
+        self.save()
+        
+        return payment
 
 class Return(models.Model):
     STATUS_CHOICES = [

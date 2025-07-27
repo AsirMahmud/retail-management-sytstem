@@ -105,12 +105,13 @@ class StockMovement(models.Model):
     MOVEMENT_TYPES = [
         ('IN', 'Stock In'),
         ('OUT', 'Stock Out'),
+        ('GIFT', 'Gift Transaction'),
         ('ADJ', 'Adjustment'),
     ]
 
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='stock_movements')
     variation = models.ForeignKey(ProductVariation, on_delete=models.CASCADE, null=True, blank=True, related_name='stock_movements')
-    movement_type = models.CharField(max_length=3, choices=MOVEMENT_TYPES)
+    movement_type = models.CharField(max_length=4, choices=MOVEMENT_TYPES)
     quantity = models.IntegerField()
     reference_number = models.CharField(max_length=50, blank=True)  # For linking to purchase orders, sales, etc.
     notes = models.TextField(blank=True)

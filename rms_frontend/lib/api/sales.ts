@@ -22,6 +22,7 @@ export const getSales = async (params?: {
     end_date?: string;
     status?: string;
     payment_method?: string;
+    payment_status?: string;
     customer_phone?: string;
     search?: string;
     ordering?: string;
@@ -78,7 +79,31 @@ export const getPayments = async (params?: {
 };
 
 export const addPayment = async (saleId: number, data: Partial<Payment>) => {
-    const response = await axios.post<Payment>(`/sales/sales/${saleId}/add_payment/`, data);
+    // Map frontend payment methods to backend compatible values
+    const mapPaymentMethod = (method: string | undefined) => {
+        switch (method) {
+            case 'mobile_money':
+                return 'mobile';
+            case 'credit':
+                return 'cash'; // Default credit payments to cash
+            default:
+                return method || 'cash';
+        }
+    };
+    
+    // Transform the data to match backend's CompletePaymentSerializer format
+    const transformedData = {
+        payment_data: [
+            {
+                amount: data.amount?.toString() || '0',
+                method: mapPaymentMethod(data.payment_method),
+                notes: data.notes || '',
+                transaction_id: data.transaction_id || ''
+            }
+        ]
+    };
+    
+    const response = await axios.post<Payment>(`/sales/sales/${saleId}/add_payment/`, transformedData);
     return response.data;
 };
 

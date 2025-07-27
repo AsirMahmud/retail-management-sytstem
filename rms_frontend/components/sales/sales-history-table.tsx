@@ -30,6 +30,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -68,10 +69,17 @@ import {
   Trash2,
   Loader2,
   X,
+  CreditCard,
+  DollarSign,
+  Gift,
+  Clock,
+  AlertCircle,
+  CheckCircle,
+  Smartphone,
+  Zap,
 } from "lucide-react";
 import { useSales } from "@/hooks/queries/use-sales";
-import type { SaleStatus, PaymentMethod } from "@/types/sales";
-import type { Sale, SaleItem } from "@/types/sales";
+import type { SaleStatus, PaymentMethod, Sale, SaleItem, SalePayment, DuePayment } from "@/types/sales";
 import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
@@ -85,6 +93,10 @@ import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { addPayment } from "@/lib/api/sales";
+import { useQueryClient } from '@tanstack/react-query';
 
 // The backend returns customer details in a nested object
 interface SaleWithCustomerDetails extends Omit<Sale, "customer"> {
@@ -127,10 +139,16 @@ export default function SalesHistory() {
   const [paymentFilter, setPaymentFilter] = useState<PaymentMethod | "all">(
     "all"
   );
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<"all" | "unpaid" | "partially_paid" | "fully_paid">("all");
   const [sortBy, setSortBy] = useState("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [selectedOrder, setSelectedOrder] =
     useState<SaleWithCustomerDetails | null>(null);
+  const [selectedDuePayment, setSelectedDuePayment] = 
+    useState<SaleWithCustomerDetails | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentNotes, setPaymentNotes] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("cash");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [saleToDelete, setSaleToDelete] =
@@ -142,11 +160,25 @@ export default function SalesHistory() {
     to: undefined,
   });
   const [isSearching, setIsSearching] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [showCompletePaymentDialog, setShowCompletePaymentDialog] = useState(false);
+  const [completeSaleData, setCompleteSaleData] = useState<{
+    saleId: number;
+    amount: number;
+    paymentMethod: string;
+    notes: string;
+  }>({
+    saleId: 0,
+    amount: 0,
+    paymentMethod: 'cash',
+    notes: ''
+  });
 
   // Debounce search term to avoid too many API calls
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const {
     sales,
@@ -160,6 +192,7 @@ export default function SalesHistory() {
   } = useSales({
     status: statusFilter !== "all" ? statusFilter : undefined,
     payment_method: paymentFilter !== "all" ? paymentFilter : undefined,
+    payment_status: paymentStatusFilter !== "all" ? paymentStatusFilter : undefined,
     search: debouncedSearchTerm || undefined,
     ordering: sortOrder === "desc" ? `-${sortBy}` : sortBy,
     page,
@@ -179,11 +212,16 @@ export default function SalesHistory() {
     }
   }, [searchTerm, debouncedSearchTerm]);
 
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, paymentFilter, paymentStatusFilter, debouncedSearchTerm, dateRange]);
+
   // Cast the sales array to the correct type since we know the backend returns customer details
   const typedSales = sales as unknown as SaleWithCustomerDetails[];
 
   const getStatusBadge = (status: SaleStatus) => {
-    const statusConfig = {
+    const statusConfig: Record<SaleStatus, { color: string; label: string }> = {
       completed: {
         color:
           "bg-emerald-100 text-emerald-800 hover:bg-emerald-100 border-emerald-200",
@@ -194,6 +232,16 @@ export default function SalesHistory() {
           "bg-amber-100 text-amber-800 hover:bg-amber-100 border-amber-200",
         label: "Pending",
       },
+      partially_paid: {
+        color:
+          "bg-orange-100 text-orange-800 hover:bg-orange-100 border-orange-200",
+        label: "Partially Paid",
+      },
+      gifted: {
+        color:
+          "bg-purple-100 text-purple-800 hover:bg-purple-100 border-purple-200",
+        label: "Gifted",
+      },
       cancelled: {
         color: "bg-red-100 text-red-800 hover:bg-red-100 border-red-200",
         label: "Cancelled",
@@ -203,7 +251,7 @@ export default function SalesHistory() {
         label: "Refunded",
       },
     };
-    const config = statusConfig[status];
+    const config = statusConfig[status] || statusConfig.pending;
     return <Badge className={`${config.color}`}>{config.label}</Badge>;
   };
 
@@ -223,6 +271,177 @@ export default function SalesHistory() {
     return items.reduce((sum, item) => sum + (item.total || 0), 0);
   };
 
+  // Payment system helper functions
+  const getPaymentMethodIcon = (method: PaymentMethod) => {
+    switch (method) {
+      case 'cash':
+        return <DollarSign className="w-4 h-4" />;
+      case 'card':
+        return <CreditCard className="w-4 h-4" />;
+      case 'mobile':
+      case 'mobile_money':
+        return <Smartphone className="w-4 h-4" />;
+      case 'gift':
+        return <Gift className="w-4 h-4" />;
+      case 'split':
+        return <Zap className="w-4 h-4" />;
+      default:
+        return <DollarSign className="w-4 h-4" />;
+    }
+  };
+
+  const getPaymentStatusBadge = (sale: SaleWithCustomerDetails) => {
+    // If sale status is completed, consider it as paid regardless of payment records
+    if (sale.status === 'completed') {
+      const hasSplitPayments = sale.sale_payments && sale.sale_payments.length > 1;
+      if (hasSplitPayments) {
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+          <Zap className="w-3 h-3 mr-1" />
+          Split Completed
+        </Badge>;
+      } else {
+        return <Badge className="bg-green-100 text-green-800 border-green-200">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Paid
+        </Badge>;
+      }
+    }
+
+    if (sale.status === 'gifted') {
+      return <Badge className="bg-purple-100 text-purple-800 border-purple-200">
+        <Gift className="w-3 h-3 mr-1" />
+        Gifted
+      </Badge>;
+    }
+
+    // Calculate actual payment totals from individual payments (most reliable)
+    const actualPaymentsTotal = sale.sale_payments && sale.sale_payments.length > 0 ? 
+      sale.sale_payments
+        .filter(payment => payment.status === 'completed') // Only count completed payments
+        .reduce((sum: number, payment: SalePayment) => sum + (parseFloat(payment.amount.toString()) || 0), 0) : 0;
+
+    // Check different payment scenarios
+    const hasSplitPayments = sale.sale_payments && sale.sale_payments.length > 1;
+    const hasAnyPayments = sale.sale_payments && sale.sale_payments.length > 0;
+    const totalPaidAmount = sale.amount_paid || 0;
+    
+    // Use the most reliable payment total (prefer calculated from individual payments)
+    const effectivePaymentTotal = hasAnyPayments ? actualPaymentsTotal : totalPaidAmount;
+    
+    // Determine if payment is complete (with small tolerance for decimal precision)
+    const isPaymentComplete = effectivePaymentTotal >= (sale.total - 0.01);
+    
+    // Calculate remaining amount
+    const remainingAmount = Math.max(0, sale.total - effectivePaymentTotal);
+    
+    // Split payment completed
+    if (hasSplitPayments && isPaymentComplete) {
+      return <Badge className="bg-blue-100 text-blue-800 border-blue-200">
+        <Zap className="w-3 h-3 mr-1" />
+        Split Completed
+      </Badge>;
+    }
+    
+    // Regular payment completed
+    if (isPaymentComplete && !hasSplitPayments) {
+      return <Badge className="bg-green-100 text-green-800 border-green-200">
+        <CheckCircle className="w-3 h-3 mr-1" />
+        Paid
+      </Badge>;
+    }
+    
+    // Partially paid (has some payment but not complete)
+    if (effectivePaymentTotal > 0 && remainingAmount > 0) {
+      return <Badge className="bg-orange-100 text-orange-800 border-orange-200">
+        <Clock className="w-3 h-3 mr-1" />
+        ${remainingAmount.toFixed(2)} Due
+      </Badge>;
+    }
+    
+    // Completely unpaid
+    return <Badge className="bg-red-100 text-red-800 border-red-200">
+      <AlertCircle className="w-3 h-3 mr-1" />
+      Unpaid
+    </Badge>;
+  };
+
+  const formatCurrency = (amount: number | string | undefined) => {
+    const num = typeof amount === 'string' ? parseFloat(amount) : (amount || 0);
+    return `$${num.toFixed(2)}`;
+  };
+
+  const calculateGiftCostPrice = (sale: SaleWithCustomerDetails) => {
+    if (!sale.items) return 0;
+    return sale.items.reduce((total, item: any) => {
+      const costPrice = item.product?.cost_price || 0;
+      const quantity = item.quantity || 0;
+      return total + (costPrice * quantity);
+    }, 0);
+  };
+
+  const handleMakePayment = async () => {
+    if (!selectedDuePayment || !paymentAmount) return;
+    
+    const paymentAmountNum = parseFloat(paymentAmount);
+    const amountDue = selectedDuePayment.amount_due || 0;
+    
+    if (paymentAmountNum <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Payment amount must be greater than 0.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (paymentAmountNum > amountDue) {
+      toast({
+        title: "Amount Too High",
+        description: `Payment amount cannot exceed the due amount of ${formatCurrency(amountDue)}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsProcessingPayment(true);
+    try {
+      // Call the API to add payment to the sale
+      await addPayment(selectedDuePayment.id!, {
+        amount: paymentAmountNum,
+        payment_method: paymentMethod as any,
+        notes: paymentNotes || `${paymentMethod} payment on due amount`,
+        status: 'completed'
+      });
+      
+      // Determine if this completes the payment
+      const isCompletePayment = paymentAmountNum >= amountDue;
+      
+      toast({
+        title: isCompletePayment ? "Payment Completed" : "Partial Payment Processed",
+        description: isCompletePayment 
+          ? `Payment of ${formatCurrency(paymentAmountNum)} completed. Sale status updated to completed.`
+          : `Partial payment of ${formatCurrency(paymentAmountNum)} processed. Remaining due: ${formatCurrency(amountDue - paymentAmountNum)}.`,
+      });
+      
+      setSelectedDuePayment(null);
+      setPaymentAmount("");
+      setPaymentNotes("");
+      setPaymentMethod("cash");
+      
+      // Refresh the sales data to show updated status
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      toast({
+        title: "Payment Failed",
+        description: "Failed to process payment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
   const handleSort = (field: string) => {
     if (sortBy === field) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
@@ -234,6 +453,49 @@ export default function SalesHistory() {
 
   const handleViewSale = (sale: SaleWithCustomerDetails) => {
     setSelectedOrder(sale);
+  };
+
+  const handleCompleteSale = (sale: SaleWithCustomerDetails) => {
+    const amountDue = sale.status === 'pending' ? sale.total : (sale.amount_due || 0);
+    setCompleteSaleData({
+      saleId: sale.id!,
+      amount: amountDue,
+      paymentMethod: 'cash',
+      notes: ''
+    });
+    setShowCompletePaymentDialog(true);
+  };
+
+  const handleCompletePayment = async () => {
+    try {
+      setIsProcessingPayment(true);
+      
+      // Call the API to add payment to the sale
+      await addPayment(completeSaleData.saleId, {
+        amount: completeSaleData.amount,
+        payment_method: completeSaleData.paymentMethod as any,
+        notes: completeSaleData.notes,
+        status: 'completed'
+      });
+      
+      toast({
+        title: "Payment Completed",
+        description: `Payment of ${formatCurrency(completeSaleData.amount)} has been processed successfully.`,
+      });
+      
+      setShowCompletePaymentDialog(false);
+      // Refresh the sales data
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+    } catch (error) {
+      console.error('Error completing payment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to complete payment. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
 
   const handleDeleteSaleClick = (sale: SaleWithCustomerDetails) => {
@@ -275,6 +537,15 @@ export default function SalesHistory() {
 
   const clearSearch = () => {
     setSearchTerm("");
+  };
+
+  const clearAllFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+    setPaymentFilter("all");
+    setPaymentStatusFilter("all");
+    setDateRange({ from: undefined, to: undefined });
+    setPage(1);
   };
 
   const totalPages = Math.ceil((pagination?.count || 0) / pageSize);
@@ -512,6 +783,8 @@ export default function SalesHistory() {
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="partially_paid">Partially Paid</SelectItem>
+                  <SelectItem value="gifted">Gifted</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                   <SelectItem value="refunded">Refunded</SelectItem>
                 </SelectContent>
@@ -530,8 +803,28 @@ export default function SalesHistory() {
                   <SelectItem value="all">All Methods</SelectItem>
                   <SelectItem value="cash">Cash</SelectItem>
                   <SelectItem value="card">Card</SelectItem>
+                  <SelectItem value="mobile">Mobile</SelectItem>
                   <SelectItem value="mobile_money">Mobile Money</SelectItem>
+                  <SelectItem value="gift">Gift Card</SelectItem>
+                  <SelectItem value="split">Split Payment</SelectItem>
                   <SelectItem value="credit">Credit</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={paymentStatusFilter}
+                onValueChange={(value: "all" | "unpaid" | "partially_paid" | "fully_paid") =>
+                  setPaymentStatusFilter(value)
+                }
+                disabled={isLoading}
+              >
+                <SelectTrigger className="w-48 h-12 bg-gray-50 border-gray-200">
+                  <SelectValue placeholder="Payment Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Payments</SelectItem>
+                  <SelectItem value="fully_paid">Fully Paid</SelectItem>
+                  <SelectItem value="partially_paid">Partially Paid</SelectItem>
+                  <SelectItem value="unpaid">Unpaid</SelectItem>
                 </SelectContent>
               </Select>
               <Button
@@ -542,6 +835,17 @@ export default function SalesHistory() {
                 <Filter className="w-4 h-4 mr-2" />
                 More Filters
               </Button>
+              {(statusFilter !== "all" || paymentFilter !== "all" || paymentStatusFilter !== "all" || searchTerm || dateRange.from || dateRange.to) && (
+                <Button
+                  variant="outline"
+                  className="h-12 px-4 bg-red-50 border-red-200 hover:bg-red-100 text-red-600"
+                  onClick={clearAllFilters}
+                  disabled={isLoading}
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Clear Filters
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -628,7 +932,7 @@ export default function SalesHistory() {
                       Items
                     </TableHead>
                     <TableHead className="font-semibold text-gray-700">
-                      Payment
+                      Payment Method
                     </TableHead>
                     <TableHead className="font-semibold text-gray-700">
                       <Button
@@ -637,12 +941,12 @@ export default function SalesHistory() {
                         className="h-auto p-0 font-semibold text-gray-700 hover:text-gray-900"
                         disabled={isLoading}
                       >
-                        Total
+                        Total / Paid
                         <ArrowUpDown className="ml-2 h-4 w-4" />
                       </Button>
                     </TableHead>
                     <TableHead className="font-semibold text-gray-700">
-                      Profit
+                      Payment Status
                     </TableHead>
                     <TableHead className="font-semibold text-gray-700">
                       Status
@@ -704,15 +1008,65 @@ export default function SalesHistory() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <span className="capitalize text-gray-700 bg-gray-100 px-2 py-1 rounded-md text-sm">
-                            {sale.payment_method}
-                          </span>
+                          {sale.sale_payments && sale.sale_payments.length > 1 ? (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1 flex-wrap">
+                                {sale.sale_payments.map((payment: SalePayment, idx: number) => (
+                                  <div key={idx} className="flex items-center gap-1 bg-blue-50 px-2 py-1 rounded text-xs">
+                                    {getPaymentMethodIcon(payment.payment_method)}
+                                    <span className="capitalize">
+                                      {payment.payment_method === 'mobile_money' ? 'Mobile' : payment.payment_method}
+                                    </span>
+                                    <span className="text-gray-600">
+                                      {formatCurrency(payment.amount)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                              <div className="text-xs text-blue-600 font-medium">
+                                Split Payment ({sale.sale_payments.length} methods)
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              {getPaymentMethodIcon(sale.payment_method)}
+                              <span className="capitalize text-gray-700 text-sm">
+                                {sale.payment_method === 'mobile_money' ? 'Mobile' : sale.payment_method}
+                              </span>
+                            </div>
+                          )}
                         </TableCell>
-                        <TableCell className="font-semibold text-gray-900">
-                          ${Number(sale.total).toFixed(2)}
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="font-semibold text-gray-900">
+                              {formatCurrency(sale.total)}
+                            </div>
+                            {sale.status === 'gifted' ? (
+                              <div className="text-sm text-purple-600">
+                                Add as expense {formatCurrency(calculateGiftCostPrice(sale))}
+                              </div>
+                            ) : sale.status === 'completed' ? (
+                              <div className="text-sm text-green-600">
+                                Paid: {formatCurrency(sale.total)}
+                              </div>
+                            ) : (
+                              <>
+                                {sale.amount_paid !== undefined && sale.amount_paid > 0 && (
+                                  <div className="text-sm text-green-600">
+                                    Paid: {formatCurrency(sale.amount_paid)}
+                                  </div>
+                                )}
+                                {sale.amount_due !== undefined && sale.amount_due > 0 && (
+                                  <div className="text-sm text-red-600">
+                                    Due: {formatCurrency(sale.amount_due)}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
                         </TableCell>
-                        <TableCell className="font-semibold text-emerald-600">
-                          ${Number(sale.total_profit || 0).toFixed(2)}
+                        <TableCell>
+                          {getPaymentStatusBadge(sale)}
                         </TableCell>
                         <TableCell>
                           {sale.status && getStatusBadge(sale.status)}
@@ -733,6 +1087,15 @@ export default function SalesHistory() {
                                 <Eye className="w-4 h-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
+                              {((sale.amount_due && sale.amount_due > 0) || sale.status === 'pending') && (
+                                <DropdownMenuItem
+                                  onClick={() => setSelectedDuePayment(sale)}
+                                  className="cursor-pointer text-blue-600 focus:text-blue-600 focus:bg-blue-50"
+                                >
+                                  <DollarSign className="w-4 h-4 mr-2" />
+                                  Make Payment
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem
                                 onClick={() => handleDeleteSaleClick(sale)}
                                 className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50"
@@ -909,6 +1272,165 @@ export default function SalesHistory() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Make Payment Dialog */}
+      {selectedDuePayment && (
+        <Dialog
+          open={!!selectedDuePayment}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedDuePayment(null);
+              setPaymentAmount("");
+              setPaymentNotes("");
+              setPaymentMethod("cash");
+            }
+          }}
+        >
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold">
+                Make Payment - {selectedDuePayment.invoice_number}
+              </DialogTitle>
+              <DialogDescription>
+                Process payment for outstanding balance
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              {/* Payment Summary */}
+              <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Total Amount:</span>
+                  <span className="font-medium">{formatCurrency(selectedDuePayment.total)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Amount Paid:</span>
+                  <span className="font-medium text-green-600">
+                    {formatCurrency(selectedDuePayment.amount_paid || 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm border-t pt-2">
+                  <span className="font-semibold">Amount Due:</span>
+                  <span className="font-semibold text-red-600">
+                    {formatCurrency(selectedDuePayment.amount_due || 0)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Payment Form */}
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="payment-amount">Payment Amount</Label>
+                  <Input
+                    id="payment-amount"
+                    type="number"
+                    value={paymentAmount}
+                    onChange={(e) => setPaymentAmount(e.target.value)}
+                    placeholder="Enter payment amount"
+                    step="0.01"
+                    min="0"
+                    max={selectedDuePayment.amount_due}
+                  />
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPaymentAmount((selectedDuePayment.amount_due || 0).toString())}
+                      className="text-xs"
+                    >
+                      Pay Full Amount
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPaymentAmount(((selectedDuePayment.amount_due || 0) / 2).toString())}
+                      className="text-xs"
+                    >
+                      Pay Half
+                    </Button>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="payment-method">Payment Method</Label>
+                  <Select
+                    value={paymentMethod}
+                    onValueChange={setPaymentMethod}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cash">Cash</SelectItem>
+                      <SelectItem value="card">Card</SelectItem>
+                      <SelectItem value="mobile">Mobile</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="payment-notes">Notes (Optional)</Label>
+                  <Textarea
+                    id="payment-notes"
+                    value={paymentNotes}
+                    onChange={(e) => setPaymentNotes(e.target.value)}
+                    placeholder="Payment notes..."
+                    rows={2}
+                  />
+                </div>
+              </div>
+
+              {/* Payment Status Indicator */}
+              {paymentAmount && parseFloat(paymentAmount) > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="text-sm">
+                    {parseFloat(paymentAmount) >= (selectedDuePayment.amount_due || 0) ? (
+                      <div className="text-green-700 font-medium">
+                        ✅ This will complete the payment and mark the sale as completed
+                      </div>
+                    ) : (
+                      <div className="text-orange-700">
+                        ⏳ This will be a partial payment. Remaining due: {formatCurrency((selectedDuePayment.amount_due || 0) - parseFloat(paymentAmount))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedDuePayment(null);
+                    setPaymentAmount("");
+                    setPaymentNotes("");
+                    setPaymentMethod("cash");
+                  }}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleMakePayment}
+                  disabled={!paymentAmount || parseFloat(paymentAmount) <= 0 || isProcessingPayment}
+                  className="flex-1"
+                >
+                  {isProcessingPayment ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    `Pay ${formatCurrency(paymentAmount)}`
+                  )}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
       {/* Order Details Dialog */}
       {selectedOrder && (
         <Dialog
@@ -1019,6 +1541,109 @@ export default function SalesHistory() {
                 </div>
               </div>
 
+              {/* Payment Details */}
+              {selectedOrder.sale_payments && selectedOrder.sale_payments.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <CreditCard className="w-5 h-5 text-indigo-600" />
+                    <span className="font-semibold text-gray-900">Payment Methods</span>
+                  </div>
+                  <div className="space-y-2">
+                    {selectedOrder.sale_payments.map((payment: SalePayment, index: number) => (
+                      <div key={index} className="flex justify-between items-center p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                        <div className="flex items-center gap-2">
+                          {getPaymentMethodIcon(payment.payment_method)}
+                          <span className="capitalize font-medium">
+                            {payment.payment_method === 'mobile_money' ? 'Mobile' : payment.payment_method}
+                          </span>
+                          {payment.is_gift_payment && (
+                            <Badge className="bg-purple-100 text-purple-800 border-purple-200">
+                              Gift
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold">{formatCurrency(payment.amount)}</div>
+                          <div className="text-xs text-gray-500">{payment.status}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Due Payment Information */}
+              {selectedOrder.amount_due && selectedOrder.amount_due > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Clock className="w-5 h-5 text-orange-600" />
+                    <span className="font-semibold text-gray-900">Outstanding Balance</span>
+                  </div>
+                  <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Amount Paid:</span>
+                        <span className="font-medium text-green-600">
+                          {formatCurrency(selectedOrder.amount_paid || 0)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm border-t pt-2">
+                        <span className="font-semibold">Amount Due:</span>
+                        <span className="font-semibold text-orange-600">
+                          {formatCurrency(selectedOrder.amount_due)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Gift Information */}
+              {selectedOrder.gift_amount && selectedOrder.gift_amount > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Gift className="w-5 h-5 text-purple-600" />
+                    <span className="font-semibold text-gray-900">Gift Information</span>
+                  </div>
+                  <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
+                    <div className="space-y-2">
+                      <div className="text-sm text-purple-800">
+                        This sale includes a gift amount of <span className="font-semibold">{formatCurrency(selectedOrder.gift_amount)}</span>
+                      </div>
+                      <div className="text-xs text-purple-600">
+                        Gift payments are recorded as expenses and do not count toward sales revenue.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Complete Sale Button for Pending/Due Sales */}
+              {(selectedOrder.status === 'pending' || (selectedOrder.amount_due && selectedOrder.amount_due > 0)) && (
+                <div className="border-t pt-6">
+                  <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold text-blue-900">Complete Payment</h4>
+                        <p className="text-sm text-blue-700">
+                          {selectedOrder.status === 'pending' 
+                            ? `Complete the payment of ${formatCurrency(selectedOrder.total)}`
+                            : `Pay remaining balance of ${formatCurrency(selectedOrder.amount_due)}`
+                          }
+                        </p>
+                      </div>
+                      <Button 
+                        onClick={() => handleCompleteSale(selectedOrder)}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <CreditCard className="w-4 h-4 mr-2" />
+                        Complete Sale
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Financial Summary */}
               <div className="border-t pt-6">
                 <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg border border-green-200">
@@ -1026,25 +1651,25 @@ export default function SalesHistory() {
                     <div className="flex justify-between">
                       <span className="text-gray-600">Subtotal:</span>
                       <span className="font-medium">
-                        ${toNumber(selectedOrder.subtotal).toFixed(2)}
+                        {formatCurrency(selectedOrder.subtotal)}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Tax:</span>
                       <span className="font-medium">
-                        ${toNumber(selectedOrder.tax).toFixed(2)}
+                        {formatCurrency(selectedOrder.tax)}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Discount:</span>
                       <span className="font-medium">
-                        -${toNumber(selectedOrder.discount).toFixed(2)}
+                        -{formatCurrency(selectedOrder.discount)}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Payment:</span>
+                      <span className="text-gray-600">Primary Payment:</span>
                       <span className="font-medium capitalize">
-                        {selectedOrder.payment_method}
+                        {selectedOrder.payment_method === 'mobile_money' ? 'Mobile' : selectedOrder.payment_method}
                       </span>
                     </div>
                   </div>
@@ -1054,17 +1679,19 @@ export default function SalesHistory() {
                         Total:
                       </span>
                       <span className="text-2xl font-bold text-gray-900">
-                        ${toNumber(selectedOrder.total).toFixed(2)}
+                        {formatCurrency(selectedOrder.total)}
                       </span>
                     </div>
-                    <div className="flex justify-between items-center mt-2">
-                      <span className="text-lg font-semibold text-emerald-700">
-                        Total Profit:
-                      </span>
-                      <span className="text-2xl font-bold text-emerald-700">
-                        ${toNumber(selectedOrder.total_profit).toFixed(2)}
-                      </span>
-                    </div>
+                    {selectedOrder.total_profit !== undefined && (
+                      <div className="flex justify-between items-center mt-2">
+                        <span className="text-lg font-semibold text-emerald-700">
+                          Total Profit:
+                        </span>
+                        <span className="text-2xl font-bold text-emerald-700">
+                          {formatCurrency(selectedOrder.total_profit)}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1072,6 +1699,89 @@ export default function SalesHistory() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Complete Payment Dialog */}
+      <Dialog open={showCompletePaymentDialog} onOpenChange={setShowCompletePaymentDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-blue-600" />
+              Complete Payment
+            </DialogTitle>
+            <DialogDescription>
+              Complete the payment for this sale
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label className="text-sm font-medium">Amount to Pay</Label>
+              <Input
+                type="number"
+                value={completeSaleData.amount}
+                onChange={(e) => setCompleteSaleData(prev => ({
+                  ...prev,
+                  amount: parseFloat(e.target.value) || 0
+                }))}
+                className="mt-1"
+                step="0.01"
+                min="0"
+              />
+            </div>
+            
+            <div>
+              <Label className="text-sm font-medium">Payment Method</Label>
+              <Select
+                value={completeSaleData.paymentMethod}
+                onValueChange={(value) => setCompleteSaleData(prev => ({
+                  ...prev,
+                  paymentMethod: value
+                }))}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="card">Card</SelectItem>
+                  <SelectItem value="mobile">Mobile</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label className="text-sm font-medium">Notes (Optional)</Label>
+              <Textarea
+                value={completeSaleData.notes}
+                onChange={(e) => setCompleteSaleData(prev => ({
+                  ...prev,
+                  notes: e.target.value
+                }))}
+                className="mt-1"
+                placeholder="Add any notes about this payment..."
+                rows={3}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowCompletePaymentDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleCompletePayment} 
+              className="bg-blue-600 hover:bg-blue-700"
+              disabled={isProcessingPayment}
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              {isProcessingPayment ? "Processing..." : "Complete Payment"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

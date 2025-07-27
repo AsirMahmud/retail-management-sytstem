@@ -485,7 +485,7 @@ export function ModernPOS() {
         </div>
 
         {/* Right Column - Cart & Checkout */}
-        {cart.length > 0 && <CartAndCheckout />}
+        <CartAndCheckout />
       </div>
 
       {/* Customer Search Modal */}

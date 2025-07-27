@@ -202,16 +202,16 @@ export default function CartAndCheckout() {
             }}
             className="fixed bottom-0 right-[100px] z-50"
           >
-            <Card className="w-[1000px] bg-white border-t flex flex-col h-[50vh] overflow-hidden">
+            <Card className="w-[1000px] bg-white border-t flex flex-col p-4 h-[70vh] mb-8 overflow-hidden">
               {/* Cart Header */}
               <div className="p-2 border-b flex justify-between items-center">
-                <h2 className="text-sm font-semibold flex items-center">
-                  <ShoppingCart className="h-4 w-4 mr-1" />
-                  Cart
-                  {cart.length > 0 && (
-                    <Badge className="ml-1 text-xs">{cart.length}</Badge>
-                  )}
-                </h2>
+                                 <h2 className="text-sm font-semibold flex items-center">
+                   <ShoppingCart className="h-4 w-4 mr-1" />
+                   Cart
+                   {cart.length > 0 && (
+                     <Badge className="ml-1 text-xs bg-blue-500 hover:bg-blue-600">{cart.length}</Badge>
+                   )}
+                 </h2>
                 <div className="flex gap-1">
                   <Button
                     variant="outline"
@@ -250,27 +250,35 @@ export default function CartAndCheckout() {
                   <div className="p-2 space-y-2">
                     {cart.map((item) => (
                       <div key={item.id} className="border rounded-md p-1.5">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 bg-gray-100 rounded mr-2 flex-shrink-0">
-                            <img
-                              src={item.image || "/placeholder.svg"}
-                              alt={item.name}
-                              className="h-full w-full object-cover"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-xs truncate">
-                              {item.name}
-                            </p>
-                            <div className="flex items-center text-[10px] text-muted-foreground">
-                              <span>Size: {item.size}</span>
-                              <div
-                                className="h-2 w-2 rounded-full mx-1"
-                                style={{ backgroundColor: item.color }}
-                              />
-                              <span>{formatCurrency(item.price)}</span>
-                            </div>
-                          </div>
+                                                 <div className="flex items-center">
+                           <div className="h-10 w-10 bg-gray-100 rounded mr-2 flex-shrink-0 overflow-hidden">
+                             <img
+                               src={item.image || "/api/placeholder/40/40"}
+                               alt={item.name}
+                               className="h-full w-full object-cover rounded"
+                               onError={(e) => {
+                                 const target = e.target as HTMLImageElement;
+                                 target.src = "/api/placeholder/40/40";
+                               }}
+                             />
+                           </div>
+                                                     <div className="flex-1 min-w-0">
+                             <p className="font-medium text-xs truncate">
+                               {item.name}
+                             </p>
+                             <div className="flex items-center text-[10px] text-muted-foreground flex-wrap">
+                               <span>Size: {item.size || 'Standard'}</span>
+                               <span className="mx-1">•</span>
+                               <span>Color: {item.color || 'Default'}</span>
+                               <span className="mx-1">•</span>
+                               <span className="font-medium">{formatCurrency(item.price)}</span>
+                             </div>
+                             {(item as any).sku && (
+                               <div className="text-[9px] text-gray-400 mt-0.5">
+                                 SKU: {(item as any).sku}
+                               </div>
+                             )}
+                           </div>
                           <div className="flex items-center">
                             <Button
                               variant="ghost"
@@ -482,15 +490,17 @@ export default function CartAndCheckout() {
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <div className="h-full flex flex-col items-center justify-center p-4 text-center">
-                    <ShoppingCart className="h-8 w-8 text-gray-300 mb-2" />
-                    <h3 className="text-sm font-medium">Your cart is empty</h3>
-                    <p className="text-xs text-muted-foreground">
-                      Add items to start a new order
-                    </p>
-                  </div>
-                )}
+                                 ) : (
+                   <div className="h-full flex flex-col items-center justify-center p-4 text-center">
+                     <div className="bg-gray-100 rounded-full p-4 mb-3">
+                       <ShoppingCart className="h-8 w-8 text-gray-400" />
+                     </div>
+                     <h3 className="text-sm font-medium text-gray-700 mb-1">Your cart is empty</h3>
+                     <p className="text-xs text-muted-foreground">
+                       Browse products and add items to start a new order
+                     </p>
+                   </div>
+                 )}
               </ScrollArea>
 
               {/* Cart Footer - Subtotal, Tax, Total, and Checkout */}
@@ -563,23 +573,25 @@ export default function CartAndCheckout() {
 
                   {/* Payment Section */}
                   <div className="p-2">
-                    <PaymentSection
-                      paymentMethod={paymentMethod}
-                      setPaymentMethod={setPaymentMethod}
-                      showSplitPayment={showSplitPayment}
-                      setShowSplitPayment={setShowSplitPayment}
-                      splitPayments={splitPayments}
-                      handleSplitPaymentChange={handleSplitPaymentChange}
-                      removeSplitPaymentMethod={removeSplitPaymentMethod}
-                      addSplitPaymentMethod={addSplitPaymentMethod}
-                      cashAmount={cashAmount}
-                      setCashAmount={setCashAmount}
-                      total={discountedSubtotal}
-                      changeDue={changeDue}
-                      cart={cart}
-                      handleCompletePayment={handleCompleteSale}
-                      formatCurrency={formatCurrency}
-                    />
+                                         <PaymentSection
+                       paymentMethod={paymentMethod}
+                       setPaymentMethod={setPaymentMethod}
+                       showSplitPayment={showSplitPayment}
+                       setShowSplitPayment={setShowSplitPayment}
+                       splitPayments={splitPayments}
+                       handleSplitPaymentChange={handleSplitPaymentChange}
+                       removeSplitPaymentMethod={removeSplitPaymentMethod}
+                       addSplitPaymentMethod={addSplitPaymentMethod}
+                       cashAmount={cashAmount}
+                       setCashAmount={setCashAmount}
+                       total={discountedSubtotal}
+                       changeDue={changeDue}
+                       cart={cart}
+                       handleCompletePayment={handleCompleteSale}
+                       formatCurrency={formatCurrency}
+                       allowPartialPayment={false}
+                       setAllowPartialPayment={undefined}
+                     />
                   </div>
                 </div>
               </div>
@@ -598,11 +610,11 @@ export default function CartAndCheckout() {
               className="bg-white shadow-md"
               onClick={() => setIsMounted(true)}
             >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Show Cart
-              {cart.length > 0 && (
-                <Badge className="ml-1 text-xs">{cart.length}</Badge>
-              )}
+                             <ChevronLeft className="h-4 w-4 mr-1" />
+               Show Cart
+               {cart.length > 0 && (
+                 <Badge className="ml-1 text-xs bg-blue-500 hover:bg-blue-600">{cart.length}</Badge>
+               )}
             </Button>
           </motion.div>
         )}

@@ -52,6 +52,7 @@ const mainNavItems = [
     subItems: [
       { title: "Overview", href: "/sales" },
       { title: "Sales History", href: "/sales/sales-history" },
+      {title:"Due",href:"/sales/due"}
     ],
   },
   {

@@ -281,7 +281,7 @@ class StockMovementViewSet(viewsets.ModelViewSet):
         if movement.variation:
             if movement.movement_type == 'IN':
                 movement.variation.stock += movement.quantity
-            elif movement.movement_type == 'OUT':
+            elif movement.movement_type in ['OUT', 'GIFT']:
                 if movement.variation.stock < movement.quantity:
                     raise ValidationError(f"Not enough stock in variation. Available: {movement.variation.stock}")
                 movement.variation.stock -= movement.quantity

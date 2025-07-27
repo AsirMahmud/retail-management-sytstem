@@ -1,17 +1,48 @@
 export type PaymentMethod = 'cash' | 'card' | 'mobile_money' | 'credit' | 'mobile' | 'gift' | 'split';
-export type SaleStatus = 'pending' | 'completed' | 'cancelled' | 'refunded';
+export type SaleStatus = 'pending' | 'completed' | 'cancelled' | 'refunded' | 'partially_paid' | 'gifted';
 export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
 export type ReturnStatus = 'pending' | 'approved' | 'rejected' | 'completed';
 
 export interface SaleItem {
     id?: number;
     product_id: number;
+    product?: {
+        id: number;
+        name: string;
+        sku: string;
+        cost_price: number;
+    };
     size: string;
     color: string;
     quantity: number;
     unit_price: number;
     discount: number;
     total?: number;
+    profit?: number;
+    loss?: number;
+    created_at?: string;
+}
+
+export interface SalePayment {
+    id?: number;
+    sale?: number;
+    payment_method: PaymentMethod;
+    amount: number;
+    status: PaymentStatus;
+    transaction_id?: string;
+    is_gift_payment?: boolean;
+    notes?: string;
+    created_at?: string;
+}
+
+export interface DuePayment {
+    id?: number;
+    sale?: number;
+    amount_due: number;
+    amount_paid: number;
+    due_date?: string;
+    status: 'pending' | 'completed' | 'overdue';
+    notes?: string;
     created_at?: string;
 }
 
@@ -27,11 +58,34 @@ export interface Sale {
     total: number;
     payment_method: PaymentMethod;
     status?: SaleStatus;
+    
+    // New payment system fields
+    amount_paid?: number;
+    amount_due?: number;
+    gift_amount?: number;
+    is_fully_paid?: boolean;
+    payment_status?: 'unpaid' | 'partially_paid' | 'fully_paid' | 'overpaid';
+    
     total_profit?: number;
+    total_loss?: number;
     notes?: string;
     created_at?: string;
     updated_at?: string;
     items: SaleItem[];
+    
+    // Payment data for split payments
+    payment_data?: Array<{
+        method: string;
+        amount: string;
+        notes?: string;
+        transaction_id?: string;
+    }>;
+    
+    // Related payment data
+    sale_payments?: SalePayment[];
+    due_payments?: DuePayment[];
+    payments?: Payment[]; // Legacy payments
+    returns?: Return[];
 }
 
 export interface Payment {

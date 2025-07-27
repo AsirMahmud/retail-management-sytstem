@@ -85,7 +85,7 @@ interface POSState {
         isPaid: boolean;
     } | null;
     setReceiptData: (data: POSState['receiptData']) => void;
-    handleCompletePayment: (toast: (props: { title: string; description: string; variant?: "default" | "destructive" }) => void) => Promise<Sale | undefined>;
+    handleCompletePayment: (toast: (props: { title: string; description: string; variant?: "default" | "destructive" }) => void, markAsDue?: boolean) => Promise<Sale | undefined>;
 }
 
 const initialNewCustomer: CreateCustomerData = {
@@ -270,7 +270,7 @@ export const usePOSStore = create<POSState>((set, get) => ({
     receiptData: null,
     setReceiptData: (data) => set({ receiptData: data }),
 
-    handleCompletePayment: async (toast) => {
+    handleCompletePayment: async (toast, markAsDue = false) => {
         const { cart, selectedCustomer, paymentMethod, cashAmount, splitPayments, cartDiscount } = get();
         if (cart.length === 0) {
             toast({
@@ -315,6 +315,37 @@ export const usePOSStore = create<POSState>((set, get) => ({
             const tax = 0;
             const total = subtotal;
 
+            // Prepare payment data for backend
+            let paymentData: any[] = [];
+            if (markAsDue) {
+                // For due sales, don't send any payment data
+                paymentData = [];
+            } else if (paymentMethod === "split") {
+                // For split payments, send the detailed payment breakdown
+                paymentData = splitPayments
+                    .filter(payment => payment.amount && parseFloat(payment.amount) > 0)
+                    .map(payment => ({
+                        method: payment.method,
+                        amount: payment.amount,
+                        notes: `Split payment - ${payment.method}`
+                    }));
+            } else if (paymentMethod === "cash") {
+                // For cash payments, send the cash amount
+                const cashAmountNum = parseFloat(cashAmount) || total;
+                paymentData = [{
+                    method: "cash",
+                    amount: cashAmountNum.toString(),
+                    notes: "Cash payment"
+                }];
+            } else if (["card", "mobile", "gift"].includes(paymentMethod)) {
+                // For card, mobile, and gift payments, send the full amount
+                paymentData = [{
+                    method: paymentMethod,
+                    amount: total.toString(),
+                    notes: `${paymentMethod.charAt(0).toUpperCase() + paymentMethod.slice(1)} payment`
+                }];
+            }
+
             // Create sale data
             const saleData: Partial<Sale> = {
                 customer: selectedCustomer?.id,
@@ -323,7 +354,9 @@ export const usePOSStore = create<POSState>((set, get) => ({
                 tax,
                 discount: globalDiscount, // Only global discount, not item discounts
                 total,
-                payment_method: paymentMethod,
+                payment_method: markAsDue ? "credit" : paymentMethod,
+                // Include payment_data for all non-due sales
+                ...(markAsDue ? { payment_data: [] } : { payment_data: paymentData }),
                 items: itemsWithDiscounts.map(item => ({
                     product_id: item.productId,
                     size: item.size,
@@ -348,16 +381,19 @@ export const usePOSStore = create<POSState>((set, get) => ({
                 date: new Date().toISOString(),
                 items: itemsWithDiscounts,
                 subtotal: subtotalBeforeDiscount,
+                discountedSubtotal: subtotalBeforeDiscount - totalItemDiscounts, // Add missing discountedSubtotal
                 itemDiscounts: totalItemDiscounts,
                 globalDiscount: globalDiscount,
                 tax,
                 total,
-                paymentMethod,
-                cashAmount: paymentMethod === "cash" ? Number.parseFloat(cashAmount) : null,
-                changeDue: paymentMethod === "cash" ? Number.parseFloat(cashAmount) - total : null,
+                paymentMethod: markAsDue ? "credit" : paymentMethod,
+                cashAmount: paymentMethod === "cash" && !markAsDue ? Number.parseFloat(cashAmount) : null,
+                changeDue: paymentMethod === "cash" && !markAsDue ? Number.parseFloat(cashAmount) - total : null,
                 customer: selectedCustomer,
-                splitPayments: paymentMethod === "split" ? splitPayments : null,
-                isPaid: true,
+                splitPayments: paymentMethod === "split" && !markAsDue ? splitPayments : null,
+                storeCredit: 0, // Add missing storeCredit field
+                isPaid: !markAsDue,
+                isDue: markAsDue,
             };
 
             // Set receipt data and show modal
@@ -367,8 +403,8 @@ export const usePOSStore = create<POSState>((set, get) => ({
             set({ cart: [], cartDiscount: null });
 
             toast({
-                title: "Success",
-                description: "Payment processed successfully",
+                title: markAsDue ? "Sale Created as Due" : "Success",
+                description: markAsDue ? "Sale created with pending payment" : "Payment processed successfully",
             });
 
             return sale;

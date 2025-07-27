@@ -785,6 +785,12 @@ export default function EditProductPage() {
                           step="0.01"
                           placeholder="Enter cost price"
                           {...field}
+                          onWheel={(e) => {
+                            // Prevent scrolling from changing the input value
+                            if (document.activeElement === e.target) {
+                              e.preventDefault();
+                            }
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -804,6 +810,12 @@ export default function EditProductPage() {
                           step="0.01"
                           placeholder="Enter selling price"
                           {...field}
+                          onWheel={(e) => {
+                            // Prevent scrolling from changing the input value
+                            if (document.activeElement === e.target) {
+                              e.preventDefault();
+                            }
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -825,6 +837,12 @@ export default function EditProductPage() {
                           onChange={(e) =>
                             field.onChange(parseInt(e.target.value))
                           }
+                          onWheel={(e) => {
+                            // Prevent scrolling from changing the input value
+                            if (document.activeElement === e.target) {
+                              e.preventDefault();
+                            }
+                          }}
                         />
                       </FormControl>
                       <FormMessage />
@@ -1124,6 +1142,12 @@ export default function EditProductPage() {
                                     parseInt(e.target.value)
                                   )
                                 }
+                                onWheel={(e) => {
+                                  // Prevent scrolling from changing the input value
+                                  if (document.activeElement === e.target) {
+                                    e.preventDefault();
+                                  }
+                                }}
                               />
                             </FormItem>
 

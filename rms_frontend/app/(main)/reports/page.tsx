@@ -29,8 +29,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PreorderReport } from "@/components/reports/preorder-report";
 
 export default function ReportsPage() {
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: new Date(new Date().setMonth(new Date().getMonth() - 1)),
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
     to: new Date(),
   });
 

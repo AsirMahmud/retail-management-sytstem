@@ -793,6 +793,12 @@ export default function AddProductPage() {
                             placeholder="0.00"
                             {...field}
                             className="h-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors"
+                            onWheel={(e) => {
+                              // Prevent scrolling from changing the input value
+                              if (document.activeElement === e.target) {
+                                e.preventDefault();
+                              }
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -814,6 +820,12 @@ export default function AddProductPage() {
                             placeholder="0.00"
                             {...field}
                             className="h-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors"
+                            onWheel={(e) => {
+                              // Prevent scrolling from changing the input value
+                              if (document.activeElement === e.target) {
+                                e.preventDefault();
+                              }
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -1000,6 +1012,12 @@ export default function AddProductPage() {
                                       )
                                     }
                                     className="w-24 h-10 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors"
+                                    onWheel={(e) => {
+                                      // Prevent scrolling from changing the input value
+                                      if (document.activeElement === e.target) {
+                                        e.preventDefault();
+                                      }
+                                    }}
                                   />
                                 </td>
                                 <td className="py-3 text-center">

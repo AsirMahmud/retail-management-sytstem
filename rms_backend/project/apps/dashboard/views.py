@@ -14,7 +14,7 @@ from apps.supplier.models import Supplier
 class DashboardStatsView(APIView):
     def get(self, request):
         today = timezone.now().date()
-        thirty_days_ago = today - timedelta(days=30)
+        start_of_month = today.replace(day=1)
         
         # Get today's metrics using Sale model for accurate profit calculation
         today_sales = Sale.objects.filter(
@@ -28,9 +28,10 @@ class DashboardStatsView(APIView):
         
         today_expenses = Expense.objects.filter(date=today).aggregate(total=Sum('amount'))['total'] or 0
         
-        # Get monthly metrics using Sale model for accurate profit calculation
+        # Get monthly metrics using Sale model for accurate profit calculation (current month)
         monthly_sales = Sale.objects.filter(
-            date__date__gte=thirty_days_ago,
+            date__date__gte=start_of_month,
+            date__date__lte=today,
             status='completed'
         ).aggregate(
             total=Sum('total'),
@@ -38,16 +39,20 @@ class DashboardStatsView(APIView):
             total_loss=Sum('total_loss')
         )
         
-        monthly_expenses = Expense.objects.filter(date__gte=thirty_days_ago).aggregate(total=Sum('amount'))['total'] or 0
+        monthly_expenses = Expense.objects.filter(
+            date__gte=start_of_month,
+            date__lte=today
+        ).aggregate(total=Sum('amount'))['total'] or 0
         
         # Get counts
         total_customers = Customer.objects.count()
         total_products = Product.objects.count()
         total_suppliers = Supplier.objects.count()
         
-        # Get sales trend using Sale model for accurate profit calculation
+        # Get sales trend using Sale model for accurate profit calculation (current month)
         sales_trend = Sale.objects.filter(
-            date__date__gte=thirty_days_ago,
+            date__date__gte=start_of_month,
+            date__date__lte=today,
             status='completed'
         ).values('date__date')\
             .annotate(
@@ -57,9 +62,11 @@ class DashboardStatsView(APIView):
             )\
             .order_by('date__date')
             
-        # Get expense trend
-        expense_trend = Expense.objects.filter(date__gte=thirty_days_ago)\
-            .values('date')\
+        # Get expense trend (current month)
+        expense_trend = Expense.objects.filter(
+            date__gte=start_of_month,
+            date__lte=today
+        ).values('date')\
             .annotate(amount=Sum('amount'))\
             .order_by('date')
             
