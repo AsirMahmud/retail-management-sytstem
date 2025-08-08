@@ -22,7 +22,6 @@ export const getSales = async (params?: {
     end_date?: string;
     status?: string;
     payment_method?: string;
-    payment_status?: string;
     customer_phone?: string;
     search?: string;
     ordering?: string;
@@ -30,6 +29,16 @@ export const getSales = async (params?: {
     page_size?: number;
 }) => {
     const response = await axios.get<PaginatedResponse<Sale>>('/sales/sales/', { params });
+    return response.data;
+};
+
+// Due Sales API (amount_due > 0 regardless of status)
+export const getDueSales = async (params?: {
+    ordering?: string;
+    page?: number;
+    page_size?: number;
+}) => {
+    const response = await axios.get<PaginatedResponse<Sale>>('/sales/sales/due_sales/', { params });
     return response.data;
 };
 

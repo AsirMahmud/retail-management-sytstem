@@ -140,14 +140,15 @@ WSGI_APPLICATION = 'rms.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('DB_NAME', 'rawstitc_retail_management_system'),
-        'USER': os.getenv('DB_USER', 'rawstitc_asir'),
-        'PASSWORD': os.getenv('DB_PASSWORD', '@Asd098qwe'),
-        'HOST': os.getenv('DB_HOST', '160.25.226.148'),
-        'PORT': os.getenv('DB_PORT', '3306'),
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER' ),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
+        'PORT': os.getenv('DB_PORT'),
     }
 }
 
+print(os.getenv('DB_HOST'))
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

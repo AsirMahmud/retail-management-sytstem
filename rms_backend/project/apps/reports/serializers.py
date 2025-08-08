@@ -169,29 +169,40 @@ class ProfitLossReportSerializer(serializers.Serializer):
     profit_by_category = ProfitByCategorySerializer(many=True)
 
 class ProductPerformanceSerializer(serializers.Serializer):
+    product_id = serializers.IntegerField()
     product_name = serializers.CharField()
+    category_name = serializers.CharField()
     total_sales = serializers.DecimalField(max_digits=10, decimal_places=2)
     total_profit = serializers.DecimalField(max_digits=10, decimal_places=2)
-    average_profit_margin = serializers.DecimalField(max_digits=10, decimal_places=2)
+    profit_margin = serializers.DecimalField(max_digits=10, decimal_places=2)
     average_price = serializers.DecimalField(max_digits=10, decimal_places=2)
+    average_profit = serializers.DecimalField(max_digits=10, decimal_places=2)
+    average_selling_price_with_discount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    quantity_sold = serializers.IntegerField()
 
 class SalesByProductSerializer(serializers.Serializer):
+    product_id = serializers.IntegerField()
     product_name = serializers.CharField()
     total_sales = serializers.DecimalField(max_digits=10, decimal_places=2)
     quantity_sold = serializers.IntegerField()
     average_price = serializers.DecimalField(max_digits=10, decimal_places=2)
+    average_selling_price_with_discount = serializers.DecimalField(max_digits=10, decimal_places=2)
 
 class ProfitByProductSerializer(serializers.Serializer):
+    product_id = serializers.IntegerField()
     product_name = serializers.CharField()
     total_profit = serializers.DecimalField(max_digits=10, decimal_places=2)
     profit_margin = serializers.DecimalField(max_digits=10, decimal_places=2)
     quantity_sold = serializers.IntegerField()
+    average_profit = serializers.DecimalField(max_digits=10, decimal_places=2)
 
 class ProductPerformanceReportSerializer(serializers.Serializer):
     total_products = serializers.IntegerField()
     total_sales = serializers.DecimalField(max_digits=10, decimal_places=2)
     total_profit = serializers.DecimalField(max_digits=10, decimal_places=2)
     average_profit_margin = serializers.DecimalField(max_digits=10, decimal_places=2)
+    average_profit = serializers.DecimalField(max_digits=10, decimal_places=2)
+    average_selling_price_with_discount = serializers.DecimalField(max_digits=10, decimal_places=2)
     top_performing_products = ProductPerformanceSerializer(many=True)
     low_performing_products = ProductPerformanceSerializer(many=True)
     sales_by_product = SalesByProductSerializer(many=True)

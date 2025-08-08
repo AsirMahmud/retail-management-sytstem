@@ -21,9 +21,15 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
+  BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 import React, { useState } from "react";
+import { ProductAnalytics } from "@/components/inventory/product-analytics";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AddStockDialog } from "@/components/inventory/add-stock-dialog";
+import { useQuery } from "@tanstack/react-query";
+import { productsApi, type StockMovement } from "@/lib/api/inventory";
 
 export default function ProductPage() {
   const params = useParams();
@@ -169,6 +175,15 @@ function ProductDetails({ product }: ProductDetailsProps) {
     }
   };
 
+  // Fetch stock history and filter additions
+  const { data: stockHistoryData, isLoading: isLoadingStockHistory } = useQuery({
+    queryKey: ["product-stock-history", product.id],
+    queryFn: () => productsApi.getStockHistory(product.id), // Get all-time data by default
+  });
+  const stockAdditions: StockMovement[] = (stockHistoryData?.stock_history || []).filter(
+    (m: StockMovement) => m.movement_type === "IN"
+  );
+
   return (
     <div className="space-y-8">
       {/* Header with navigation and actions */}
@@ -206,377 +221,448 @@ function ProductDetails({ product }: ProductDetailsProps) {
         </div>
       </div>
 
-      {/* Product overview card */}
-      <Card className="overflow-hidden border-0 shadow-lg">
-        <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 p-6 border-b">
-          <div className="flex justify-between items-start">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <h2 className="text-2xl font-bold">{product.name}</h2>
-                <Badge
-                  variant={product.is_active ? "default" : "secondary"}
-                  className="ml-2"
-                >
-                  {product.is_active ? "Active" : "Inactive"}
-                </Badge>
-              </div>
-              <p className="text-muted-foreground">{product.description}</p>
-            </div>
-            {isLowStock && (
-              <div className="bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 px-3 py-1.5 rounded-md flex items-center gap-2 text-sm font-medium">
-                <AlertTriangle className="h-4 w-4" />
-                {isOutOfStock ? "Out of Stock" : "Low Stock"}
-              </div>
-            )}
-          </div>
-        </div>
+      <Tabs defaultValue="details" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="details">Product Details</TabsTrigger>
+          <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="variations">Variations</TabsTrigger>
+        </TabsList>
 
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Left column */}
-            <div className="space-y-6">
-              {/* Product information */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Package className="h-5 w-5 text-blue-500" />
-                  Product Information
-                </h3>
-                <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      SKU
-                    </p>
-                    <p className="font-medium">{product.sku}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Barcode
-                    </p>
-                    <p className="font-medium">{product.barcode || "N/A"}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Category
-                    </p>
-                    <p className="font-medium">{categoryName}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Supplier
-                    </p>
-                    <p className="font-medium">{supplierName}</p>
-                  </div>
-                </div>
-              </div>
-
-              <Separator className="my-2" />
-
-              {/* Pricing */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-green-500" />
-                  Pricing
-                </h3>
-                <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Cost Price
-                    </p>
-                    <p className="font-medium text-lg">
-                      ${costPrice.toFixed(2)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Selling Price
-                    </p>
-                    <p className="font-medium text-lg">
-                      ${sellingPrice.toFixed(2)}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Profit Margin
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-lg">
-                        {profitMargin.toFixed(1)}%
-                      </p>
-                      <Badge
-                        variant={
-                          profitMargin > 30
-                            ? "default"
-                            : profitMargin > 15
-                            ? "secondary"
-                            : "outline"
-                        }
-                      >
-                        {profitMargin > 30
-                          ? "High"
-                          : profitMargin > 15
-                          ? "Good"
-                          : "Low"}
-                      </Badge>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Size Information */}
-              {(product.size_type ||
-                product.size_category ||
-                product.gender) && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="h-5 w-5 text-indigo-500"
-                    >
-                      <path d="M4 7V4a2 2 0 0 1 2-2h8.5L20 7.5V20a2 2 0 0 1-2 2h-12a2 2 0 0 1-2-2Z" />
-                      <polyline points="14,2 14,8 20,8" />
-                      <line x1="16" x2="8" y1="13" y2="13" />
-                      <line x1="16" x2="8" y1="17" y2="17" />
-                      <polyline points="10,9 9,9 8,9" />
-                    </svg>
-                    Size Information
-                  </h3>
-                  <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                    {product.size_type && (
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">
-                          Size Type
-                        </p>
-                        <p className="font-medium capitalize">
-                          {product.size_type}
-                        </p>
-                      </div>
-                    )}
-                    {product.size_category && (
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">
-                          Size Category
-                        </p>
-                        <p className="font-medium">{product.size_category}</p>
-                      </div>
-                    )}
-                    {product.gender && (
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">
-                          Gender
-                        </p>
-                        <p className="font-medium">{product.gender}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <Separator className="my-2" />
-            </div>
-
-            {/* Right column */}
-            <div className="space-y-6">
-              {/* Stock information */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Warehouse className="h-5 w-5 text-purple-500" />
-                  Stock Information
-                </h3>
-                <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Current Stock
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-lg">
-                        {product.stock_quantity}
-                      </p>
-                      {isOutOfStock ? (
-                        <XCircle className="h-5 w-5 text-red-500" />
-                      ) : isLowStock ? (
-                        <AlertTriangle className="h-5 w-5 text-amber-500" />
-                      ) : (
-                        <CheckCircle2 className="h-5 w-5 text-green-500" />
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Minimum Stock
-                    </p>
-                    <p className="font-medium text-lg">
-                      {product.minimum_stock}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Stock Status
-                    </p>
+        <TabsContent value="details" className="space-y-8">
+          {/* Product overview card */}
+          <Card className="overflow-hidden border-0 shadow-lg">
+            <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 p-6 border-b">
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-2xl font-bold">{product.name}</h2>
                     <Badge
-                      variant={
-                        isOutOfStock
-                          ? "destructive"
-                          : isLowStock
-                          ? "outline"
-                          : "default"
-                      }
-                      className="mt-1"
+                      variant={product.is_active ? "default" : "secondary"}
+                      className="ml-2"
                     >
-                      {isOutOfStock
-                        ? "Out of Stock"
-                        : isLowStock
-                        ? "Low Stock"
-                        : "In Stock"}
+                      {product.is_active ? "Active" : "Inactive"}
                     </Badge>
                   </div>
+                  <p className="text-muted-foreground">{product.description}</p>
                 </div>
-              </div>
-
-              <Separator className="my-2" />
-
-              {/* Timestamps */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-orange-500" />
-                  Timestamps
-                </h3>
-                <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Created At
-                    </p>
-                    <p className="font-medium">
-                      {product.created_at
-                        ? new Date(product.created_at).toLocaleDateString(
-                            "en-US",
-                            {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                              timeZone: "UTC",
-                            }
-                          )
-                        : "N/A"}
-                    </p>
+                {isLowStock && (
+                  <div className="bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 px-3 py-1.5 rounded-md flex items-center gap-2 text-sm font-medium">
+                    <AlertTriangle className="h-4 w-4" />
+                    {isOutOfStock ? "Out of Stock" : "Low Stock"}
                   </div>
+                )}
+              </div>
+            </div>
+
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Left column */}
+                <div className="space-y-6">
+                  {/* Product information */}
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Last Updated
-                    </p>
-                    <p className="font-medium">
-                      {product.updated_at
-                        ? new Date(product.updated_at).toLocaleDateString(
-                            "en-US",
-                            {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                              timeZone: "UTC",
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <Package className="h-5 w-5 text-blue-500" />
+                      Product Information
+                    </h3>
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          SKU
+                        </p>
+                        <p className="font-medium">{product.sku}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Barcode
+                        </p>
+                        <p className="font-medium">{product.barcode || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Category
+                        </p>
+                        <p className="font-medium">{categoryName}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Supplier
+                        </p>
+                        <p className="font-medium">{supplierName}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator className="my-2" />
+
+                  {/* Pricing */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <DollarSign className="h-5 w-5 text-green-500" />
+                      Pricing
+                    </h3>
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Cost Price
+                        </p>
+                        <p className="font-medium text-lg">
+                          ${costPrice.toFixed(2)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Selling Price
+                        </p>
+                        <p className="font-medium text-lg">
+                          ${sellingPrice.toFixed(2)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Profit Margin
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-lg">
+                            {profitMargin.toFixed(1)}%
+                          </p>
+                          <Badge
+                            variant={
+                              profitMargin > 30
+                                ? "default"
+                                : profitMargin > 15
+                                ? "secondary"
+                                : "outline"
                             }
-                          )
-                        : "N/A"}
-                    </p>
+                          >
+                            {profitMargin > 30
+                              ? "High"
+                              : profitMargin > 15
+                              ? "Good"
+                              : "Low"}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Size Information */}
+                  {(product.size_type ||
+                    product.size_category ||
+                    product.gender) && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="h-5 w-5 text-indigo-500"
+                        >
+                          <path d="M4 7V4a2 2 0 0 1 2-2h8.5L20 7.5V20a2 2 0 0 1-2 2h-12a2 2 0 0 1-2-2Z" />
+                          <polyline points="14,2 14,8 20,8" />
+                          <line x1="16" x2="8" y1="13" y2="13" />
+                          <line x1="16" x2="8" y1="17" y2="17" />
+                          <polyline points="10,9 9,9 8,9" />
+                        </svg>
+                        Size Information
+                      </h3>
+                      <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                        {product.size_type && (
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">
+                              Size Type
+                            </p>
+                            <p className="font-medium capitalize">
+                              {product.size_type}
+                            </p>
+                          </div>
+                        )}
+                        {product.size_category && (
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">
+                              Size Category
+                            </p>
+                            <p className="font-medium">{product.size_category}</p>
+                          </div>
+                        )}
+                        {product.gender && (
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">
+                              Gender
+                            </p>
+                            <p className="font-medium">{product.gender}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <Separator className="my-2" />
+                </div>
+
+                {/* Right column */}
+                <div className="space-y-6">
+                  {/* Stock information */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <Warehouse className="h-5 w-5 text-purple-500" />
+                      Stock Information
+                    </h3>
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Current Stock
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-lg">
+                            {product.stock_quantity}
+                          </p>
+                          {isOutOfStock ? (
+                            <XCircle className="h-5 w-5 text-red-500" />
+                          ) : isLowStock ? (
+                            <AlertTriangle className="h-5 w-5 text-amber-500" />
+                          ) : (
+                            <CheckCircle2 className="h-5 w-5 text-green-500" />
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Minimum Stock
+                        </p>
+                        <p className="font-medium text-lg">
+                          {product.minimum_stock}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Stock Status
+                        </p>
+                        <Badge
+                          variant={
+                            isOutOfStock
+                              ? "destructive"
+                              : isLowStock
+                              ? "outline"
+                              : "default"
+                          }
+                          className="mt-1"
+                        >
+                          {isOutOfStock
+                            ? "Out of Stock"
+                            : isLowStock
+                            ? "Low Stock"
+                            : "In Stock"}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator className="my-2" />
+
+                  {/* Timestamps */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <Calendar className="h-5 w-5 text-orange-500" />
+                      Timestamps
+                    </h3>
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Created At
+                        </p>
+                        <p className="font-medium">
+                          {product.created_at
+                            ? new Date(product.created_at).toLocaleDateString(
+                                "en-US",
+                                {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                  timeZone: "UTC",
+                                }
+                              )
+                            : "N/A"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">
+                          Last Updated
+                        </p>
+                        <p className="font-medium">
+                          {product.updated_at
+                            ? new Date(product.updated_at).toLocaleDateString(
+                                "en-US",
+                                {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                  timeZone: "UTC",
+                                }
+                              )
+                            : "N/A"}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </Card>
+          </Card>
 
-      {/* Product variations */}
-      {product.variations && product.variations.length > 0 && (
-        <Card className="overflow-hidden border-0 shadow-lg">
-          <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 p-6 border-b flex items-center justify-between">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Tag className="h-5 w-5 text-blue-500" />
-              Product Variations
-            </h3>
-            <Button
-              size="sm"
-              variant="default"
-              onClick={() => handlePrintAllVariantsByStock(product)}
-            >
-              Print All by Stock
-            </Button>
-          </div>
-          <div className="p-6">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">
-                      Size
-                    </th>
-                    <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">
-                      Color
-                    </th>
-                    <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">
-                      Stock
-                    </th>
-                    <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">
-                      Print Label
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {product.variations.map((variation) => (
-                    <VariantPrintRow
-                      key={variation.id}
-                      product={product}
-                      variation={variation}
-                    />
+          {/* Stock Addition History */}
+          <Card className="overflow-hidden border-0 shadow-lg">
+            <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 p-6 border-b">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Warehouse className="h-5 w-5 text-emerald-600" />
+                Stock Addition History
+              </h3>
+              <p className="text-sm text-muted-foreground">Recent stock IN movements by variation</p>
+            </div>
+            <div className="p-6">
+              {isLoadingStockHistory ? (
+                <div className="space-y-3">
+                  {[...Array(4)].map((_, i) => (
+                    <Skeleton key={i} className="h-6 w-full" />
                   ))}
-                </tbody>
-              </table>
+                </div>
+              ) : stockAdditions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No stock additions recorded yet.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">Date</th>
+                        <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">Variation</th>
+                        <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">Quantity</th>
+                        <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">Reference</th>
+                        <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {stockAdditions.slice(0, 20).map((m, idx) => (
+                        <tr key={idx}>
+                          <td className="px-6 py-3 text-sm">
+                            {new Date(m.created_at).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-3 text-sm">{m.variation_info || "General"}</td>
+                          <td className="px-6 py-3 text-sm font-medium text-emerald-700">+{m.quantity}</td>
+                          <td className="px-6 py-3 text-sm">{m.reference_number || "-"}</td>
+                          <td className="px-6 py-3 text-sm text-muted-foreground">{m.notes || "-"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
-          </div>
-        </Card>
-      )}
+          </Card>
 
-      {/* Product image */}
-      {product.image && (
-        <Card className="overflow-hidden border-0 shadow-lg">
-          <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 p-6 border-b">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-5 w-5 text-pink-500"
-              >
-                <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                <circle cx="9" cy="9" r="2" />
-                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-              </svg>
-              Product Image
-            </h3>
-          </div>
-          <div className="p-6">
-            <div className="relative aspect-square w-64 mx-auto sm:mx-0 overflow-hidden rounded-lg shadow-md border">
-              <Image
-                src={product.image || "/placeholder.svg"}
-                alt={product.name}
-                fill
-                className="object-cover hover:scale-105 transition-transform duration-300"
-              />
-            </div>
-          </div>
-        </Card>
-      )}
+          {/* Product image */}
+          {product.image && (
+            <Card className="overflow-hidden border-0 shadow-lg">
+              <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 p-6 border-b">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-5 w-5 text-pink-500"
+                  >
+                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                    <circle cx="9" cy="9" r="2" />
+                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                  </svg>
+                  Product Image
+                </h3>
+              </div>
+              <div className="p-6">
+                <div className="relative aspect-square w-64 mx-auto sm:mx-0 overflow-hidden rounded-lg shadow-md border">
+                  <Image
+                    src={product.image || "/placeholder.svg"}
+                    alt={product.name}
+                    fill
+                    className="object-cover hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+              </div>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="analytics">
+          <ProductAnalytics productId={product.id} />
+        </TabsContent>
+
+        <TabsContent value="variations">
+          {/* Product variations */}
+          {product.variations && product.variations.length > 0 && (
+            <Card className="overflow-hidden border-0 shadow-lg">
+              <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 p-6 border-b flex items-center justify-between">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <Tag className="h-5 w-5 text-blue-500" />
+                  Product Variations
+                </h3>
+                <div className="flex items-center gap-2">
+                  <AddStockDialog
+                    productId={product.id}
+                    variations={product.variations.map((v: any) => ({ id: v.id, size: v.size, color: v.color, stock: v.stock }))}
+                  />
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => handlePrintAllVariantsByStock(product)}
+                  >
+                    Print All by Stock
+                  </Button>
+                </div>
+              </div>
+              <div className="p-6">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">
+                          Size
+                        </th>
+                        <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">
+                          Color
+                        </th>
+                        <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">
+                          Stock
+                        </th>
+                        <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">
+                          Print Label
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {product.variations.map((variation) => (
+                        <VariantPrintRow
+                          key={variation.id}
+                          product={product}
+                          variation={variation}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

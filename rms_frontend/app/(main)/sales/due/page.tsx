@@ -56,7 +56,7 @@ import {
   MapPin,
   AlertCircle,
 } from "lucide-react";
-import { useSales } from "@/hooks/queries/use-sales";
+import { useDueSales } from "@/hooks/queries/use-sales";
 import { addPayment } from "@/lib/api/sales";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -89,10 +89,9 @@ export default function DueSalesPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch due sales data
-  const { sales: salesData, isLoading } = useSales({
-    status: "pending", // Fetch only pending/due sales
-    page_size: 1000, // Get all due sales for comprehensive analysis
+  // Fetch due sales data (any sale with amount_due > 0 regardless of status)
+  const { sales: salesData, isLoading } = useDueSales({
+    page_size: 1000,
   });
 
   // Filter and process due sales data
@@ -156,11 +155,16 @@ export default function DueSalesPage() {
       return sum + amount;
     }, 0);
     const totalSales = dueSales.length;
-    const uniqueCustomers = new Set(dueSales.map(sale => sale.customer?.id)).size;
+    const uniqueCustomers = new Set(
+      dueSales.map((sale) => {
+        const id = typeof sale.customer === 'object' ? sale.customer?.id : sale.customer;
+        return id ?? 'unknown';
+      })
+    ).size;
     
     // Monthly due analysis
     const monthlyData = dueSales.reduce((acc, sale) => {
-      const date = new Date(sale.date || sale.created_at);
+      const date = new Date((sale.date ?? sale.created_at) || '');
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       
       if (!acc[monthKey]) {
@@ -173,7 +177,7 @@ export default function DueSalesPage() {
 
     // Age analysis
     const ageAnalysis = dueSales.reduce((acc, sale) => {
-      const saleDate = new Date(sale.date || sale.created_at);
+      const saleDate = new Date((sale.date ?? sale.created_at) || '');
       const now = new Date();
       const diffDays = Math.ceil((now.getTime() - saleDate.getTime()) / (1000 * 60 * 60 * 24));
       
@@ -203,30 +207,32 @@ export default function DueSalesPage() {
   // Group sales by customer
   const customerGroups = useMemo(() => {
     const groups = dueSales.reduce((acc, sale) => {
-      const customerId = sale.customer?.id || 'unknown';
-      const customerName = sale.customer ? 
-        `${sale.customer.first_name} ${sale.customer.last_name}` : 
-        'Walk-in Customer';
+      const customerKey = String(
+        typeof sale.customer === 'object' ? (sale.customer?.id ?? 'unknown') : (sale.customer ?? 'unknown')
+      );
+      const customerName = typeof sale.customer === 'object' && sale.customer
+        ? `${sale.customer.first_name} ${sale.customer.last_name}`
+        : 'Walk-in Customer';
       
-      if (!acc[customerId]) {
-        acc[customerId] = {
-          customer: sale.customer,
+      if (!acc[customerKey]) {
+        acc[customerKey] = {
+          customer: typeof sale.customer === 'object' ? sale.customer : null,
           customerName,
-          customerPhone: sale.customer_phone || sale.customer?.phone,
+          customerPhone: sale.customer_phone || (typeof sale.customer === 'object' ? sale.customer?.phone : undefined),
           sales: [],
           totalDue: 0,
           oldestSale: sale,
         };
       }
       
-      acc[customerId].sales.push(sale);
-             acc[customerId].totalDue += parseFloat(sale.amount_due?.toString() || '0') || 0;
+      acc[customerKey].sales.push(sale);
+      acc[customerKey].totalDue += parseFloat(sale.amount_due?.toString() || '0') || 0;
       
       // Track oldest sale
-      const currentOldest = new Date(acc[customerId].oldestSale.date || acc[customerId].oldestSale.created_at);
-      const thisSale = new Date(sale.date || sale.created_at);
+      const currentOldest = new Date((acc[customerKey].oldestSale.date ?? acc[customerKey].oldestSale.created_at) || '');
+      const thisSale = new Date((sale.date ?? sale.created_at) || '');
       if (thisSale < currentOldest) {
-        acc[customerId].oldestSale = sale;
+        acc[customerKey].oldestSale = sale;
       }
       
       return acc;
@@ -310,6 +316,7 @@ export default function DueSalesPage() {
       setPaymentNotes("");
       setPaymentMethod("cash");
       
+      queryClient.invalidateQueries({ queryKey: ['due-sales'] });
       queryClient.invalidateQueries({ queryKey: ['sales'] });
     } catch (error) {
       console.error('Error processing payment:', error);
@@ -631,9 +638,9 @@ export default function DueSalesPage() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Oldest Due:</span>
-                        <span className="font-medium">
-                          {formatDate(group.oldestSale.date || group.oldestSale.created_at)}
-                        </span>
+                         <span className="font-medium">
+                           {formatDate((group.oldestSale.date ?? group.oldestSale.created_at) || new Date().toISOString())}
+                         </span>
                       </div>
                     </div>
                     
@@ -646,7 +653,7 @@ export default function DueSalesPage() {
                              <div className="flex-1">
                                <div className="font-medium">{sale.invoice_number}</div>
                                <div className="text-muted-foreground">
-                                 {formatDate(sale.date || sale.created_at)}
+                                  {formatDate((sale.date ?? sale.created_at) || new Date().toISOString())}
                                </div>
                              </div>
                              <div className="text-right">
@@ -864,7 +871,7 @@ export default function DueSalesPage() {
                              </Badge>
                            </div>
                            <div className="text-sm text-muted-foreground">
-                             <div>Date: {formatDate(sale.date || sale.created_at)}</div>
+                              <div>Date: {formatDate((sale.date ?? sale.created_at) || new Date().toISOString())}</div>
                              <div>Total: {formatCurrency(sale.total || 0)}</div>
                              <div>Paid: {formatCurrency((sale.total || 0) - (parseFloat(sale.amount_due?.toString() || '0') || 0))}</div>
                            </div>

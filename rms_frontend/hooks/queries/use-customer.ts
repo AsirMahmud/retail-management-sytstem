@@ -9,9 +9,14 @@ import {
     deleteCustomer,
     searchCustomers,
     lookupCustomerByPhone,
+    getTopCustomers,
+    getCustomerAnalytics,
     type Customer,
+    type TopCustomer,
+    type CustomerAnalytics,
     type CreateCustomerData,
     type UpdateCustomerData,
+    type PaginatedResponse,
 } from '@/lib/api/customer';
 import axios from "axios";
 
@@ -27,25 +32,71 @@ export const customerKeys = {
     active: () => [...customerKeys.all, 'active'] as const,
     search: (query: string) => [...customerKeys.all, 'search', query] as const,
     lookup: () => [...customerKeys.all, 'lookup'] as const,
+    top: () => [...customerKeys.all, 'top'] as const,
+    analytics: () => [...customerKeys.all, 'analytics'] as const,
 };
 
-// Hook for getting all customers
-export const useCustomers = () => {
+// Hook for getting all customers with pagination and filtering
+export const useCustomers = (
+    page: number = 1, 
+    pageSize: number = 20,
+    filters?: {
+        ranking_filter?: string;
+        sales_filter?: string;
+        recent_filter?: string;
+        ordering?: string;
+    }
+) => {
     return useQuery({
-        queryKey: customerKeys.lists(),
+        queryKey: [...customerKeys.lists(), page, pageSize, filters],
         queryFn: async () => {
-            const response = await axios.get(`${API_URL}/customer/customers/`);
+            const params: any = { page, page_size: pageSize };
+            
+            if (filters) {
+                if (filters.ranking_filter) params.ranking_filter = filters.ranking_filter;
+                if (filters.sales_filter) params.sales_filter = filters.sales_filter;
+                if (filters.recent_filter) params.recent_filter = filters.recent_filter;
+                if (filters.ordering) params.ordering = filters.ordering;
+            }
+            
+            const response = await axios.get(`${API_URL}/customer/customers/`, { params });
             return response.data;
         },
     });
 };
 
-// Hook for getting active customers
-export const useActiveCustomers = () => {
+// Hook for getting active customers with pagination
+export const useActiveCustomers = (page: number = 1, pageSize: number = 20) => {
     return useQuery({
-        queryKey: customerKeys.active(),
+        queryKey: [...customerKeys.active(), page, pageSize],
         queryFn: async () => {
-            const response = await axios.get(`${API_URL}/customer/customers/active_customers/`);
+            const response = await axios.get(`${API_URL}/customer/customers/active_customers/`, {
+                params: { page, page_size: pageSize }
+            });
+            return response.data;
+        },
+    });
+};
+
+// Hook for getting top customers
+export const useTopCustomers = (limit: number = 5) => {
+    return useQuery({
+        queryKey: [...customerKeys.top(), limit],
+        queryFn: async () => {
+            const response = await axios.get(`${API_URL}/customer/customers/top_customers/`, {
+                params: { limit }
+            });
+            return response.data;
+        },
+    });
+};
+
+// Hook for getting customer analytics
+export const useCustomerAnalytics = () => {
+    return useQuery({
+        queryKey: customerKeys.analytics(),
+        queryFn: async () => {
+            const response = await axios.get(`${API_URL}/customer/customers/customer_analytics/`);
             return response.data;
         },
     });
@@ -73,6 +124,8 @@ export const useCreateCustomer = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: customerKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: customerKeys.top() });
+            queryClient.invalidateQueries({ queryKey: customerKeys.analytics() });
             toast({
                 title: 'Success',
                 description: 'Customer created successfully',
@@ -100,6 +153,8 @@ export const useUpdateCustomer = () => {
         onSuccess: (_, { id }) => {
             queryClient.invalidateQueries({ queryKey: customerKeys.detail(id) });
             queryClient.invalidateQueries({ queryKey: customerKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: customerKeys.top() });
+            queryClient.invalidateQueries({ queryKey: customerKeys.analytics() });
             toast({
                 title: 'Success',
                 description: 'Customer updated successfully',
@@ -126,6 +181,8 @@ export const useDeleteCustomer = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: customerKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: customerKeys.top() });
+            queryClient.invalidateQueries({ queryKey: customerKeys.analytics() });
             toast({
                 title: 'Success',
                 description: 'Customer deleted successfully',
@@ -141,15 +198,34 @@ export const useDeleteCustomer = () => {
     });
 };
 
-// Hook for searching customers
-export const useSearchCustomers = (query: string) => {
+// Hook for searching customers with pagination
+export const useSearchCustomers = (
+    query: string, 
+    page: number = 1, 
+    pageSize: number = 20,
+    filters?: {
+        ranking_filter?: string;
+        sales_filter?: string;
+        recent_filter?: string;
+        ordering?: string;
+    }
+) => {
     return useQuery({
-        queryKey: customerKeys.search(query),
+        queryKey: [...customerKeys.search(query), page, pageSize, filters],
         queryFn: async () => {
-            if (!query) return [];
-            const response = await axios.get(`${API_URL}/customer/customers/`, {
-                params: { search: query },
-            });
+            if (!query) return { count: 0, next: null, previous: null, results: [] };
+            
+            const params: any = { search: query, page, page_size: pageSize };
+            
+            // Add filters to search params
+            if (filters) {
+                if (filters.ranking_filter) params.ranking_filter = filters.ranking_filter;
+                if (filters.sales_filter) params.sales_filter = filters.sales_filter;
+                if (filters.recent_filter) params.recent_filter = filters.recent_filter;
+                if (filters.ordering) params.ordering = filters.ordering;
+            }
+            
+            const response = await axios.get(`${API_URL}/customer/customers/`, { params });
             return response.data;
         },
         enabled: !!query,
@@ -162,7 +238,8 @@ export const useCustomerLookup = () => {
         queryKey: customerKeys.lookup(),
         queryFn: async () => {
             const response = await axios.get(`${API_URL}/customer/customers/`);
-            return response.data.map((customer: Customer) => ({
+            const customers = response.data.results || response.data;
+            return customers.map((customer: Customer) => ({
                 value: customer.id,
                 label: `${customer.first_name} ${customer.last_name}`,
             }));
@@ -181,6 +258,8 @@ export function usePermanentDeleteCustomer() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: customerKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: customerKeys.top() });
+            queryClient.invalidateQueries({ queryKey: customerKeys.analytics() });
             toast({
                 title: 'Success',
                 description: 'Customer permanently deleted',
@@ -208,6 +287,8 @@ export function useBulkDeleteCustomers() {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: customerKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: customerKeys.top() });
+            queryClient.invalidateQueries({ queryKey: customerKeys.analytics() });
             toast({
                 title: 'Success',
                 description: 'Selected customers permanently deleted',

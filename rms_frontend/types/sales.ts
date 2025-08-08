@@ -49,7 +49,17 @@ export interface DuePayment {
 export interface Sale {
     id?: number;
     invoice_number?: string;
-    customer?: number | null;
+    customer?: (
+        | number
+        | null
+        | {
+              id: number;
+              first_name: string;
+              last_name: string;
+              email?: string;
+              phone?: string;
+          }
+    );
     customer_phone: string | null;
     date?: string;
     subtotal: number;

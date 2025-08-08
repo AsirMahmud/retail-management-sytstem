@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.core.validators import MinValueValidator
 from .models import Category, Product, ProductImage, ProductVariation, StockMovement, InventoryAlert
 from apps.supplier.models import Supplier
 from apps.supplier.serializers import SupplierSerializer
@@ -185,6 +186,16 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         for variation_data in variations_data:
             variation = ProductVariation.objects.create(product=product, **variation_data)
             total_stock += variation.stock
+            # Record initial stock movement for each variation
+            if variation.stock and variation.stock > 0:
+                StockMovement.objects.create(
+                    product=product,
+                    variation=variation,
+                    movement_type='IN',
+                    quantity=variation.stock,
+                    reference_number='INIT',
+                    notes='Initial stock at product creation'
+                )
             
         # Update product's total stock
         product.stock_quantity = total_stock
@@ -206,13 +217,44 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         
         # Handle variations if provided
         if variations_data is not None:
+            # Track old stock quantities by size/color combination
+            old_variations = {}
+            for v in instance.variations.all():
+                key = f"{v.size}-{v.color}"
+                old_variations[key] = v.stock
+            
             # Delete existing variations
             instance.variations.all().delete()
+            
             # Create new variations and calculate total stock
             total_stock = 0
             for variation_data in variations_data:
                 variation = ProductVariation.objects.create(product=instance, **variation_data)
                 total_stock += variation.stock
+                
+                # Log stock movement for changes in existing variations or new ones
+                key = f"{variation.size}-{variation.color}"
+                old_stock = old_variations.get(key, 0)
+                
+                if variation.stock > old_stock:
+                    StockMovement.objects.create(
+                        product=instance, 
+                        variation=variation, 
+                        movement_type='IN', 
+                        quantity=variation.stock - old_stock, 
+                        notes='Stock updated via product edit',
+                        reference_number='EDIT'
+                    )
+                elif variation.stock < old_stock:
+                    StockMovement.objects.create(
+                        product=instance, 
+                        variation=variation, 
+                        movement_type='OUT', 
+                        quantity=old_stock - variation.stock, 
+                        notes='Stock updated via product edit',
+                        reference_number='EDIT'
+                    )
+            
             # Update product's total stock
             instance.stock_quantity = total_stock
         
@@ -267,3 +309,16 @@ class BulkImageUploadSerializer(serializers.Serializer):
         required=True
     )
     is_primary = serializers.BooleanField(default=False)
+
+class AddStockSerializer(serializers.Serializer):
+    variation_id = serializers.IntegerField(required=True, allow_null=False)
+    quantity = serializers.IntegerField(validators=[MinValueValidator(1)], required=True)
+    notes = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    reference_number = serializers.CharField(max_length=50, required=False, allow_blank=True)
+
+    def validate_variation_id(self, value):
+        if value is None:
+            raise serializers.ValidationError("variation_id cannot be null")
+        if value <= 0:
+            raise serializers.ValidationError("variation_id must be a positive integer")
+        return value

@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { SalesReport } from "@/components/reports/sales-report";
 import { ExpenseReport } from "@/components/reports/expense-report";
 import { InventoryReport } from "@/components/reports/inventory-report";
@@ -27,12 +29,91 @@ import {
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PreorderReport } from "@/components/reports/preorder-report";
+import { Calendar, Filter, TrendingUp, TrendingDown, DollarSign, ShoppingCart, ChevronDown, ChevronUp } from "lucide-react";
+
+// Preset filter options
+const PRESET_FILTERS = [
+  { label: "All Time", value: "all-time", icon: TrendingUp },
+  { label: "Today", value: "today", icon: Calendar },
+  { label: "This Week", value: "this-week", icon: TrendingUp },
+  { label: "This Month", value: "this-month", icon: Calendar },
+  { label: "This Year", value: "this-year", icon: TrendingUp },
+  { label: "Last 7 Days", value: "last-7-days", icon: TrendingDown },
+  { label: "Last 30 Days", value: "last-30-days", icon: TrendingDown },
+  { label: "Last 90 Days", value: "last-90-days", icon: TrendingDown },
+];
 
 export default function ReportsPage() {
-  const [dateRange, setDateRange] = useState<DateRange>({
+  const [selectedFilter, setSelectedFilter] = useState("all-time");
+  const [customDateRange, setCustomDateRange] = useState<DateRange>({
     from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
     to: new Date(),
   });
+  const [isFilterExpanded, setIsFilterExpanded] = useState(false);
+
+  // Calculate date range based on selected filter
+  const dateRange = useMemo(() => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    switch (selectedFilter) {
+      case "all-time":
+        return {
+          from: new Date(2020, 0, 1), // Start from 2020 or adjust as needed
+          to: now,
+        };
+      case "today":
+        return {
+          from: today,
+          to: today,
+        };
+      case "this-week":
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay());
+        return {
+          from: startOfWeek,
+          to: now,
+        };
+      case "this-month":
+        return {
+          from: new Date(now.getFullYear(), now.getMonth(), 1),
+          to: now,
+        };
+      case "this-year":
+        return {
+          from: new Date(now.getFullYear(), 0, 1),
+          to: now,
+        };
+      case "last-7-days":
+        const sevenDaysAgo = new Date(today);
+        sevenDaysAgo.setDate(today.getDate() - 7);
+        return {
+          from: sevenDaysAgo,
+          to: now,
+        };
+      case "last-30-days":
+        const thirtyDaysAgo = new Date(today);
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        return {
+          from: thirtyDaysAgo,
+          to: now,
+        };
+      case "last-90-days":
+        const ninetyDaysAgo = new Date(today);
+        ninetyDaysAgo.setDate(today.getDate() - 90);
+        return {
+          from: ninetyDaysAgo,
+          to: now,
+        };
+      case "custom":
+        return customDateRange;
+      default:
+        return {
+          from: new Date(now.getFullYear(), now.getMonth(), 1),
+          to: now,
+        };
+    }
+  }, [selectedFilter, customDateRange]);
 
   const { data: overviewData, isLoading: isLoadingOverview } =
     useOverviewReport(dateRange);
@@ -55,13 +136,20 @@ export default function ReportsPage() {
     to: dateRange?.to,
   };
 
+  // Format date range for display
+  const formatDateRangeDisplay = (range: DateRange) => {
+    if (!range.from) return "Select dates";
+    const fromDate = range.from.toLocaleDateString();
+    const toDate = range.to ? range.to.toLocaleDateString() : fromDate;
+    return fromDate === toDate ? fromDate : `${fromDate} - ${toDate}`;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       <div className="max-w-7xl mx-auto p-6">
         <div className="mb-8">
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-              {/* You can use a report icon here if you have one */}
               <svg
                 className="h-6 w-6 text-white"
                 fill="none"
@@ -86,15 +174,110 @@ export default function ReportsPage() {
             </div>
           </div>
         </div>
-        <div className="flex items-center justify-between space-y-2 mb-6">
-          <div></div>
-          <div className="flex items-center space-x-2">
-            <DatePickerWithRange
-              value={dateRange ?? { from: new Date(), to: new Date() }}
-              onChange={setDateRange}
-            />
-          </div>
+
+        {/* Enhanced Filter System */}
+        <div className="mb-8">
+          <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Filter className="h-5 w-5 text-blue-600" />
+                  <CardTitle className="text-lg font-semibold text-gray-800">
+                    Filter Reports
+                  </CardTitle>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+                  className="text-gray-600 hover:text-gray-800"
+                >
+                  {isFilterExpanded ? (
+                    <>
+                      <ChevronUp className="h-4 w-4 mr-1" />
+                      Collapse
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-4 w-4 mr-1" />
+                      Expand
+                    </>
+                  )}
+                </Button>
+              </div>
+              
+              {/* Current Filter Display - Always Visible */}
+              <div className="flex items-center justify-between pt-2">
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600">Current Period:</span>
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    {selectedFilter === "custom" 
+                      ? formatDateRangeDisplay(customDateRange)
+                      : PRESET_FILTERS.find(f => f.value === selectedFilter)?.label || "All Time"
+                    }
+                  </Badge>
+                </div>
+                <div className="flex items-center space-x-2 text-sm text-gray-500">
+                  <Calendar className="h-4 w-4" />
+                  <span>
+                    {dateRange.from?.toLocaleDateString()} - {dateRange.to?.toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            </CardHeader>
+            
+            {/* Collapsible Content */}
+            {isFilterExpanded && (
+              <CardContent className="space-y-6 pt-0">
+                {/* Preset Filters */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-3">Quick Filters</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {PRESET_FILTERS.map((filter) => {
+                      const Icon = filter.icon;
+                      return (
+                        <Button
+                          key={filter.value}
+                          variant={selectedFilter === filter.value ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedFilter(filter.value)}
+                          className={`transition-all duration-200 ${
+                            selectedFilter === filter.value
+                              ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg"
+                              : "hover:bg-blue-50 hover:border-blue-300"
+                          }`}
+                        >
+                          <Icon className="h-4 w-4 mr-2" />
+                          {filter.label}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Custom Date Range */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-700 mb-3">Custom Date Range</h3>
+                  <div className="flex items-center space-x-4">
+                    <DatePickerWithRange
+                      value={customDateRange}
+                      onChange={(range) => {
+                        setCustomDateRange(range || { from: new Date(), to: new Date() });
+                        setSelectedFilter("custom");
+                      }}
+                    />
+                    {selectedFilter === "custom" && (
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                        {formatDateRangeDisplay(customDateRange)}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            )}
+          </Card>
         </div>
+
         <Tabs defaultValue="overview" className="space-y-8">
           <TabsList className="grid w-full grid-cols-8 bg-white/70 backdrop-blur-sm border border-white/20 shadow-lg rounded-xl p-1">
             <TabsTrigger
@@ -161,6 +344,7 @@ export default function ReportsPage() {
                     <CardTitle className="text-sm font-medium text-gray-700">
                       Total Sales
                     </CardTitle>
+                    <DollarSign className="h-4 w-4 text-blue-600" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-gray-900">
@@ -176,6 +360,7 @@ export default function ReportsPage() {
                     <CardTitle className="text-sm font-medium text-gray-700">
                       Total Expenses
                     </CardTitle>
+                    <TrendingDown className="h-4 w-4 text-emerald-600" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-gray-900">
@@ -191,6 +376,7 @@ export default function ReportsPage() {
                     <CardTitle className="text-sm font-medium text-gray-700">
                       Net Profit
                     </CardTitle>
+                    <TrendingUp className="h-4 w-4 text-purple-600" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-gray-900">
@@ -203,6 +389,7 @@ export default function ReportsPage() {
                     <CardTitle className="text-sm font-medium text-gray-700">
                       Profit Margin
                     </CardTitle>
+                    <ShoppingCart className="h-4 w-4 text-orange-600" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-gray-900">

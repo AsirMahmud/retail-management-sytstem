@@ -492,20 +492,39 @@ class ReportViewSet(viewsets.ModelViewSet):
         total_sales = sales_items.aggregate(total=Sum('total'))['total'] or Decimal('0.00')
         total_profit = sales_items.aggregate(total=Sum('profit'))['total'] or Decimal('0.00')
         average_profit_margin = (total_profit / total_sales * 100) if total_sales > 0 else Decimal('0.00')
+        
+        # Calculate average profit and average selling price with discount
+        total_quantity_sold = sales_items.aggregate(total=Sum('quantity'))['total'] or 0
+        total_discounts = sales_items.aggregate(total=Sum('discount'))['total'] or Decimal('0.00')
+        
+        average_profit = (total_profit / total_quantity_sold) if total_quantity_sold > 0 else Decimal('0.00')
+        average_selling_price_with_discount = (total_sales / total_quantity_sold) if total_quantity_sold > 0 else Decimal('0.00')
 
         # Top performing products
         top_performing_products = sales_items.values(
-            'product__name', 'product__category__name'
+            'product__id', 'product__name', 'product__category__name'
         ).annotate(
+            product_id=F('product__id'),
             product_name=F('product__name'),
             category_name=F('product__category__name'),
             total_sales=Sum('total'),
             quantity_sold=Sum('quantity'),
             total_profit=Sum('profit'),
+            total_discount=Sum('discount'),
             average_price=Avg('unit_price')
         ).annotate(
-            average_profit_margin=Case(
+            profit_margin=Case(
                 When(total_sales__gt=0, then=(F('total_profit') / F('total_sales')) * 100),
+                default=Decimal('0.0'),
+                output_field=DecimalField()
+            ),
+            average_profit=Case(
+                When(quantity_sold__gt=0, then=F('total_profit') / F('quantity_sold')),
+                default=Decimal('0.0'),
+                output_field=DecimalField()
+            ),
+            average_selling_price_with_discount=Case(
+                When(quantity_sold__gt=0, then=F('total_sales') / F('quantity_sold')),
                 default=Decimal('0.0'),
                 output_field=DecimalField()
             )
@@ -513,32 +532,53 @@ class ReportViewSet(viewsets.ModelViewSet):
 
         # Low performing products
         low_performing_products = sales_items.values(
-            'product__name', 'product__category__name'
+            'product__id', 'product__name', 'product__category__name'
         ).annotate(
+            product_id=F('product__id'),
             product_name=F('product__name'),
             category_name=F('product__category__name'),
             total_sales=Sum('total'),
             quantity_sold=Sum('quantity'),
             total_profit=Sum('profit'),
+            total_discount=Sum('discount'),
             average_price=Avg('unit_price')
         ).annotate(
-            average_profit_margin=Case(
+            profit_margin=Case(
                 When(total_sales__gt=0, then=(F('total_profit') / F('total_sales')) * 100),
+                default=Decimal('0.0'),
+                output_field=DecimalField()
+            ),
+            average_profit=Case(
+                When(quantity_sold__gt=0, then=F('total_profit') / F('quantity_sold')),
+                default=Decimal('0.0'),
+                output_field=DecimalField()
+            ),
+            average_selling_price_with_discount=Case(
+                When(quantity_sold__gt=0, then=F('total_sales') / F('quantity_sold')),
                 default=Decimal('0.0'),
                 output_field=DecimalField()
             )
         ).order_by('total_profit')[:10]
 
         # Sales by product
-        sales_by_product = sales_items.values('product__name').annotate(
+        sales_by_product = sales_items.values('product__id', 'product__name').annotate(
+            product_id=F('product__id'),
             product_name=F('product__name'),
             total_sales=Sum('total'),
             quantity_sold=Sum('quantity'),
+            total_discount=Sum('discount'),
             average_price=Avg('unit_price')
+        ).annotate(
+            average_selling_price_with_discount=Case(
+                When(quantity_sold__gt=0, then=F('total_sales') / F('quantity_sold')),
+                default=Decimal('0.0'),
+                output_field=DecimalField()
+            )
         ).order_by('-total_sales')
 
         # Profit by product
-        profit_by_product = sales_items.values('product__name').annotate(
+        profit_by_product = sales_items.values('product__id', 'product__name').annotate(
+            product_id=F('product__id'),
             product_name=F('product__name'),
             total_sales=Sum('total'),
             total_profit=Sum('profit'),
@@ -546,6 +586,11 @@ class ReportViewSet(viewsets.ModelViewSet):
         ).annotate(
             profit_margin=Case(
                 When(total_sales__gt=0, then=(F('total_profit') / F('total_sales')) * 100),
+                default=Decimal('0.0'),
+                output_field=DecimalField()
+            ),
+            average_profit=Case(
+                When(quantity_sold__gt=0, then=F('total_profit') / F('quantity_sold')),
                 default=Decimal('0.0'),
                 output_field=DecimalField()
             )
@@ -556,6 +601,8 @@ class ReportViewSet(viewsets.ModelViewSet):
             'total_sales': total_sales,
             'total_profit': total_profit,
             'average_profit_margin': average_profit_margin,
+            'average_profit': average_profit,
+            'average_selling_price_with_discount': average_selling_price_with_discount,
             'top_performing_products': list(top_performing_products),
             'low_performing_products': list(low_performing_products),
             'sales_by_product': list(sales_by_product),

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -29,6 +29,15 @@ import {
   Filter,
   ArrowUpDown,
   Trash2,
+  Crown,
+  Trophy,
+  Medal,
+  Award,
+  Star,
+  Users,
+  TrendingUp,
+  Target,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +50,7 @@ import {
   useDeleteCustomer,
   usePermanentDeleteCustomer,
   useBulkDeleteCustomers,
+  useCustomerAnalytics,
 } from "@/hooks/queries/use-customer";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -57,6 +67,9 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { deleteAllCustomers } from "@/lib/api/customer";
+import { TopCustomersAnalysis } from "@/components/customers/top-customers-analysis";
+import { DataTablePagination } from "@/components/ui/data-table-pagination";
+import { useDebounce } from "@/hooks/use-debounce";
 
 type Customer = {
   id: number;
@@ -68,6 +81,26 @@ type Customer = {
   sales_count: number;
   last_sale_date: string | null;
   is_active: boolean;
+  ranking?: number;
+  is_top_customer?: boolean;
+};
+
+const rankingIcons = [
+  { icon: Crown, color: "text-yellow-500", bgColor: "bg-yellow-100", label: "Top 5" },
+  { icon: Trophy, color: "text-gray-500", bgColor: "bg-gray-100", label: "Top 10" },
+  { icon: Medal, color: "text-amber-600", bgColor: "bg-amber-100", label: "Top 20" },
+  { icon: Award, color: "text-blue-500", bgColor: "bg-blue-100", label: "Top 30" },
+  { icon: Star, color: "text-purple-500", bgColor: "bg-purple-100", label: "Top 50" },
+];
+
+const getRankingIcon = (ranking: number) => {
+  if (ranking <= 5) return rankingIcons[0];
+  if (ranking <= 10) return rankingIcons[1];
+  if (ranking <= 20) return rankingIcons[2];
+  if (ranking <= 30) return rankingIcons[3];
+  if (ranking <= 50) return rankingIcons[4];
+  if (ranking <= 100) return { icon: Users, color: "text-green-500", bgColor: "bg-green-100", label: "Top 100" };
+  return null;
 };
 
 const columns: ColumnDef<Customer>[] = [
@@ -94,6 +127,51 @@ const columns: ColumnDef<Customer>[] = [
     enableHiding: false,
   },
   {
+    accessorKey: "ranking",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="font-medium"
+        >
+          Rank
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
+    cell: ({ row }) => {
+      const ranking = row.getValue("ranking") as number;
+      
+      if (!ranking) return "-";
+      
+      const rankingIcon = getRankingIcon(ranking);
+      
+      if (rankingIcon) {
+        const IconComponent = rankingIcon.icon;
+        return (
+          <div className="flex items-center gap-2">
+            <div className={`p-1 rounded-full ${rankingIcon.bgColor}`}>
+              <IconComponent className={`h-4 w-4 ${rankingIcon.color}`} />
+            </div>
+            <Badge variant="secondary" className="text-xs">
+              #{ranking}
+            </Badge>
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              {rankingIcon.label}
+            </span>
+          </div>
+        );
+      }
+      
+      return (
+        <Badge variant="outline" className="text-xs">
+          #{ranking}
+        </Badge>
+      );
+    },
+  },
+  {
     accessorKey: "name",
     header: ({ column }) => {
       return (
@@ -109,6 +187,8 @@ const columns: ColumnDef<Customer>[] = [
     },
     cell: ({ row }) => {
       const name = `${row.original.first_name} ${row.original.last_name}`;
+      const isTopCustomer = row.original.is_top_customer;
+      
       return (
         <div className="flex items-center gap-3">
           <Avatar className="h-8 w-8">
@@ -123,12 +203,17 @@ const columns: ColumnDef<Customer>[] = [
                 .join("")}
             </AvatarFallback>
           </Avatar>
-          <Link
-            href={`/customers/${row.original.id}`}
-            className="font-medium hover:underline"
-          >
-            {name}
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/customers/${row.original.id}`}
+              className="font-medium hover:underline"
+            >
+              {name}
+            </Link>
+            {isTopCustomer && (
+              <Crown className="h-4 w-4 text-yellow-500" />
+            )}
+          </div>
         </div>
       );
     },
@@ -143,7 +228,18 @@ const columns: ColumnDef<Customer>[] = [
   },
   {
     accessorKey: "total_sales",
-    header: "Total Sales",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="font-medium"
+        >
+          Total Sales
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
     cell: ({ row }) => {
       const amount = Number.parseFloat(row.getValue("total_sales"));
       const formatted = new Intl.NumberFormat("en-US", {
@@ -155,11 +251,33 @@ const columns: ColumnDef<Customer>[] = [
   },
   {
     accessorKey: "sales_count",
-    header: "Sales Count",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="font-medium"
+        >
+          Sales Count
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
   },
   {
     accessorKey: "last_sale_date",
-    header: "Last Sale",
+    header: ({ column }) => {
+      return (
+        <Button
+          variant="ghost"
+          onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          className="font-medium"
+        >
+          Last Sale
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      );
+    },
     cell: ({ row }) => {
       const date = row.getValue("last_sale_date");
       return date ? new Date(date as string).toLocaleDateString() : "No sales";
@@ -209,12 +327,6 @@ const columns: ColumnDef<Customer>[] = [
           <Button variant="ghost" size="sm" asChild>
             <Link href={`/customers/${customer.id}`}>View</Link>
           </Button>
-          <Button variant="ghost" size="sm">
-            <Mail className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="sm">
-            <Phone className="h-4 w-4" />
-          </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
@@ -252,20 +364,67 @@ const columns: ColumnDef<Customer>[] = [
 
 export default function CustomersPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [rowSelection, setRowSelection] = useState({});
-  const { data: customers, isLoading: isLoadingCustomers } = useCustomers();
-  const { data: activeCustomers, isLoading: isLoadingActive } =
-    useActiveCustomers();
-  const { data: searchResults, isLoading: isLoadingSearch } =
-    useSearchCustomers(searchQuery);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [filterBy, setFilterBy] = useState("all");
+  const [sortBy, setSortBy] = useState("ranking");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  
+  // Debounce search query
+  const debouncedQuery = useDebounce(searchQuery, 300);
+  
+  useEffect(() => {
+    setDebouncedSearchQuery(debouncedQuery);
+    setCurrentPage(1); // Reset to first page when searching
+  }, [debouncedQuery]);
+  
+  // Prepare filters for API
+  const apiFilters = useMemo(() => {
+    const filters: any = {};
+    
+    if (filterBy !== "all") {
+      if (filterBy.startsWith("top-")) {
+        filters.ranking_filter = filterBy;
+      } else if (filterBy === "high-value" || filterBy === "low-value") {
+        filters.sales_filter = filterBy;
+      } else if (filterBy === "recent") {
+        filters.recent_filter = filterBy;
+      }
+    }
+    
+    if (sortBy) {
+      const orderPrefix = sortOrder === "desc" ? "-" : "";
+      filters.ordering = `${orderPrefix}${sortBy}`;
+    }
+    
+    return filters;
+  }, [filterBy, sortBy, sortOrder]);
+  
+  const { data: customersData, isLoading: isLoadingCustomers } = useCustomers(currentPage, pageSize, apiFilters);
+  const { data: searchResults, isLoading: isLoadingSearch } = useSearchCustomers(debouncedSearchQuery, currentPage, pageSize, apiFilters);
+  const { data: analytics, isLoading: isLoadingAnalytics } = useCustomerAnalytics();
+  
   const bulkDeleteCustomers = useBulkDeleteCustomers();
   const { toast } = useToast();
 
-  const displayCustomers = searchQuery ? searchResults || [] : customers || [];
+  // Determine which data to display based on search
+  let displayData = customersData;
+  let isLoading = isLoadingCustomers;
+  
+  if (debouncedSearchQuery) {
+    displayData = searchResults;
+    isLoading = isLoadingSearch;
+  }
+
+  const customers = displayData?.results || [];
+  const totalItems = displayData?.count || 0;
+  const totalPages = Math.ceil(totalItems / pageSize);
 
   const handleBulkDelete = async () => {
     const selectedIds = Object.keys(rowSelection).map(
-      (index) => displayCustomers[parseInt(index)].id
+      (index) => customers[parseInt(index)].id
     );
 
     if (selectedIds.length === 0) {
@@ -293,7 +452,7 @@ export default function CustomersPage() {
         description: "All customers have been deleted successfully",
       });
       // Refresh the customers list
-      customers.refetch();
+      window.location.reload();
     } catch (error) {
       toast({
         title: "Error",
@@ -303,12 +462,24 @@ export default function CustomersPage() {
     }
   };
 
-  const stats = {
-    total: displayCustomers.length,
-    active: displayCustomers.filter((c) => c.is_active).length,
-    averageSpend:
-      displayCustomers.reduce((acc, curr) => acc + (curr.total_sales || 0), 0) /
-        (displayCustomers.length || 1) || 0,
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    setRowSelection({});
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setCurrentPage(1);
+    setRowSelection({});
+  };
+
+  const handleSortChange = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(field);
+      setSortOrder("asc");
+    }
   };
 
   return (
@@ -322,7 +493,8 @@ export default function CustomersPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Analytics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">
@@ -330,11 +502,11 @@ export default function CustomersPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoadingCustomers ? (
+            {isLoadingAnalytics ? (
               <Skeleton className="h-8 w-24" />
             ) : (
               <>
-                <div className="text-2xl font-bold">{stats.total}</div>
+                <div className="text-2xl font-bold">{analytics?.total_customers || 0}</div>
                 <div className="flex items-center gap-2 mt-1">
                   <Progress value={15} className="h-2" />
                   <p className="text-xs text-muted-foreground">
@@ -352,18 +524,18 @@ export default function CustomersPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoadingActive ? (
+            {isLoadingAnalytics ? (
               <Skeleton className="h-8 w-24" />
             ) : (
               <>
-                <div className="text-2xl font-bold">{stats.active}</div>
+                <div className="text-2xl font-bold">{analytics?.active_customers || 0}</div>
                 <div className="flex items-center gap-2 mt-1">
                   <Progress
-                    value={(stats.active / stats.total) * 100}
+                    value={analytics ? (analytics.active_customers / analytics.total_customers) * 100 : 0}
                     className="h-2"
                   />
                   <p className="text-xs text-muted-foreground">
-                    {Math.round((stats.active / stats.total) * 100)}% of total
+                    {analytics ? Math.round((analytics.active_customers / analytics.total_customers) * 100) : 0}% of total
                   </p>
                 </div>
               </>
@@ -372,10 +544,10 @@ export default function CustomersPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Average Spend</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoadingCustomers ? (
+            {isLoadingAnalytics ? (
               <Skeleton className="h-8 w-24" />
             ) : (
               <>
@@ -383,7 +555,32 @@ export default function CustomersPage() {
                   {new Intl.NumberFormat("en-US", {
                     style: "currency",
                     currency: "USD",
-                  }).format(stats.averageSpend)}
+                  }).format(analytics?.total_sales || 0)}
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <Progress value={5} className="h-2" />
+                  <p className="text-xs text-muted-foreground">
+                    +5% from last month
+                  </p>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Avg Order Value</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoadingAnalytics ? (
+              <Skeleton className="h-8 w-24" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold">
+                  {new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "USD",
+                  }).format(analytics?.average_order_value || 0)}
                 </div>
                 <div className="flex items-center gap-2 mt-1">
                   <Progress value={5} className="h-2" />
@@ -397,111 +594,146 @@ export default function CustomersPage() {
         </Card>
       </div>
 
-      <Tabs defaultValue="all">
-        <div className="flex items-center justify-between mb-4">
-          <TabsList>
-            <TabsTrigger value="all">All Customers</TabsTrigger>
-            <TabsTrigger value="active">Active</TabsTrigger>
-            <TabsTrigger value="inactive">Inactive</TabsTrigger>
-          </TabsList>
+      {/* Top Customers Analysis */}
+      <TopCustomersAnalysis />
 
-          {Object.keys(rowSelection).length > 0 && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Selected ({Object.keys(rowSelection).length})
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete
-                    {Object.keys(rowSelection).length === 1
-                      ? " the selected customer"
-                      : ` ${
-                          Object.keys(rowSelection).length
-                        } selected customers`}{" "}
-                    and all associated data from the database.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleBulkDelete}
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    Delete Permanently
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-        </div>
+      <div className="flex items-center justify-between mb-4">
+        {Object.keys(rowSelection).length > 0 && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Selected ({Object.keys(rowSelection).length})
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone. This will permanently delete
+                  {Object.keys(rowSelection).length === 1
+                    ? " the selected customer"
+                    : ` ${
+                        Object.keys(rowSelection).length
+                      } selected customers`}{" "}
+                  and all associated data from the database.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleBulkDelete}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Delete Permanently
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+      </div>
 
-        <TabsContent value="all">
-          <Card>
-            <CardHeader>
-              <CardTitle>Customer List</CardTitle>
-              <CardDescription>
-                Manage your customers and view their purchase history.
-              </CardDescription>
-              <div className="flex flex-col sm:flex-row items-center gap-4 mt-4">
-                <div className="relative flex-1 w-full">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder="Search customers..."
-                    className="pl-8"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            Customer List
+            {debouncedSearchQuery && (
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                - Search results for "{debouncedSearchQuery}" ({totalItems} found)
+              </span>
+            )}
+          </CardTitle>
+          <CardDescription>
+            Manage your customers and view their purchase history.
+          </CardDescription>
+          <div className="flex flex-col sm:flex-row items-center gap-4 mt-4">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search customers by name, email, or phone..."
+                className="pl-8"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {debouncedSearchQuery && isLoadingSearch && (
+                <div className="absolute right-2.5 top-2.5">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
                 </div>
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <Select defaultValue="all">
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Filter by" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Customers</SelectItem>
-                      <SelectItem value="recent">Recent Customers</SelectItem>
-                      <SelectItem value="high-value">High Value</SelectItem>
-                      <SelectItem value="low-value">Low Value</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button variant="outline" size="icon">
-                    <Filter className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoadingCustomers || isLoadingSearch ? (
-                <div className="space-y-4">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="flex items-center space-x-4">
-                      <Skeleton className="h-12 w-12 rounded-full" />
-                      <div className="space-y-2">
-                        <Skeleton className="h-4 w-[250px]" />
-                        <Skeleton className="h-4 w-[200px]" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <DataTable
-                  columns={columns}
-                  data={displayCustomers || []}
-                  enableRowSelection
-                  rowSelection={rowSelection}
-                  onRowSelectionChange={setRowSelection}
-                />
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </div>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Select value={filterBy} onValueChange={setFilterBy}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Customers</SelectItem>
+                  <SelectItem value="recent">Recent Customers</SelectItem>
+                  <SelectItem value="high-value">High Value</SelectItem>
+                  <SelectItem value="low-value">Low Value</SelectItem>
+                  <SelectItem value="top-20">Top 20</SelectItem>
+                  <SelectItem value="top-30">Top 30</SelectItem>
+                  <SelectItem value="top-50">Top 50</SelectItem>
+                  <SelectItem value="top-100">Top 100</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={sortBy} onValueChange={handleSortChange}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ranking">Rank</SelectItem>
+                  <SelectItem value="name">Name</SelectItem>
+                  <SelectItem value="total_sales">Total Sales</SelectItem>
+                  <SelectItem value="sales_count">Sales Count</SelectItem>
+                  <SelectItem value="last_sale_date">Last Sale</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+              >
+                <ArrowUpDown className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center space-x-4">
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-[250px]" />
+                    <Skeleton className="h-4 w-[200px]" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              <DataTable
+                columns={columns}
+                data={customers || []}
+                enableRowSelection
+                rowSelection={rowSelection}
+                onRowSelectionChange={setRowSelection}
+              />
+              <DataTablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                pageSize={pageSize}
+                onPageChange={handlePageChange}
+                onPageSizeChange={handlePageSizeChange}
+              />
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="flex justify-between items-center mt-6">
         <div className="flex gap-2">

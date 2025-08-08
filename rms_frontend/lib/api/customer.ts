@@ -33,6 +33,31 @@ export interface Customer {
     sales_count: number;
     last_sale_date: string | null;
     purchase_history: PurchaseHistory[];
+    ranking?: number;
+    is_top_customer?: boolean;
+}
+
+export interface TopCustomer {
+    id: number;
+    first_name: string;
+    last_name: string;
+    email: string | null;
+    phone: string;
+    total_sales: number;
+    sales_count: number;
+    average_order_value: number;
+    last_purchase_date: string | null;
+    ranking: number;
+}
+
+export interface CustomerAnalytics {
+    total_customers: number;
+    active_customers: number;
+    inactive_customers: number;
+    total_sales: number;
+    total_orders: number;
+    average_order_value: number;
+    top_customers: TopCustomer[];
 }
 
 export interface CreateCustomerData {
@@ -47,15 +72,38 @@ export interface CreateCustomerData {
 
 export interface UpdateCustomerData extends Partial<CreateCustomerData> { }
 
-// Get all customers
-export const getCustomers = async (): Promise<Customer[]> => {
-    const response = await axiosInstance.get('/customer/customers/');
+export interface PaginatedResponse<T> {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: T[];
+}
+
+// Get all customers with pagination
+export const getCustomers = async (page: number = 1, pageSize: number = 20): Promise<PaginatedResponse<Customer>> => {
+    const response = await axiosInstance.get('/customer/customers/', {
+        params: { page, page_size: pageSize }
+    });
     return response.data;
 };
 
-// Get active customers
-export const getActiveCustomers = async (): Promise<Customer[]> => {
-    const response = await axiosInstance.get('/customer/customers/active_customers/');
+// Get active customers with pagination
+export const getActiveCustomers = async (page: number = 1, pageSize: number = 20): Promise<PaginatedResponse<Customer>> => {
+    const response = await axiosInstance.get('/customer/customers/active_customers/', {
+        params: { page, page_size: pageSize }
+    });
+    return response.data;
+};
+
+// Get top customers
+export const getTopCustomers = async (): Promise<TopCustomer[]> => {
+    const response = await axiosInstance.get('/customer/customers/top_customers/');
+    return response.data;
+};
+
+// Get customer analytics
+export const getCustomerAnalytics = async (): Promise<CustomerAnalytics> => {
+    const response = await axiosInstance.get('/customer/customers/customer_analytics/');
     return response.data;
 };
 
@@ -82,10 +130,10 @@ export const deleteCustomer = async (id: number): Promise<void> => {
     await axiosInstance.delete(`/customer/customers/${id}/`);
 };
 
-// Search customers
-export const searchCustomers = async (query: string): Promise<Customer[]> => {
+// Search customers with pagination
+export const searchCustomers = async (query: string, page: number = 1, pageSize: number = 20): Promise<PaginatedResponse<Customer>> => {
     const response = await axiosInstance.get('/customer/customers/', {
-        params: { search: query }
+        params: { search: query, page, page_size: pageSize }
     });
     return response.data;
 };
@@ -96,7 +144,7 @@ export const lookupCustomerByPhone = async (phone: string): Promise<Customer | n
         const response = await axiosInstance.get('/customer/customers/', {
             params: { search: phone }
         });
-        const customers = response.data;
+        const customers = response.data.results || response.data;
         return customers.find((customer: Customer) => customer.phone === phone) || null;
     } catch (error) {
         console.error('Error looking up customer:', error);

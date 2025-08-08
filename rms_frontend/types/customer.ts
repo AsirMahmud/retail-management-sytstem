@@ -13,6 +13,9 @@ export interface CustomerPurchase {
     total_amount: string;
     status: string;
     payment_method: string;
+    discount: string;
+    amount_due: string;
+    amount_paid: string;
     items: CustomerPurchaseItem[];
 }
 
@@ -32,4 +35,8 @@ export interface Customer {
     sales_count: number;
     last_sale_date: string | null;
     purchase_history: CustomerPurchase[];
+    ranking?: number;
+    is_top_customer?: boolean;
+    total_due_amount?: number;
+    average_discount?: number;
 } 

@@ -60,6 +60,9 @@ export const inventoryKeys = {
         variation: (productId: number, id: number) => [...inventoryKeys.products.variations(productId), id] as const,
         images: (productId: number) => [...inventoryKeys.products.detail(productId), 'images'] as const,
         image: (productId: number, id: number) => [...inventoryKeys.products.images(productId), id] as const,
+        analytics: (productId: number, days?: number) => [...inventoryKeys.products.detail(productId), 'analytics', days] as const,
+        stockHistory: (productId: number, days?: number) => [...inventoryKeys.products.detail(productId), 'stock-history', days] as const,
+        salesHistory: (productId: number, days?: number) => [...inventoryKeys.products.detail(productId), 'sales-history', days] as const,
     },
 };
 
@@ -331,5 +334,48 @@ export const useStockMovementAnalysis = (period: 'day' | 'month' | 'year' = 'mon
     return useQuery({
         queryKey: inventoryKeys.dashboard.stockMovementAnalysis(period),
         queryFn: () => dashboardApi.getStockMovementAnalysis(period),
+    });
+};
+
+// Product Analytics Hooks
+export const useProductAnalytics = (productId: number, days?: number) => {
+    return useQuery({
+        queryKey: inventoryKeys.products.analytics(productId, days),
+        queryFn: () => productsApi.getAnalytics(productId, days),
+        enabled: !!productId,
+    });
+};
+
+export const useProductStockHistory = (productId: number, days?: number) => {
+    return useQuery({
+        queryKey: inventoryKeys.products.stockHistory(productId, days),
+        queryFn: () => productsApi.getStockHistory(productId, days),
+        enabled: !!productId,
+    });
+};
+
+export const useProductSalesHistory = (productId: number, days?: number) => {
+    return useQuery({
+        queryKey: inventoryKeys.products.salesHistory(productId, days),
+        queryFn: () => productsApi.getSalesHistory(productId, days),
+        enabled: !!productId,
+    });
+};
+
+// Add Stock Hook
+export const useAddStock = (productId: number) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ variationId, quantity, notes }: { variationId: number; quantity: number; notes?: string }) =>
+            productsApi.addStock(productId, variationId, quantity, notes),
+        onSuccess: () => {
+            // Invalidate relevant queries to refresh data
+            queryClient.invalidateQueries({ queryKey: inventoryKeys.products.detail(productId) });
+            queryClient.invalidateQueries({ queryKey: inventoryKeys.products.variations(productId) });
+            queryClient.invalidateQueries({ queryKey: inventoryKeys.products.analytics(productId, 30) });
+            queryClient.invalidateQueries({ queryKey: inventoryKeys.products.stockHistory(productId, 90) });
+            queryClient.invalidateQueries({ queryKey: inventoryKeys.dashboard.stockAlerts() });
+            queryClient.invalidateQueries({ queryKey: inventoryKeys.dashboard.stockMovementAnalysis('month') });
+        },
     });
 }; 

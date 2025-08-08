@@ -159,7 +159,10 @@ export interface ProductPerformanceReport {
     total_sales: string;
     total_profit: string;
     average_profit_margin: string;
+    average_profit: string;
+    average_selling_price_with_discount: string;
     top_performing_products: Array<{
+        product_id: number;
         product_name: string;
         category_name: string;
         total_sales: string;
@@ -167,8 +170,11 @@ export interface ProductPerformanceReport {
         total_profit: string;
         profit_margin: string;
         average_price: string;
+        average_profit: string;
+        average_selling_price_with_discount: string;
     }>;
     low_performing_products: Array<{
+        product_id: number;
         product_name: string;
         category_name: string;
         total_sales: string;
@@ -176,18 +182,24 @@ export interface ProductPerformanceReport {
         total_profit: string;
         profit_margin: string;
         average_price: string;
+        average_profit: string;
+        average_selling_price_with_discount: string;
     }>;
     sales_by_product: Array<{
+        product_id: number;
         product_name: string;
         total_sales: string;
         quantity_sold: number;
         average_price: string;
+        average_selling_price_with_discount: string;
     }>;
     profit_by_product: Array<{
+        product_id: number;
         product_name: string;
         total_profit: string;
         profit_margin: string;
         quantity_sold: number;
+        average_profit: string;
     }>;
 }
 

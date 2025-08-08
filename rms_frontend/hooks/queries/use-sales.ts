@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     getSales,
+    getDueSales,
     getSale,
     createSale,
     updateSale,
@@ -25,7 +26,6 @@ export const useSales = (params?: {
     end_date?: string;
     status?: string;
     payment_method?: string;
-    payment_status?: string;
     customer_phone?: string;
     search?: string;
     ordering?: string;
@@ -151,6 +151,30 @@ export const useSales = (params?: {
         isDeleting: deleteSaleMutation.isPending,
         isBulkDeleting: bulkDeleteSalesMutation.isPending,
         isDeletingAll: deleteAllSalesMutation.isPending
+    };
+};
+
+export const useDueSales = (params?: {
+    ordering?: string;
+    page?: number;
+    page_size?: number;
+}) => {
+    const salesQuery = useQuery({
+        queryKey: ['due-sales', params],
+        queryFn: () => getDueSales(params)
+    });
+
+    return {
+        sales: salesQuery.data?.results || [],
+        pagination: {
+            count: salesQuery.data?.count || 0,
+            next: salesQuery.data?.next,
+            previous: salesQuery.data?.previous,
+            currentPage: params?.page || 1,
+            pageSize: params?.page_size || 10
+        },
+        isLoading: salesQuery.isLoading,
+        error: salesQuery.error,
     };
 };
 
