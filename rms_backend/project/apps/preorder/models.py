@@ -8,7 +8,7 @@ from django.conf import settings
 from apps.supplier.models import Supplier
 from apps.inventory.models import Category, Product
 from django.db.models import Sum
-from django.contrib.postgres.fields import JSONField
+
 from apps.sales.models import Sale, SaleItem
 from apps.sales.serializers import SaleSerializer
 
