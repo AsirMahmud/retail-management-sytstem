@@ -113,8 +113,8 @@ export const usePOSStore = create<POSState>((set, get) => ({
 
     handleSearch: async (query) => {
         try {
-            const results = await searchCustomers(query);
-            set({ searchResults: results });
+            const response = await searchCustomers(query);
+            set({ searchResults: response.results || [] });
         } catch (error) {
             console.error('Error searching customers:', error);
             set({ searchResults: [] });
