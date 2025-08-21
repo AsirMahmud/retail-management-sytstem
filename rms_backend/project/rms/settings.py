@@ -105,9 +105,8 @@ MIDDLEWARE = [
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://rmsmain.vercel.app",
     "https://rawstitch.info",
-    "https://*.onrender.com"
+    "https://retail-management-sytstem-1.onrender.com"
 ]
 
 # Exempt API views from CSRF
@@ -201,10 +200,9 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://rawstitch.info",
-    "https://rmsmain.vercel.app"
     "https://rawstitch.vercel.app",
+    "https://rmsmain.vercel.app",
     "https://retail-management-sytstem-1.onrender.com"
-
 ]
 
 CORS_ALLOW_CREDENTIALS = True
