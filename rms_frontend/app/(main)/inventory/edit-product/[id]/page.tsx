@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,22 +30,26 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { PlusCircle, Trash2, ShoppingCart, ArrowLeft } from "lucide-react";
+import { PlusCircle, Trash2, ShoppingCart, ArrowLeft, Upload, X } from "lucide-react";
 import {
   useUpdateProduct,
   useProduct,
   useCategories,
   useSuppliers,
+  useOnlineCategories,
+  useCreateOnlineCategory,
 } from "@/hooks/queries/useInventory";
 import type {
   CreateProductDTO,
   Product,
   ProductVariation as ImportedProductVariation,
+  GalleryImage,
 } from "@/types/inventory";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HydrationWrapper } from "@/components/hydration-wrapper";
 import { COLORS, globalSizes } from "../../add-product/constants";
+import { getImageUrl } from "@/lib/utils";
 
 // Import the same global sizes and colors from add-product
 
@@ -58,7 +62,9 @@ type SizeCategoryType = "US" | "EU" | "UK" | "Asia" | "international";
 const productFormSchema = z.object({
   name: z.string().min(1, "Product name is required"),
   description: z.string().optional(),
+  barcode: z.string().optional(),
   category: z.string({ required_error: "Please select a category" }),
+  online_category: z.string().optional(),
   supplier: z.string({ required_error: "Please select a supplier" }).optional(),
   cost_price: z.string().min(1, "Cost price is required"),
   selling_price: z.string().min(1, "Selling price is required"),
@@ -90,6 +96,9 @@ const productFormSchema = z.object({
         size: z.string().min(1, "Size is required"),
         color: z.string().min(1, "Color is required"),
         stock: z.number().min(0, "Stock must be 0 or greater"),
+        waist_size: z.number().optional(),
+        chest_size: z.number().optional(),
+        height: z.number().optional(),
       })
     )
     .optional(),
@@ -103,12 +112,44 @@ type ColorVariant = {
   color: string;
   colorHex: string;
   stock: number;
+  waist_size?: number;
+  chest_size?: number;
+  height?: number;
 };
 
 type SizeVariant = {
   id: string;
   size: string;
   colors: ColorVariant[];
+};
+
+type ColorGallery = {
+  color: string;
+  colorHex: string;
+  color_hax?: string;
+  images: (GalleryImage & {
+    file?: File | null;
+    preview?: string | null;
+    image_url?: string;
+  })[];
+};
+
+type MaterialComposition = {
+  id: string;
+  percentage: number;
+  title?: string;
+};
+
+type WhoIsThisFor = {
+  id: string;
+  title?: string;
+  description?: string;
+};
+
+type Feature = {
+  id: string;
+  title?: string;
+  description?: string;
 };
 
 // Add type guards
@@ -146,6 +187,8 @@ export default function EditProductPage() {
     useCategories();
   const { data: suppliers = [], isLoading: isLoadingSuppliers } =
     useSuppliers();
+  const { data: onlineCategories = [] } = useOnlineCategories();
+  const createOnlineCategory = useCreateOnlineCategory();
 
   // Initialize form with react-hook-form and zod resolver
   const form = useForm<ProductFormValues>({
@@ -153,7 +196,9 @@ export default function EditProductPage() {
     defaultValues: {
       name: "",
       description: "",
+      barcode: "",
       category: undefined,
+      online_category: undefined,
       supplier: undefined,
       cost_price: "",
       selling_price: "",
@@ -167,20 +212,123 @@ export default function EditProductPage() {
 
   // State for variants
   const [variants, setVariants] = useState<SizeVariant[]>([]);
+  
+  // State for galleries
+  const [galleries, setGalleries] = useState<ColorGallery[]>([]);
+  
+  // State to track images that should be deleted from backend
+  const [imagesToDelete, setImagesToDelete] = useState<number[]>([]);
+  
+  // State for material composition
+  const [materialCompositions, setMaterialCompositions] = useState<MaterialComposition[]>([]);
+  
+  // State for who is this for
+  const [whoIsThisFor, setWhoIsThisFor] = useState<WhoIsThisFor[]>([]);
+  
+  // State for features
+  const [features, setFeatures] = useState<Feature[]>([]);
+  
+  // State for online category creation
+  const [isCreatingOnlineCategory, setIsCreatingOnlineCategory] = useState(false);
+  const [newOnlineCategoryName, setNewOnlineCategoryName] = useState("");
+  const [newOnlineCategoryDescription, setNewOnlineCategoryDescription] = useState("");
 
   // Watch form values for dynamic updates
   const watchedSizeType = form.watch("size_type");
   const watchedGender = form.watch("gender");
   const watchedSizeCategory = form.watch("size_category");
 
+  // Sync galleries with variants
+  const syncGalleriesWithVariants = useCallback((currentGalleries: ColorGallery[], currentVariants: SizeVariant[]) => {
+    const allColors = new Set<string>();
+    currentVariants.forEach(variant => {
+      variant.colors.forEach(color => {
+        allColors.add(color.color.toLowerCase());
+      });
+    });
+
+    const newGalleries: ColorGallery[] = [];
+    allColors.forEach(colorName => {
+      const colorExists = currentGalleries.some(
+        (g) => g.color.toLowerCase() === colorName.toLowerCase()
+      );
+      
+      if (!colorExists) {
+        let colorHex = '#000000';
+        for (const variant of currentVariants) {
+          const foundColor = variant.colors.find(c => c.color.toLowerCase() === colorName.toLowerCase());
+          if (foundColor) {
+            colorHex = foundColor.colorHex;
+            break;
+          }
+        }
+
+        const newGallery: ColorGallery = {
+          color: colorName,
+          colorHex: colorHex,
+          color_hax: colorHex,
+          images: [
+            { id: Math.floor(Math.random() * 1000000), image: '', image_url: '', alt_text: '', file: null, preview: null, imageType: 'PRIMARY' },
+            { id: Math.floor(Math.random() * 1000000), image: '', image_url: '', alt_text: '', file: null, preview: null, imageType: 'SECONDARY' },
+            { id: Math.floor(Math.random() * 1000000), image: '', image_url: '', alt_text: '', file: null, preview: null, imageType: 'THIRD' },
+            { id: Math.floor(Math.random() * 1000000), image: '', image_url: '', alt_text: '', file: null, preview: null, imageType: 'FOURTH' },
+          ],
+        };
+        newGalleries.push(newGallery);
+      }
+    });
+
+    const updatedGalleries = currentGalleries.filter(gallery => 
+      allColors.has(gallery.color.toLowerCase())
+    ).map(gallery => {
+      // Ensure each existing gallery has exactly 4 image slots
+      const imageTypes: ('PRIMARY' | 'SECONDARY' | 'THIRD' | 'FOURTH')[] = ['PRIMARY', 'SECONDARY', 'THIRD', 'FOURTH'];
+      const existingImages = new Map();
+      
+      gallery.images.forEach(img => {
+        existingImages.set(img.imageType, img);
+      });
+      
+      const completeImages = imageTypes.map(imageType => {
+        return existingImages.get(imageType) || {
+          id: Math.floor(Math.random() * 1000000),
+          imageType: imageType,
+          image: '',
+          image_url: '',
+          alt_text: '',
+          file: null,
+          preview: null,
+        };
+      });
+      
+      return {
+        ...gallery,
+        images: completeImages,
+      };
+    });
+
+    return [...updatedGalleries, ...newGalleries];
+  }, []);
+
+  // Sync galleries when variants change
+  useEffect(() => {
+    if (variants.length > 0) {
+      setGalleries(prevGalleries => syncGalleriesWithVariants(prevGalleries, variants));
+    }
+  }, [variants, syncGalleriesWithVariants]);
+
   // Load product data into form when available
   useEffect(() => {
     if (product) {
+      console.log('Loading product data:', product);
+      console.log('Product galleries:', product.galleries);
       // Set form values with proper type assertions
       form.reset({
         name: product.name,
         description: product.description || "",
+        barcode: product.barcode || "",
         category: product.category?.id.toString(),
+        online_category: product.online_category?.id.toString(),
         supplier: product.supplier?.id.toString(),
         cost_price: product.cost_price.toString(),
         selling_price: product.selling_price.toString(),
@@ -214,12 +362,93 @@ export default function EditProductPage() {
           sizeVariant.colors.push({
             id: Math.random().toString(36).substr(2, 9),
             color: variation.color,
-            colorHex: (variation as any).color_hax || "#000000", // Use type assertion for color_hax
+            colorHex: (variation as any).color_hax || "#000000",
             stock: variation.stock,
+            waist_size: (variation as any).waist_size,
+            chest_size: (variation as any).chest_size,
+            height: (variation as any).height,
           });
         });
 
         setVariants(sizeVariants);
+      }
+
+      // Load galleries
+      if (product.galleries) {
+        console.log('Loading galleries:', product.galleries);
+        const loadedGalleries: ColorGallery[] = product.galleries.map((gallery: any) => {
+          console.log('Processing gallery:', gallery);
+          
+          // Create a map of existing images by type for easy lookup
+          const existingImages = new Map();
+          if (gallery.images) {
+            gallery.images.forEach((img: any) => {
+              const previewUrl = img.image_url ? getImageUrl(img.image_url) : (img.image ? getImageUrl(img.image) : null);
+              existingImages.set(img.imageType, {
+                id: img.id,
+                imageType: img.imageType,
+                image: img.image,
+                image_url: img.image_url,
+                alt_text: img.alt_text,
+                file: null,
+                preview: previewUrl,
+              });
+            });
+          }
+          
+          // Always create exactly 4 image slots
+          const imageTypes: ('PRIMARY' | 'SECONDARY' | 'THIRD' | 'FOURTH')[] = ['PRIMARY', 'SECONDARY', 'THIRD', 'FOURTH'];
+          const images = imageTypes.map(imageType => {
+            return existingImages.get(imageType) || {
+              id: Math.floor(Math.random() * 1000000),
+              imageType: imageType,
+              image: '',
+              image_url: '',
+              alt_text: '',
+              file: null,
+              preview: null,
+            };
+          });
+          
+          return {
+            color: gallery.color,
+            colorHex: gallery.color_hax || "#000000",
+            color_hax: gallery.color_hax,
+            images: images,
+          };
+        });
+        console.log('Loaded galleries:', loadedGalleries);
+        setGalleries(loadedGalleries);
+      }
+
+      // Load material compositions
+      if (product.material_composition) {
+        const loadedMaterialCompositions: MaterialComposition[] = product.material_composition.map((item: any) => ({
+          id: item.id,
+          percentage: item.percentige,
+          title: item.title,
+        }));
+        setMaterialCompositions(loadedMaterialCompositions);
+      }
+
+      // Load who is this for
+      if (product.who_is_this_for) {
+        const loadedWhoIsThisFor: WhoIsThisFor[] = product.who_is_this_for.map((item: any) => ({
+          id: item.id,
+          title: item.title,
+          description: item.description,
+        }));
+        setWhoIsThisFor(loadedWhoIsThisFor);
+      }
+
+      // Load features
+      if (product.features) {
+        const loadedFeatures: Feature[] = product.features.map((item: any) => ({
+          id: item.id,
+          title: item.title,
+          description: item.description,
+        }));
+        setFeatures(loadedFeatures);
       }
     }
   }, [product, form]);
@@ -513,6 +742,142 @@ export default function EditProductPage() {
     );
   };
 
+  // Online category functions
+  const handleCreateOnlineCategory = async () => {
+    if (!newOnlineCategoryName.trim()) {
+      toast({
+        title: "Name Required",
+        description: "Please enter a category name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const newCategory = await createOnlineCategory.mutateAsync({
+        name: newOnlineCategoryName,
+        description: newOnlineCategoryDescription,
+      });
+      
+      form.setValue("online_category", newCategory.id.toString());
+      setNewOnlineCategoryName("");
+      setNewOnlineCategoryDescription("");
+      setIsCreatingOnlineCategory(false);
+      
+      toast({
+        title: "Success",
+        description: "Online category created successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create online category",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const cancelCreateOnlineCategory = () => {
+    setIsCreatingOnlineCategory(false);
+    setNewOnlineCategoryName("");
+    setNewOnlineCategoryDescription("");
+  };
+
+  // Material composition functions
+  const addMaterialComposition = () => {
+    const newItem: MaterialComposition = {
+      id: Math.random().toString(36).substr(2, 9),
+      percentage: 0,
+      title: "",
+    };
+    setMaterialCompositions([...materialCompositions, newItem]);
+  };
+
+  const updateMaterialComposition = (id: string, field: keyof MaterialComposition, value: string | number) => {
+    setMaterialCompositions(materialCompositions.map(item =>
+      item.id === id ? { ...item, [field]: value } : item
+    ));
+  };
+
+  const removeMaterialComposition = (id: string) => {
+    setMaterialCompositions(materialCompositions.filter(item => item.id !== id));
+  };
+
+  // Who is this for functions
+  const addWhoIsThisFor = () => {
+    const newItem: WhoIsThisFor = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: "",
+      description: "",
+    };
+    setWhoIsThisFor([...whoIsThisFor, newItem]);
+  };
+
+  const updateWhoIsThisFor = (id: string, field: keyof WhoIsThisFor, value: string) => {
+    setWhoIsThisFor(whoIsThisFor.map(item =>
+      item.id === id ? { ...item, [field]: value } : item
+    ));
+  };
+
+  const removeWhoIsThisFor = (id: string) => {
+    setWhoIsThisFor(whoIsThisFor.filter(item => item.id !== id));
+  };
+
+  // Features functions
+  const addFeature = () => {
+    const newItem: Feature = {
+      id: Math.random().toString(36).substr(2, 9),
+      title: "",
+      description: "",
+    };
+    setFeatures([...features, newItem]);
+  };
+
+  const updateFeature = (id: string, field: keyof Feature, value: string) => {
+    setFeatures(features.map(item =>
+      item.id === id ? { ...item, [field]: value } : item
+    ));
+  };
+
+  const removeFeature = (id: string) => {
+    setFeatures(features.filter(item => item.id !== id));
+  };
+
+  // Gallery functions
+  const handleImageUpload = (galleryIndex: number, imageIndex: number, file: File) => {
+    const newGalleries = [...galleries];
+    const gallery = newGalleries[galleryIndex];
+    if (gallery && gallery.images[imageIndex]) {
+      gallery.images[imageIndex].file = file;
+      gallery.images[imageIndex].preview = URL.createObjectURL(file);
+      setGalleries(newGalleries);
+    }
+  };
+
+  const removeImage = (galleryIndex: number, imageIndex: number) => {
+    const newGalleries = [...galleries];
+    const gallery = newGalleries[galleryIndex];
+    if (gallery && gallery.images[imageIndex]) {
+      const image = gallery.images[imageIndex];
+      
+      // If it's a new file upload, clear both file and preview
+      if (image.file) {
+        image.file = null;
+        image.preview = null;
+      } else if (image.id && image.image) {
+        // If it's an existing image from backend, add to deletion list
+        setImagesToDelete(prev => [...prev, image.id]);
+        image.preview = null;
+        image.image = '';
+        image.image_url = '';
+      } else {
+        // If it's an empty slot, just clear the preview
+        image.preview = null;
+      }
+      setGalleries(newGalleries);
+    }
+  };
+
   // Submit handler
   const onSubmit = async (data: ProductFormValues) => {
     try {
@@ -575,7 +940,9 @@ export default function EditProductPage() {
       const productData = {
         name: data.name,
         description: data.description || "",
+        barcode: data.barcode || undefined,
         category: parseInt(data.category),
+        online_category: data.online_category ? parseInt(data.online_category) : undefined,
         supplier: data.supplier ? parseInt(data.supplier) : undefined,
         cost_price: parseFloat(data.cost_price),
         selling_price: parseFloat(data.selling_price),
@@ -590,19 +957,116 @@ export default function EditProductPage() {
             color: colorVariant.color,
             color_hax: colorVariant.colorHex,
             stock: colorVariant.stock,
+            waist_size: colorVariant.waist_size,
+            chest_size: colorVariant.chest_size,
+            height: colorVariant.height,
           }))
         ),
+        material_composition: materialCompositions.map((item) => ({
+          percentige: item.percentage,
+          title: item.title || null,
+        })),
+        who_is_this_for: whoIsThisFor.map((item) => ({
+          title: item.title || null,
+          description: item.description || null,
+        })),
+        features: features.map((item) => ({
+          title: item.title || null,
+          description: item.description || null,
+        })),
+        // Don't send galleries data in product update - handle separately
+        // galleries: galleries.map((gallery) => ({
+        //   color: gallery.color,
+        //   color_hax: gallery.color_hax || gallery.colorHex,
+        //   alt_text: gallery.color,
+        // })),
       };
 
       // Update the product with proper typing
+      // Note: We don't include galleries data here to avoid deleting all existing galleries
+      // Gallery updates (image deletion/upload) are handled separately below
       await updateProduct.mutateAsync({
         id: productId,
         ...productData,
       });
 
+      // Delete images that were marked for deletion
+      if (imagesToDelete.length > 0) {
+        try {
+          const { galleryImagesApi } = await import('@/lib/api/inventory');
+          await Promise.all(
+            imagesToDelete.map(imageId => 
+              galleryImagesApi.delete(imageId).catch(error => {
+                console.error(`Error deleting image ${imageId}:`, error);
+                return null; // Continue with other deletions even if one fails
+              })
+            )
+          );
+          console.log(`Successfully deleted ${imagesToDelete.length} images`);
+        } catch (error) {
+          console.error('Error deleting images:', error);
+          toast({
+            title: "Image Deletion Warning",
+            description: "Product updated but some images failed to delete from server",
+            variant: "default",
+          });
+        }
+      }
+
+      // Upload images for galleries that have new images
+      const galleriesWithImages = galleries.filter((g) => 
+        g.images.some((img) => img.file !== null)
+      );
+
+      if (galleriesWithImages.length > 0) {
+        for (const gallery of galleriesWithImages) {
+          const imagesToUpload = gallery.images.filter((img) => img.file !== null);
+          
+          if (imagesToUpload.length > 0) {
+            const formData = new FormData();
+            formData.append('color', gallery.color);
+            formData.append('color_hax', gallery.color_hax || gallery.colorHex);
+            formData.append('alt_text', gallery.color);
+            
+            imagesToUpload.forEach((img) => {
+              if (img.file) {
+                formData.append('images', img.file);
+              }
+            });
+            
+            try {
+              const { galleriesApi } = await import('@/lib/api/inventory');
+              await galleriesApi.uploadColorImages(productId, formData);
+            } catch (uploadError) {
+              console.error(`Error uploading images for ${gallery.color}:`, uploadError);
+              toast({
+                title: "Image Upload Warning",
+                description: `Product updated but some images for ${gallery.color} failed to upload`,
+                variant: "default",
+              });
+            }
+          }
+        }
+      }
+
+      const hasImages = galleries.some((g) => 
+        g.images.some((img) => img.file !== null)
+      );
+      
+      const hasDeletedImages = imagesToDelete.length > 0;
+      
+      let description = "Product updated successfully";
+      if (hasImages && hasDeletedImages) {
+        description = "Product, images uploaded, and images deleted successfully";
+      } else if (hasImages) {
+        description = "Product and images updated successfully";
+      } else if (hasDeletedImages) {
+        description = "Product updated and images deleted successfully";
+      }
+      
       toast({
         title: "Product Updated",
-        description: "The product has been updated successfully",
+        description: description,
       });
 
       router.push("/inventory/products");
@@ -677,6 +1141,20 @@ export default function EditProductPage() {
 
                 <FormField
                   control={form.control}
+                  name="barcode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Barcode</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter product barcode" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="description"
                   render={({ field }) => (
                     <FormItem>
@@ -721,6 +1199,86 @@ export default function EditProductPage() {
                           ))}
                         </SelectContent>
                       </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="online_category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Online Category</FormLabel>
+                      <div className="space-y-2">
+                        {!isCreatingOnlineCategory ? (
+                          <div className="flex gap-2">
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value}
+                              defaultValue={product.online_category?.id.toString()}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select online category">
+                                    {product.online_category?.name}
+                                  </SelectValue>
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {onlineCategories.map((category) => (
+                                  <SelectItem
+                                    key={category.id}
+                                    value={category.id.toString()}
+                                  >
+                                    {category.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setIsCreatingOnlineCategory(true)}
+                            >
+                              <PlusCircle className="h-4 w-4 mr-2" />
+                              New
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <Input
+                              placeholder="Category name"
+                              value={newOnlineCategoryName}
+                              onChange={(e) => setNewOnlineCategoryName(e.target.value)}
+                            />
+                            <Textarea
+                              placeholder="Category description (optional)"
+                              value={newOnlineCategoryDescription}
+                              onChange={(e) => setNewOnlineCategoryDescription(e.target.value)}
+                            />
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                size="sm"
+                                onClick={handleCreateOnlineCategory}
+                                disabled={createOnlineCategory.isPending}
+                              >
+                                {createOnlineCategory.isPending ? "Creating..." : "Create"}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={cancelCreateOnlineCategory}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -1151,6 +1709,72 @@ export default function EditProductPage() {
                               />
                             </FormItem>
 
+                            <FormItem className="w-32">
+                              <FormLabel>Waist Size</FormLabel>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={color.waist_size || ""}
+                                onChange={(e) =>
+                                  updateColorVariant(
+                                    variant.id,
+                                    color.id,
+                                    "waist_size",
+                                    e.target.value ? parseInt(e.target.value) : 0
+                                  )
+                                }
+                                onWheel={(e) => {
+                                  if (document.activeElement === e.target) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                              />
+                            </FormItem>
+
+                            <FormItem className="w-32">
+                              <FormLabel>Chest Size</FormLabel>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={color.chest_size || ""}
+                                onChange={(e) =>
+                                  updateColorVariant(
+                                    variant.id,
+                                    color.id,
+                                    "chest_size",
+                                    e.target.value ? parseInt(e.target.value) : 0
+                                  )
+                                }
+                                onWheel={(e) => {
+                                  if (document.activeElement === e.target) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                              />
+                            </FormItem>
+
+                            <FormItem className="w-32">
+                              <FormLabel>Height</FormLabel>
+                              <Input
+                                type="number"
+                                min="0"
+                                value={color.height || ""}
+                                onChange={(e) =>
+                                  updateColorVariant(
+                                    variant.id,
+                                    color.id,
+                                    "height",
+                                    e.target.value ? parseInt(e.target.value) : 0
+                                  )
+                                }
+                                onWheel={(e) => {
+                                  if (document.activeElement === e.target) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                              />
+                            </FormItem>
+
                             <Button
                               type="button"
                               variant="ghost"
@@ -1169,6 +1793,280 @@ export default function EditProductPage() {
                   </Card>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Material Composition Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Material Composition</CardTitle>
+              <CardDescription>
+                Define the material composition of the product
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {materialCompositions.map((item, index) => (
+                <div key={item.id} className="flex items-center gap-4">
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="Percentage"
+                    value={item.percentage}
+                    onChange={(e) => updateMaterialComposition(item.id, 'percentage', parseInt(e.target.value) || 0)}
+                    className="w-32"
+                  />
+                  <Input
+                    placeholder="Material name"
+                    value={item.title || ""}
+                    onChange={(e) => updateMaterialComposition(item.id, 'title', e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeMaterialComposition(item.id)}
+                    className="text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addMaterialComposition}
+              >
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Add Material
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Who Is This For Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Who Is This For</CardTitle>
+              <CardDescription>
+                Define the target audience for this product
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {whoIsThisFor.map((item, index) => (
+                <div key={item.id} className="space-y-2">
+                  <Input
+                    placeholder="Title"
+                    value={item.title || ""}
+                    onChange={(e) => updateWhoIsThisFor(item.id, 'title', e.target.value)}
+                  />
+                  <Textarea
+                    placeholder="Description"
+                    value={item.description || ""}
+                    onChange={(e) => updateWhoIsThisFor(item.id, 'description', e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeWhoIsThisFor(item.id)}
+                    className="text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Remove
+                  </Button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addWhoIsThisFor}
+              >
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Add Target Audience
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Product Features Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Product Features</CardTitle>
+              <CardDescription>
+                Define the key features of this product
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {features.map((item, index) => (
+                <div key={item.id} className="space-y-2">
+                  <Input
+                    placeholder="Feature title"
+                    value={item.title || ""}
+                    onChange={(e) => updateFeature(item.id, 'title', e.target.value)}
+                  />
+                  <Textarea
+                    placeholder="Feature description"
+                    value={item.description || ""}
+                    onChange={(e) => updateFeature(item.id, 'description', e.target.value)}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeFeature(item.id)}
+                    className="text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Remove
+                  </Button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addFeature}
+              >
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Add Feature
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Product Gallery Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Product Gallery</CardTitle>
+              <CardDescription>
+                Upload images for each color variant (up to 4 images per color)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {galleries.map((gallery, galleryIndex) => (
+                <div key={gallery.color} className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-6 h-6 rounded-full border-2 border-gray-300"
+                      style={{ backgroundColor: gallery.color_hax || gallery.colorHex }}
+                    />
+                    <h4 className="font-medium">{gallery.color}</h4>
+                    <span className="text-sm text-muted-foreground">
+                      ({gallery.images.filter(img => img.file || img.preview).length}/4 images)
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {gallery.images.map((image, imageIndex) => (
+                      <div key={image.id} className="space-y-2">
+                        <div className={`aspect-square border-2 border-dashed rounded-lg flex items-center justify-center overflow-hidden ${
+                          image.preview ? 'border-gray-300' : 
+                          imagesToDelete.includes(image.id) ? 'border-red-300 bg-red-50' : 
+                          'border-gray-300'
+                        }`}>
+                          {image.preview ? (
+                            <div className="relative w-full h-full">
+                              <img
+                                src={image.preview}
+                                alt={`${gallery.color} ${image.imageType.toLowerCase()}`}
+                                className="w-full h-full object-cover"
+                              />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                className="absolute top-2 right-2 h-6 w-6 p-0"
+                                onClick={() => removeImage(galleryIndex, imageIndex)}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : imagesToDelete.includes(image.id) ? (
+                            <div className="text-center">
+                              <X className="h-8 w-8 text-red-400 mx-auto mb-2" />
+                              <p className="text-xs text-red-500">Will be deleted</p>
+                            </div>
+                          ) : (
+                            <div className="text-center">
+                              <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                              <p className="text-xs text-gray-500">{image.imageType}</p>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-1">
+                          {!image.preview && !imagesToDelete.includes(image.id) && (
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  handleImageUpload(galleryIndex, imageIndex, file);
+                                }
+                              }}
+                              className="text-xs"
+                            />
+                          )}
+                          {image.preview && (
+                            <div className="text-center">
+                              <p className="text-xs text-green-600 font-medium">✓ Image loaded</p>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="w-full text-xs"
+                                onClick={() => {
+                                  const fileInput = document.createElement('input');
+                                  fileInput.type = 'file';
+                                  fileInput.accept = 'image/*';
+                                  fileInput.onchange = (e) => {
+                                    const file = (e.target as HTMLInputElement).files?.[0];
+                                    if (file) {
+                                      handleImageUpload(galleryIndex, imageIndex, file);
+                                    }
+                                  };
+                                  fileInput.click();
+                                }}
+                              >
+                                Replace Image
+                              </Button>
+                            </div>
+                          )}
+                          {imagesToDelete.includes(image.id) && (
+                            <div className="text-center">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="w-full text-xs text-red-600 border-red-300"
+                                onClick={() => {
+                                  // Restore the image by removing it from deletion list
+                                  setImagesToDelete(prev => prev.filter(id => id !== image.id));
+                                  // Restore the image data if it exists
+                                  if (image.image) {
+                                    image.preview = getImageUrl(image.image_url || image.image);
+                                  }
+                                }}
+                              >
+                                Restore Image
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              
+              {galleries.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Upload className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>Add color variants to see gallery options</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

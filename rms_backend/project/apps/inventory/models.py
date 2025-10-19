@@ -1,14 +1,39 @@
+from random import choices
 from django.db import models
 from django.core.validators import MinValueValidator
 from django.utils.text import slugify
 import uuid
+import os
 from django.utils import timezone
 from decimal import Decimal
 from django.conf import settings
 from apps.supplier.models import Supplier  # Import Supplier from supplier app
 from django.db.models import Sum
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 
 class Category(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=100, unique=True, blank=True)
+    description = models.TextField(blank=True)
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Category'
+        verbose_name_plural = 'Categories'
+        ordering = ['name']
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+class OnlineCategory(models.Model):
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(max_length=100, unique=True, blank=True)
     description = models.TextField(blank=True)
@@ -42,9 +67,11 @@ class Product(models.Model):
     barcode = models.CharField(max_length=50, unique=True, blank=True, null=True)
     description = models.TextField(blank=True)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
+    online_category = models.ForeignKey(OnlineCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
     supplier = models.ForeignKey(Supplier, on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
     cost_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
     selling_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
+    description = models.TextField(blank=True,null=True)
     stock_quantity = models.IntegerField(default=0, validators=[MinValueValidator(0)])
     minimum_stock = models.IntegerField(default=10)
     image = models.ImageField(upload_to='products/', null=True, blank=True)
@@ -80,6 +107,9 @@ class ProductVariation(models.Model):
     size = models.CharField(max_length=50, default='Standard')
     color = models.CharField(max_length=50, default='Default')
     color_hax = models.CharField(max_length=50, default='#FFFFFF')
+    waist_size=models.PositiveIntegerField(null=True,default=None)
+    chest_size=models.PositiveIntegerField(null=True,default=None)
+    height=models.PositiveIntegerField(null=True,default=None)
     stock = models.IntegerField(default=0, validators=[MinValueValidator(0)])
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -90,16 +120,72 @@ class ProductVariation(models.Model):
 
     def __str__(self):
         return f"{self.product.name} - {self.size} - {self.color}"
+class MeterialComposition(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='material_compositions')
+    percentige=models.PositiveIntegerField()
+    title = models.CharField(max_length=50,null=True,blank=True)
 
-class ProductImage(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
-    variation = models.ForeignKey(ProductVariation, on_delete=models.CASCADE, null=True, blank=True, related_name='images')
-    image = models.ImageField(upload_to='products/')
-    is_primary = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
+class WhoIsThisFor(models.Model):
+      product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='who_is_this_for')
+      title=models.TextField(blank=True,null=True)
+      description=models.TextField(blank=True,null=True)
+class Features(models.Model):
+      product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='features')
+      title=models.TextField(blank=True,null=True)
+      description=models.TextField(blank=True,null=True)
+      
+      
+class Gallery(models.Model):
+    product = models.ForeignKey('Product', on_delete=models.CASCADE, related_name='galleries')
+    color = models.CharField(max_length=50)
+    color_hax=models.CharField(max_length=50,null=True,default='#ffff')  # must match ProductVariation.color
+    alt_text = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        unique_together = ['product', 'color']
 
     def __str__(self):
-        return f"Image for {self.product.name}"
+        return f"{self.product.name} - {self.color}"
+
+def gallery_upload_path(instance, filename):
+    """Generate upload path: product_colors/{product_id}/{color_name}/{imageType}.{ext}"""
+    return f'gallery/{instance.gallery.product.id}/{instance.gallery.color.lower()}/{instance.imageType.lower()}.{filename.split(".")[-1]}'
+
+class Image(models.Model):
+    IMAGE_TYPES = [
+        ('PRIMARY', 'Primary'),
+        ('SECONDARY', 'Secondary'),
+        ('THIRD', 'Third'),
+        ('FOURTH', 'Fourth'),
+    ]
+    gallery = models.ForeignKey(Gallery, on_delete=models.CASCADE, related_name='images')
+    imageType = models.CharField(max_length=50, choices=IMAGE_TYPES)
+    image = models.ImageField(upload_to=gallery_upload_path)
+    alt_text = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        unique_together = ['gallery', 'imageType']
+
+    def __str__(self):
+        return f"{self.gallery.product.name} - {self.gallery.color} - {self.get_imageType_display()}"
+    
+    def delete(self, *args, **kwargs):
+        """Override delete to also delete the file from filesystem"""
+        if self.image:
+            # Delete the file from filesystem
+            if os.path.isfile(self.image.path):
+                os.remove(self.image.path)
+        super().delete(*args, **kwargs)
+
+# class ProductImage(models.Model):
+#     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
+#     variation = models.ForeignKey(ProductVariation, on_delete=models.CASCADE, null=True, blank=True, related_name='images')
+#     image = models.ImageField(upload_to='products/')
+#     is_primary = models.BooleanField(default=False)
+#     created_at = models.DateTimeField(auto_now_add=True)
+
+#     def __str__(self):
+#         return f"Image for {self.product.name}"
 
 class StockMovement(models.Model):
     MOVEMENT_TYPES = [
@@ -143,3 +229,25 @@ class InventoryAlert(models.Model):
         self.is_active = False
         self.resolved_at = timezone.now()
         self.save()
+
+
+# Signal to handle file deletion when Image is deleted
+@receiver(post_delete, sender=Image)
+def delete_image_file(sender, instance, **kwargs):
+    """Delete the image file from filesystem when Image instance is deleted"""
+    if instance.image:
+        try:
+            if os.path.isfile(instance.image.path):
+                os.remove(instance.image.path)
+        except (ValueError, OSError):
+            # File might have been already deleted or path might be invalid
+            pass
+
+
+# Signal to handle file deletion when Gallery is deleted (cascade delete)
+@receiver(post_delete, sender=Gallery)
+def delete_gallery_files(sender, instance, **kwargs):
+    """Delete all image files when Gallery is deleted"""
+    # This is a backup in case the Image post_delete signal doesn't fire
+    # The Image post_delete signal should handle individual file deletion
+    pass

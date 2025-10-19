@@ -34,6 +34,7 @@ export interface Product {
     barcode?: string;
     description?: string;
     category?: Category;
+    online_category?: Category;
     supplier?: Supplier;
     cost_price: number;
     selling_price: number;
@@ -47,7 +48,10 @@ export interface Product {
     created_at: string;
     updated_at: string;
     variations?: ProductVariation[];
-    images?: ProductImage[];
+    galleries?: Gallery[];
+    material_composition?: MeterialComposition[];
+    who_is_this_for?: WhoIsThisFor[];
+    features?: FeatureItem[];
 }
 
 export interface ProductVariation {
@@ -57,18 +61,47 @@ export interface ProductVariation {
     color: string;
     color_hax?: string;
     stock: number;
+    waist_size?: number;
+    chest_size?: number;
+    height?: number;
     is_active: boolean;
     created_at: string;
     updated_at: string;
 }
 
-export interface ProductImage {
+// Gallery groups images by color (up to 4 images per color)
+export interface Gallery {
     id: number;
-    product: number;
-    variation?: number;
-    image_url: string;
-    is_primary: boolean;
-    created_at: string;
+    color: string;
+    color_hax?: string;
+    alt_text?: string;
+    images: GalleryImage[];
+}
+
+// Individual image within a gallery
+export interface GalleryImage {
+    id: number;
+    imageType: 'PRIMARY' | 'SECONDARY' | 'THIRD' | 'FOURTH';
+    image: string; // URL path returned by backend
+    alt_text?: string;
+}
+
+export interface MeterialComposition {
+    id: number;
+    percentige: number;
+    title?: string | null;
+}
+
+export interface WhoIsThisFor {
+    id: number;
+    title?: string | null;
+    description?: string | null;
+}
+
+export interface FeatureItem {
+    id: number;
+    title?: string | null;
+    description?: string | null;
 }
 
 // DTOs for creating/updating
@@ -86,6 +119,7 @@ export interface CreateProductDTO {
     barcode?: string;
     description?: string;
     category?: number;
+    online_category?: number;
     supplier?: number;
     cost_price: number;
     selling_price: number;
@@ -101,6 +135,31 @@ export interface CreateProductDTO {
         color: string;
         color_hax?: string;
         stock: number;
+        waist_size?: number;
+        chest_size?: number;
+        height?: number;
+    }[];
+    galleries?: {
+        color: string;
+        color_hax?: string;
+        alt_text?: string;
+        images?: {
+            imageType: 'PRIMARY' | 'SECONDARY' | 'THIRD' | 'FOURTH';
+            image: File;
+            alt_text?: string;
+        }[];
+    }[];
+    material_composition?: {
+        percentige: number;
+        title?: string | null;
+    }[];
+    who_is_this_for?: {
+        title?: string | null;
+        description?: string | null;
+    }[];
+    features?: {
+        title?: string | null;
+        description?: string | null;
     }[];
 }
 
@@ -113,11 +172,18 @@ export interface CreateProductVariationDTO {
     is_active: boolean;
 }
 
-export interface CreateProductImageDTO {
+export interface CreateGalleryDTO {
     product: number;
-    variation?: number;
+    color: string;
+    color_hax?: string;
+    alt_text?: string;
+}
+
+export interface CreateGalleryImageDTO {
+    gallery: number;
+    imageType: 'PRIMARY' | 'SECONDARY' | 'THIRD' | 'FOURTH';
     image: File;
-    is_primary: boolean;
+    alt_text?: string;
 }
 
 // Update DTOs extend the Create DTOs with an id
@@ -133,7 +199,11 @@ export interface UpdateProductVariationDTO extends Partial<CreateProductVariatio
     id: number;
 }
 
-export interface UpdateProductImageDTO extends Partial<CreateProductImageDTO> {
+export interface UpdateGalleryDTO extends Partial<CreateGalleryDTO> {
+    id: number;
+}
+
+export interface UpdateGalleryImageDTO extends Partial<CreateGalleryImageDTO> {
     id: number;
 }
 

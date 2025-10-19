@@ -3,15 +3,18 @@ import {
     Category,
     Product,
     ProductVariation,
-    ProductImage,
+    Gallery,
+    GalleryImage,
     CreateCategoryDTO,
     CreateProductDTO,
     CreateProductVariationDTO,
-    CreateProductImageDTO,
+    CreateGalleryDTO,
+    CreateGalleryImageDTO,
     UpdateCategoryDTO,
     UpdateProductDTO,
     UpdateProductVariationDTO,
-    UpdateProductImageDTO,
+    UpdateGalleryDTO,
+    UpdateGalleryImageDTO,
     DashboardOverview,
     CategoryMetrics,
     StockMovementAnalysis
@@ -154,15 +157,42 @@ export const categoriesApi = {
     },
 };
 
+// Online Categories API
+export const onlineCategoriesApi = {
+    getAll: async (): Promise<Category[]> => {
+        const { data } = await axiosInstance.get('/inventory/online-categories/');
+        return data;
+    },
+
+    getById: async (id: number): Promise<Category> => {
+        const { data } = await axiosInstance.get(`/inventory/online-categories/${id}/`);
+        return data;
+    },
+
+    create: async (category: CreateCategoryDTO): Promise<Category> => {
+        const { data } = await axiosInstance.post('/inventory/online-categories/', category);
+        return data;
+    },
+
+    update: async ({ id, ...category }: UpdateCategoryDTO): Promise<Category> => {
+        const { data } = await axiosInstance.put(`/inventory/online-categories/${id}/`, category);
+        return data;
+    },
+
+    delete: async (id: number): Promise<void> => {
+        await axiosInstance.delete(`/inventory/online-categories/${id}/`);
+    },
+};
+
 // Products API
 export const productsApi = {
     getAll: async (): Promise<Product[]> => {
-        const { data } = await axiosInstance.get('/inventory/products/?expand=category');
+        const { data } = await axiosInstance.get('/inventory/products/?expand=category,online_category');
         return data;
     },
 
     getById: async (id: number): Promise<Product> => {
-        const { data } = await axiosInstance.get(`/inventory/products/${id}/?expand=category`);
+        const { data } = await axiosInstance.get(`/inventory/products/${id}/?expand=category,online_category`);
         return data;
     },
 
@@ -253,30 +283,83 @@ export const productVariationsApi = {
     },
 };
 
-// Product Images API
-export const productImagesApi = {
-    getAll: async (productId: number): Promise<ProductImage[]> => {
-        const { data } = await axiosInstance.get(`/inventory/products/${productId}/images/`);
+// Galleries API
+export const galleriesApi = {
+    getAll: async (productId?: number): Promise<Gallery[]> => {
+        const params = productId ? { product: productId } : {};
+        const { data } = await axiosInstance.get('/inventory/galleries/', { params });
         return data;
     },
 
-    getById: async (productId: number, id: number): Promise<ProductImage> => {
-        const { data } = await axiosInstance.get(`/inventory/products/${productId}/images/${id}/`);
+    getById: async (id: number): Promise<Gallery> => {
+        const { data } = await axiosInstance.get(`/inventory/galleries/${id}/`);
         return data;
     },
 
-    create: async (productId: number, image: CreateProductImageDTO): Promise<ProductImage> => {
-        const { data } = await axiosInstance.post(`/inventory/products/${productId}/images/`, image);
+    create: async (gallery: CreateGalleryDTO): Promise<Gallery> => {
+        const { data } = await axiosInstance.post('/inventory/galleries/', gallery);
         return data;
     },
 
-    update: async (productId: number, { id, ...image }: UpdateProductImageDTO): Promise<ProductImage> => {
-        const { data } = await axiosInstance.put(`/inventory/products/${productId}/images/${id}/`, image);
+    update: async ({ id, ...gallery }: UpdateGalleryDTO): Promise<Gallery> => {
+        const { data } = await axiosInstance.put(`/inventory/galleries/${id}/`, gallery);
         return data;
     },
 
-    delete: async (productId: number, id: number): Promise<void> => {
-        await axiosInstance.delete(`/inventory/products/${productId}/images/${id}/`);
+    delete: async (id: number): Promise<void> => {
+        await axiosInstance.delete(`/inventory/galleries/${id}/`);
+    },
+
+    // Upload up to 4 images for a specific color
+    uploadColorImages: async (productId: number, formData: FormData): Promise<GalleryImage[]> => {
+        const { data } = await axiosInstance.post(
+            `/inventory/products/${productId}/upload_color_images/`,
+            formData,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            }
+        );
+        return data;
+    },
+};
+
+// Gallery Images API
+export const galleryImagesApi = {
+    getAll: async (galleryId?: number): Promise<GalleryImage[]> => {
+        const params = galleryId ? { gallery: galleryId } : {};
+        const { data } = await axiosInstance.get('/inventory/images/', { params });
+        return data;
+    },
+
+    getById: async (id: number): Promise<GalleryImage> => {
+        const { data } = await axiosInstance.get(`/inventory/images/${id}/`);
+        return data;
+    },
+
+    create: async (image: CreateGalleryImageDTO): Promise<GalleryImage> => {
+        const formData = new FormData();
+        formData.append('gallery', image.gallery.toString());
+        formData.append('imageType', image.imageType);
+        formData.append('image', image.image);
+        if (image.alt_text) formData.append('alt_text', image.alt_text);
+
+        const { data } = await axiosInstance.post('/inventory/images/', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return data;
+    },
+
+    update: async ({ id, ...image }: UpdateGalleryImageDTO): Promise<GalleryImage> => {
+        const { data } = await axiosInstance.put(`/inventory/images/${id}/`, image);
+        return data;
+    },
+
+    delete: async (id: number): Promise<void> => {
+        await axiosInstance.delete(`/inventory/images/${id}/`);
     },
 };
 
