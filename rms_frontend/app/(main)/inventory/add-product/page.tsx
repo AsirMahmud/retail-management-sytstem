@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,10 +30,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { PlusCircle, Trash2, ShoppingCart } from "lucide-react";
+import { PlusCircle, Trash2, ShoppingCart, Upload, X, Image as ImageIcon } from "lucide-react";
 import {
   useCreateProduct,
   useCategories,
+  useOnlineCategories,
+  useCreateOnlineCategory,
   useSuppliers,
 } from "@/hooks/queries/useInventory";
 import type { CreateProductDTO } from "@/types/inventory";
@@ -46,7 +48,9 @@ import { globalSizes, COLORS } from "./constants";
 const productFormSchema = z.object({
   name: z.string().min(1, "Product name is required"),
   description: z.string().optional(),
+  barcode: z.string().optional(),
   category: z.string({ required_error: "Please select a category" }),
+  online_category: z.string().optional(),
   supplier: z.string({ required_error: "Please select a supplier" }).optional(),
   cost_price: z.string().min(1, "Cost price is required"),
   selling_price: z.string().min(1, "Selling price is required"),
@@ -63,6 +67,8 @@ const productFormSchema = z.object({
         size: z.string().min(1, "Size is required"),
         color: z.string().min(1, "Color is required"),
         stock: z.number().min(0, "Stock must be 0 or greater"),
+        waist_size: z.number().optional(),
+        chest_size: z.number().optional(),
       })
     )
     .optional(),
@@ -76,6 +82,8 @@ type ColorVariant = {
   color: string;
   colorHex: string;
   stock: number;
+  waist_size?: number;
+  chest_size?: number;
 };
 
 type SizeVariant = {
@@ -84,12 +92,49 @@ type SizeVariant = {
   colors: ColorVariant[];
 };
 
+// Define types for gallery images
+type GalleryImage = {
+  id: string;
+  file: File | null;
+  preview: string | null;
+  imageType: 'PRIMARY' | 'SECONDARY' | 'THIRD' | 'FOURTH';
+};
+
+type ColorGallery = {
+  color: string;
+  colorHex: string;
+  color_hax?: string;
+  images: GalleryImage[];
+};
+
+// Additional product information types
+type MaterialComposition = {
+  id: string;
+  percentage: number;
+  title?: string;
+};
+
+type WhoIsThisFor = {
+  id: string;
+  title?: string;
+  description?: string;
+};
+
+type Feature = {
+  id: string;
+  title?: string;
+  description?: string;
+};
+
 export default function AddProductPage() {
   const router = useRouter();
   const createProduct = useCreateProduct();
   const { toast } = useToast();
   const { data: categories = [], isLoading: isLoadingCategories } =
     useCategories();
+  const { data: onlineCategories = [], isLoading: isLoadingOnlineCategories } =
+    useOnlineCategories();
+  const createOnlineCategory = useCreateOnlineCategory();
   const { data: suppliers = [], isLoading: isLoadingSuppliers } =
     useSuppliers();
 
@@ -99,7 +144,9 @@ export default function AddProductPage() {
     defaultValues: {
       name: "",
       description: "",
+      barcode: "",
       category: undefined,
+      online_category: undefined,
       supplier: undefined,
       cost_price: "",
       selling_price: "",
@@ -113,6 +160,19 @@ export default function AddProductPage() {
   // State for variants
   const [variants, setVariants] = useState<SizeVariant[]>([]);
   const [sizeCategory, setSizeCategory] = useState<string>("");
+  
+  // State for galleries (one per unique color)
+  const [galleries, setGalleries] = useState<ColorGallery[]>([]);
+  
+  // State for additional product information
+  const [materialCompositions, setMaterialCompositions] = useState<MaterialComposition[]>([]);
+  const [whoIsThisFor, setWhoIsThisFor] = useState<WhoIsThisFor[]>([]);
+  const [features, setFeatures] = useState<Feature[]>([]);
+  
+  // State for creating new online category
+  const [isCreatingOnlineCategory, setIsCreatingOnlineCategory] = useState(false);
+  const [newOnlineCategoryName, setNewOnlineCategoryName] = useState("");
+  const [newOnlineCategoryDescription, setNewOnlineCategoryDescription] = useState("");
 
   // Watch form values for dynamic updates
   const watchedSizeType = form.watch("size_type");
@@ -290,6 +350,7 @@ export default function AddProductPage() {
     }
 
     const firstAvailableColor = availableColors[0];
+    const colorHex = COLORS[firstAvailableColor as keyof typeof COLORS];
 
     setVariants(
       variants.map((variant) => {
@@ -301,7 +362,7 @@ export default function AddProductPage() {
               {
                 id: Date.now().toString() + "-color",
                 color: firstAvailableColor,
-                colorHex: COLORS[firstAvailableColor as keyof typeof COLORS],
+                colorHex: colorHex,
                 stock: 0,
               },
             ],
@@ -310,6 +371,8 @@ export default function AddProductPage() {
         return variant;
       })
     );
+
+    // Gallery creation is now handled by syncGalleriesWithVariants useEffect
   };
 
   // Function to update a size variant
@@ -381,6 +444,10 @@ export default function AddProductPage() {
 
   // Function to remove a color variant
   const removeColorVariant = (sizeId: string, colorId: string) => {
+    // Find the color being removed
+    const variant = variants.find((v) => v.id === sizeId);
+    const colorToRemove = variant?.colors.find((c) => c.id === colorId);
+    
     setVariants(
       variants.map((variant) => {
         if (variant.id === sizeId) {
@@ -392,6 +459,8 @@ export default function AddProductPage() {
         return variant;
       })
     );
+
+    // Gallery cleanup is now handled by syncGalleriesWithVariants useEffect
   };
 
   // Function to get available sizes for a specific variant
@@ -413,6 +482,219 @@ export default function AddProductPage() {
     return Object.keys(COLORS).filter(
       (color) => !usedColors.includes(color.toLowerCase())
     );
+  };
+
+  // Gallery image handling functions
+  const handleImageUpload = (color: string, imageId: string, file: File) => {
+    const preview = URL.createObjectURL(file);
+    
+    setGalleries(galleries.map((gallery) => {
+      if (gallery.color.toLowerCase() === color.toLowerCase()) {
+        return {
+          ...gallery,
+          images: gallery.images.map((img) => {
+            if (img.id === imageId) {
+              // Revoke old preview URL if exists
+              if (img.preview) {
+                URL.revokeObjectURL(img.preview);
+              }
+              return { ...img, file, preview };
+            }
+            return img;
+          }),
+        };
+      }
+      return gallery;
+    }));
+  };
+
+  const handleImageRemove = (color: string, imageId: string) => {
+    setGalleries(galleries.map((gallery) => {
+      if (gallery.color.toLowerCase() === color.toLowerCase()) {
+        return {
+          ...gallery,
+          images: gallery.images.map((img) => {
+            if (img.id === imageId) {
+              // Revoke preview URL if exists
+              if (img.preview) {
+                URL.revokeObjectURL(img.preview);
+              }
+              return { ...img, file: null, preview: null };
+            }
+            return img;
+          }),
+        };
+      }
+      return gallery;
+    }));
+  };
+
+  // Material Composition functions
+  const addMaterialComposition = () => {
+    const newComposition: MaterialComposition = {
+      id: crypto.randomUUID(),
+      percentage: 0,
+      title: "",
+    };
+    setMaterialCompositions([...materialCompositions, newComposition]);
+  };
+
+  const updateMaterialComposition = (id: string, field: keyof MaterialComposition, value: string | number) => {
+    setMaterialCompositions(materialCompositions.map((item) => 
+      item.id === id ? { ...item, [field]: value } : item
+    ));
+  };
+
+  const removeMaterialComposition = (id: string) => {
+    setMaterialCompositions(materialCompositions.filter((item) => item.id !== id));
+  };
+
+  // Who Is This For functions
+  const addWhoIsThisFor = () => {
+    const newItem: WhoIsThisFor = {
+      id: crypto.randomUUID(),
+      title: "",
+      description: "",
+    };
+    setWhoIsThisFor([...whoIsThisFor, newItem]);
+  };
+
+  const updateWhoIsThisFor = (id: string, field: keyof WhoIsThisFor, value: string) => {
+    setWhoIsThisFor(whoIsThisFor.map((item) => 
+      item.id === id ? { ...item, [field]: value } : item
+    ));
+  };
+
+  const removeWhoIsThisFor = (id: string) => {
+    setWhoIsThisFor(whoIsThisFor.filter((item) => item.id !== id));
+  };
+
+  // Features functions
+  const addFeature = () => {
+    const newFeature: Feature = {
+      id: crypto.randomUUID(),
+      title: "",
+      description: "",
+    };
+    setFeatures([...features, newFeature]);
+  };
+
+  const updateFeature = (id: string, field: keyof Feature, value: string) => {
+    setFeatures(features.map((item) => 
+      item.id === id ? { ...item, [field]: value } : item
+    ));
+  };
+
+  const removeFeature = (id: string) => {
+    setFeatures(features.filter((item) => item.id !== id));
+  };
+
+  // Function to sync galleries with all variant colors
+  const syncGalleriesWithVariants = useCallback(() => {
+    // Get all unique colors from all variants
+    const allColors = new Set<string>();
+    variants.forEach(variant => {
+      variant.colors.forEach(color => {
+        allColors.add(color.color.toLowerCase());
+      });
+    });
+
+    // Create galleries for colors that don't have galleries yet
+    const newGalleries: ColorGallery[] = [];
+    allColors.forEach(colorName => {
+      const colorExists = galleries.some(
+        (g) => g.color.toLowerCase() === colorName.toLowerCase()
+      );
+      
+      if (!colorExists) {
+        // Find the color in variants to get the hex value
+        let colorHex = '#000000'; // Default fallback
+        for (const variant of variants) {
+          const foundColor = variant.colors.find(c => c.color.toLowerCase() === colorName.toLowerCase());
+          if (foundColor) {
+            colorHex = foundColor.colorHex;
+            break;
+          }
+        }
+
+        const newGallery: ColorGallery = {
+          color: colorName,
+          colorHex: colorHex,
+          color_hax: colorHex,
+          images: [
+            { id: crypto.randomUUID(), file: null, preview: null, imageType: 'PRIMARY' },
+            { id: crypto.randomUUID(), file: null, preview: null, imageType: 'SECONDARY' },
+            { id: crypto.randomUUID(), file: null, preview: null, imageType: 'THIRD' },
+            { id: crypto.randomUUID(), file: null, preview: null, imageType: 'FOURTH' },
+          ],
+        };
+        newGalleries.push(newGallery);
+      }
+    });
+
+    // Remove galleries for colors that no longer exist in variants
+    const updatedGalleries = galleries.filter(gallery => 
+      allColors.has(gallery.color.toLowerCase())
+    );
+
+    // Add new galleries
+    if (newGalleries.length > 0) {
+      setGalleries([...updatedGalleries, ...newGalleries]);
+    } else if (updatedGalleries.length !== galleries.length) {
+      setGalleries(updatedGalleries);
+    }
+  }, [variants, galleries]);
+
+  // Sync galleries with variants whenever variants change
+  useEffect(() => {
+    if (variants.length > 0) {
+      syncGalleriesWithVariants();
+    }
+  }, [variants, syncGalleriesWithVariants]);
+
+  // Online Category creation functions
+  const handleCreateOnlineCategory = async () => {
+    if (!newOnlineCategoryName.trim()) {
+      toast({
+        title: "Name Required",
+        description: "Please enter a category name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const newCategory = await createOnlineCategory.mutateAsync({
+        name: newOnlineCategoryName.trim(),
+        description: newOnlineCategoryDescription.trim() || undefined,
+      });
+
+      // Set the newly created category as selected
+      form.setValue("online_category", newCategory.id.toString());
+      
+      // Reset form
+      setNewOnlineCategoryName("");
+      setNewOnlineCategoryDescription("");
+      setIsCreatingOnlineCategory(false);
+
+      toast({
+        title: "Success",
+        description: "Online category created successfully",
+      });
+    } catch (error) {
+      console.error("Error creating online category:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create online category. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const cancelCreateOnlineCategory = () => {
+    setIsCreatingOnlineCategory(false);
+    setNewOnlineCategoryName("");
+    setNewOnlineCategoryDescription("");
   };
 
   // Function to handle form submission
@@ -477,7 +759,9 @@ export default function AddProductPage() {
       const productData: CreateProductDTO = {
         name: data.name,
         description: data.description || "",
+        barcode: data.barcode || undefined,
         category: parseInt(data.category),
+        online_category: data.online_category ? parseInt(data.online_category) : undefined,
         supplier: data.supplier ? parseInt(data.supplier) : undefined,
         cost_price: parseFloat(data.cost_price),
         selling_price: parseFloat(data.selling_price),
@@ -492,16 +776,89 @@ export default function AddProductPage() {
             color: colorVariant.color,
             color_hax: colorVariant.colorHex,
             stock: colorVariant.stock,
+            waist_size: colorVariant.waist_size,
+            chest_size: colorVariant.chest_size,
           }))
         ),
+        material_composition: materialCompositions.map((item) => ({
+          percentige: item.percentage,
+          title: item.title || null,
+        })),
+        who_is_this_for: whoIsThisFor.map((item) => ({
+          title: item.title || null,
+          description: item.description || null,
+        })),
+        features: features.map((item) => ({
+          title: item.title || null,
+          description: item.description || null,
+        })),
+        galleries: galleries.map((gallery) => ({
+          color: gallery.color,
+          color_hax: gallery.color_hax || gallery.colorHex,
+          alt_text: gallery.color, // Use color name as alt text
+        })),
       };
 
       // Create the product
-      await createProduct.mutateAsync(productData);
+      const createdProduct = await createProduct.mutateAsync(productData);
+
+      // Upload images for galleries that have images
+      const galleriesWithImages = galleries.filter((g) => 
+        g.images.some((img) => img.file !== null)
+      );
+
+      if (galleriesWithImages.length > 0 && createdProduct?.id) {
+        // Upload images for each color
+        for (const gallery of galleriesWithImages) {
+          const imagesToUpload = gallery.images.filter((img) => img.file !== null);
+          
+          if (imagesToUpload.length > 0) {
+            const formData = new FormData();
+            formData.append('color', gallery.color);
+            formData.append('color_hax', gallery.color_hax || gallery.colorHex);
+            formData.append('alt_text', gallery.color);
+            
+            // Add all images for this color
+            imagesToUpload.forEach((img) => {
+              if (img.file) {
+                formData.append('images', img.file);
+              }
+            });
+            
+            try {
+              // Import and use the upload function
+              const { galleriesApi } = await import('@/lib/api/inventory');
+              await galleriesApi.uploadColorImages(createdProduct.id, formData);
+            } catch (uploadError) {
+              console.error(`Error uploading images for ${gallery.color}:`, uploadError);
+              toast({
+                title: "Image Upload Warning",
+                description: `Product created but some images for ${gallery.color} failed to upload`,
+                variant: "default",
+              });
+            }
+          }
+        }
+      }
+
+      const hasImages = galleries.some((g) => 
+        g.images.some((img) => img.file !== null)
+      );
 
       toast({
         title: "Success",
-        description: "Product created successfully",
+        description: hasImages 
+          ? "Product and images created successfully" 
+          : "Product created successfully",
+      });
+
+      // Clean up preview URLs
+      galleries.forEach((gallery) => {
+        gallery.images.forEach((img) => {
+          if (img.preview) {
+            URL.revokeObjectURL(img.preview);
+          }
+        });
       });
 
       // Redirect to products page
@@ -587,6 +944,25 @@ export default function AddProductPage() {
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={form.control}
+                    name="barcode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700">
+                          Barcode (Optional)
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="123456789012"
+                            {...field}
+                            className="h-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
 
                 <FormField
@@ -647,6 +1023,90 @@ export default function AddProductPage() {
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={form.control}
+                    name="online_category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-gray-700">
+                          Online Category (Optional)
+                        </FormLabel>
+                        <FormControl>
+                          {isLoadingOnlineCategories ? (
+                            <Skeleton className="h-12 w-full rounded-xl" />
+                          ) : isCreatingOnlineCategory ? (
+                            <div className="space-y-3">
+                              <Input
+                                placeholder="Category name"
+                                value={newOnlineCategoryName}
+                                onChange={(e) => setNewOnlineCategoryName(e.target.value)}
+                                className="h-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors"
+                              />
+                              <Textarea
+                                placeholder="Category description (optional)"
+                                value={newOnlineCategoryDescription}
+                                onChange={(e) => setNewOnlineCategoryDescription(e.target.value)}
+                                rows={2}
+                                className="border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors"
+                              />
+                              <div className="flex gap-2">
+                                <Button
+                                  type="button"
+                                  onClick={handleCreateOnlineCategory}
+                                  disabled={createOnlineCategory.isPending}
+                                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+                                >
+                                  {createOnlineCategory.isPending ? "Creating..." : "Create Category"}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={cancelCreateOnlineCategory}
+                                  className="flex-1"
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <Select
+                                value={field.value}
+                                onValueChange={field.onChange}
+                              >
+                                <SelectTrigger className="h-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors">
+                                  <SelectValue placeholder="Select online category" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {onlineCategories.map((cat) => (
+                                    <SelectItem
+                                      key={cat.id}
+                                      value={cat.id.toString()}
+                                    >
+                                      {cat.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setIsCreatingOnlineCategory(true)}
+                                className="w-full border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50"
+                              >
+                                <PlusCircle className="h-4 w-4 mr-2" />
+                                Create New Online Category
+                              </Button>
+                            </div>
+                          )}
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}
                     name="supplier"
@@ -943,6 +1403,8 @@ export default function AddProductPage() {
                             <tr className="text-sm text-gray-600">
                               <th className="text-left font-medium">Color</th>
                               <th className="text-left font-medium">Stock</th>
+                              <th className="text-left font-medium">Waist Size</th>
+                              <th className="text-left font-medium">Chest Size</th>
                               <th className="w-10"></th>
                             </tr>
                           </thead>
@@ -1020,6 +1482,48 @@ export default function AddProductPage() {
                                     }}
                                   />
                                 </td>
+                                <td className="py-3">
+                                  <Input
+                                    type="number"
+                                    placeholder="Waist"
+                                    value={color.waist_size || ""}
+                                    onChange={(e) =>
+                                      updateColorVariant(
+                                        variant.id,
+                                        color.id,
+                                        "waist_size",
+                                        e.target.value ? parseInt(e.target.value) : 0
+                                      )
+                                    }
+                                    className="w-20 h-10 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors"
+                                    onWheel={(e) => {
+                                      if (document.activeElement === e.target) {
+                                        e.preventDefault();
+                                      }
+                                    }}
+                                  />
+                                </td>
+                                <td className="py-3">
+                                  <Input
+                                    type="number"
+                                    placeholder="Chest"
+                                    value={color.chest_size || ""}
+                                    onChange={(e) =>
+                                      updateColorVariant(
+                                        variant.id,
+                                        color.id,
+                                        "chest_size",
+                                        e.target.value ? parseInt(e.target.value) : 0
+                                      )
+                                    }
+                                    className="w-20 h-10 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors"
+                                    onWheel={(e) => {
+                                      if (document.activeElement === e.target) {
+                                        e.preventDefault();
+                                      }
+                                    }}
+                                  />
+                                </td>
                                 <td className="py-3 text-center">
                                   <Button
                                     type="button"
@@ -1040,6 +1544,294 @@ export default function AddProductPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Gallery Section */}
+            {galleries.length > 0 && (
+              <Card className="border-0 shadow-xl bg-white/70 backdrop-blur-sm">
+                <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
+                  <CardTitle className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    <ImageIcon className="h-6 w-6" />
+                    Product Galleries
+                  </CardTitle>
+                  <CardDescription className="text-gray-600">
+                    Upload up to 4 images per color variant (PRIMARY, SECONDARY, THIRD, FOURTH)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="space-y-6">
+                    {galleries.map((gallery) => (
+                      <Card key={gallery.color} className="border-2 border-gray-200">
+                        <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100">
+                          <CardTitle className="text-lg font-semibold flex items-center gap-3">
+                            <div
+                              className="w-8 h-8 rounded-full border-2 border-white shadow-md"
+                              style={{ backgroundColor: gallery.color_hax || gallery.colorHex }}
+                            />
+                            <span className="capitalize">{gallery.color}</span>
+                            <span className="text-sm text-gray-500 font-normal">
+                              ({gallery.images.filter(img => img.file).length}/4 uploaded)
+                            </span>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {gallery.images.map((image) => (
+                              <div
+                                key={image.id}
+                                className="relative group"
+                              >
+                                <div className="aspect-square border-2 border-dashed border-gray-300 rounded-xl overflow-hidden bg-gray-50 hover:border-blue-500 transition-colors">
+                                  {image.preview ? (
+                                    <div className="relative w-full h-full">
+                                      <img
+                                        src={image.preview}
+                                        alt={`${gallery.color} - ${image.imageType}`}
+                                        className="w-full h-full object-cover"
+                                      />
+                                      <Button
+                                        type="button"
+                                        variant="destructive"
+                                        size="icon"
+                                        className="absolute top-2 right-2 h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={() => handleImageRemove(gallery.color, image.id)}
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <label
+                                      htmlFor={`image-${image.id}`}
+                                      className="flex flex-col items-center justify-center w-full h-full cursor-pointer hover:bg-gray-100 transition-colors"
+                                    >
+                                      <Upload className="h-10 w-10 text-gray-400 mb-2" />
+                                      <span className="text-sm font-medium text-gray-600">
+                                        {image.imageType}
+                                      </span>
+                                      <span className="text-xs text-gray-400 mt-1">
+                                        Click to upload
+                                      </span>
+                                      <input
+                                        id={`image-${image.id}`}
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0];
+                                          if (file) {
+                                            handleImageUpload(gallery.color, image.id, file);
+                                          }
+                                        }}
+                                      />
+                                    </label>
+                                  )}
+                                </div>
+                                <div className="mt-2 text-center">
+                                  <span className="text-xs font-medium text-gray-600 capitalize">
+                                    {image.imageType.toLowerCase()}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Material Composition Section */}
+            <Card className="border-0 shadow-xl bg-white/70 backdrop-blur-sm">
+              <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
+                <CardTitle className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <ShoppingCart className="h-6 w-6" />
+                  Material Composition
+                </CardTitle>
+                <CardDescription className="text-gray-600">
+                  Add material composition details (percentage and material type)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  {materialCompositions.map((item, index) => (
+                    <div key={item.id} className="flex gap-4 items-end">
+                      <div className="flex-1">
+                        <label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Material {index + 1}
+                        </label>
+                        <Input
+                          placeholder="e.g., Cotton, Polyester"
+                          value={item.title || ""}
+                          onChange={(e) => updateMaterialComposition(item.id, "title", e.target.value)}
+                          className="h-10 border-2 border-gray-200 focus:border-blue-500 rounded-xl"
+                        />
+                      </div>
+                      <div className="w-32">
+                        <label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Percentage
+                        </label>
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          placeholder="50"
+                          value={item.percentage || ""}
+                          onChange={(e) => updateMaterialComposition(item.id, "percentage", parseInt(e.target.value) || 0)}
+                          className="h-10 border-2 border-gray-200 focus:border-blue-500 rounded-xl"
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeMaterialComposition(item.id)}
+                        className="hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addMaterialComposition}
+                    className="w-full border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50"
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Add Material Composition
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Who Is This For Section */}
+            <Card className="border-0 shadow-xl bg-white/70 backdrop-blur-sm">
+              <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
+                <CardTitle className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <ShoppingCart className="h-6 w-6" />
+                  Who Is This For
+                </CardTitle>
+                <CardDescription className="text-gray-600">
+                  Define target audience and use cases for this product
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  {whoIsThisFor.map((item, index) => (
+                    <div key={item.id} className="space-y-3">
+                      <div className="flex gap-4 items-center">
+                        <div className="flex-1">
+                          <label className="text-sm font-medium text-gray-700 mb-2 block">
+                            Title {index + 1}
+                          </label>
+                          <Input
+                            placeholder="e.g., Professional Women, Athletes"
+                            value={item.title || ""}
+                            onChange={(e) => updateWhoIsThisFor(item.id, "title", e.target.value)}
+                            className="h-10 border-2 border-gray-200 focus:border-blue-500 rounded-xl"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeWhoIsThisFor(item.id)}
+                          className="hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Description
+                        </label>
+                        <Textarea
+                          placeholder="Describe the target audience or use case..."
+                          rows={2}
+                          value={item.description || ""}
+                          onChange={(e) => updateWhoIsThisFor(item.id, "description", e.target.value)}
+                          className="border-2 border-gray-200 focus:border-blue-500 rounded-xl"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addWhoIsThisFor}
+                    className="w-full border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50"
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Add Target Audience
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Features Section */}
+            <Card className="border-0 shadow-xl bg-white/70 backdrop-blur-sm">
+              <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
+                <CardTitle className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <ShoppingCart className="h-6 w-6" />
+                  Product Features
+                </CardTitle>
+                <CardDescription className="text-gray-600">
+                  Highlight key features and benefits of this product
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  {features.map((item, index) => (
+                    <div key={item.id} className="space-y-3">
+                      <div className="flex gap-4 items-center">
+                        <div className="flex-1">
+                          <label className="text-sm font-medium text-gray-700 mb-2 block">
+                            Feature {index + 1}
+                          </label>
+                          <Input
+                            placeholder="e.g., Moisture Wicking, UV Protection"
+                            value={item.title || ""}
+                            onChange={(e) => updateFeature(item.id, "title", e.target.value)}
+                            className="h-10 border-2 border-gray-200 focus:border-blue-500 rounded-xl"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeFeature(item.id)}
+                          className="hover:bg-red-50"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Description
+                        </label>
+                        <Textarea
+                          placeholder="Describe the feature and its benefits..."
+                          rows={2}
+                          value={item.description || ""}
+                          onChange={(e) => updateFeature(item.id, "description", e.target.value)}
+                          className="border-2 border-gray-200 focus:border-blue-500 rounded-xl"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addFeature}
+                    className="w-full border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50"
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Add Feature
+                  </Button>
                 </div>
               </CardContent>
             </Card>

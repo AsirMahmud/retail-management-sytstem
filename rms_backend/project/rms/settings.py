@@ -188,6 +188,10 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# Media files configuration for cPanel hosting
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
@@ -200,9 +204,11 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://rawstitch.info",
+    "http://localhost:3001",
     "https://rawstitch.vercel.app",
     "https://rmsmain.vercel.app",
-    "https://retail-management-sytstem-1.onrender.com"
+    "https://retail-management-sytstem-1.onrender.com",
+    "https://rawstitc.info"  # Your cPanel domain
 ]
 
 CORS_ALLOW_CREDENTIALS = True
