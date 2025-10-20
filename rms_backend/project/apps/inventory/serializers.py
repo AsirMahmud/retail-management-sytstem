@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from django.core.validators import MinValueValidator
-from django.utils.text import slugify
-from .models import Category, OnlineCategory, Product, ProductVariation, StockMovement, InventoryAlert, MeterialComposition, WhoIsThisFor, Features, Gallery, Image
+from .models import Category, Product, ProductImage, ProductVariation, StockMovement, InventoryAlert
 from apps.supplier.models import Supplier
 from apps.supplier.serializers import SupplierSerializer
 
@@ -53,85 +52,37 @@ class CategorySerializer(serializers.ModelSerializer):
         validated_data['slug'] = slug
         return super().create(validated_data)
 
-class ImageSerializer(serializers.ModelSerializer):
-    image_url = serializers.SerializerMethodField()
-    
+class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Image
-        fields = ['id', 'imageType', 'image', 'image_url', 'alt_text']
-    
-    def get_image_url(self, obj):
-        if obj.image:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image.url)
-            # Fallback: return the relative URL
-            return obj.image.url
-        return None
-
-class GallerySerializer(serializers.ModelSerializer):
-    images = ImageSerializer(many=True, read_only=True)
-    
-    class Meta:
-        model = Gallery
-        fields = ['id', 'color','color_hax','alt_text', 'images']
-
-class ColorImagesUploadSerializer(serializers.Serializer):
-    color = serializers.CharField(max_length=50)
-    color_hax = serializers.CharField(max_length=50, required=False, allow_blank=True)
-    images = serializers.ListField(child=serializers.ImageField(), min_length=1, max_length=4)
-    alt_text = serializers.CharField(max_length=255, required=False, allow_blank=True)
-
-class MeterialCompositionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = MeterialComposition
-        fields = ['id', 'percentige', 'title']
-
-class WhoIsThisForSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = WhoIsThisFor
-        fields = ['id', 'title', 'description']
-
-class FeaturesSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Features
-        fields = ['id', 'title', 'description']
+        model = ProductImage
+        fields = '__all__'
 
 class ProductVariationSerializer(serializers.ModelSerializer):
+    images = ProductImageSerializer(many=True, read_only=True)
 
     class Meta:
         model = ProductVariation
-        fields = ['size', 'color', 'color_hax', 'stock', 'waist_size', 'chest_size', 'height', 'is_active']
+        fields = ['size', 'color', 'color_hax', 'stock', 'is_active', 'images']
         extra_kwargs = {
-            'is_active': {'required': False, 'default': True},
-            'waist_size': {'required': False, 'allow_null': True},
-            'chest_size': {'required': False, 'allow_null': True},
-            'height': {'required': False, 'allow_null': True},
+            'is_active': {'required': False, 'default': True}
         }
 
 class ProductSerializer(serializers.ModelSerializer):
     variations = ProductVariationSerializer(many=True, read_only=True)
-    galleries = GallerySerializer(many=True, read_only=True)
+    images = ProductImageSerializer(many=True, read_only=True)
     category = serializers.SerializerMethodField()
     category_name = serializers.CharField(source='category.name', read_only=True, allow_null=True)
-    online_category = serializers.SerializerMethodField()
-    online_category_name = serializers.CharField(source='online_category.name', read_only=True, allow_null=True)
     supplier = serializers.SerializerMethodField()
     supplier_name = serializers.CharField(source='supplier.company_name', read_only=True, allow_null=True)
     total_stock = serializers.SerializerMethodField()
-    material_composition = serializers.SerializerMethodField()
-    who_is_this_for = serializers.SerializerMethodField()
-    features = serializers.SerializerMethodField()
-    color_galleries = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = [
             'id', 'name', 'sku', 'barcode', 'description', 'category', 'category_name',
-            'online_category', 'online_category_name',
             'supplier', 'supplier_name', 'cost_price', 'selling_price', 'stock_quantity',
             'minimum_stock', 'image', 'is_active', 'size_type', 'size_category', 'gender', 'variations', 
-            'galleries', 'color_galleries', 'material_composition', 'who_is_this_for', 'features', 'total_stock', 'created_at', 'updated_at'
+            'images', 'total_stock', 'created_at', 'updated_at'
         ]
         extra_kwargs = {
             'category': {'required': False, 'allow_null': True},
@@ -168,40 +119,9 @@ class ProductSerializer(serializers.ModelSerializer):
     def get_total_stock(self, obj):
         return obj.stock_quantity
 
-    def get_online_category(self, obj):
-        if getattr(obj, 'online_category', None):
-            return {
-                'id': obj.online_category.id,
-                'name': obj.online_category.name,
-                'slug': obj.online_category.slug,
-                'description': obj.online_category.description,
-                'parent': obj.online_category.parent.id if obj.online_category.parent else None
-            }
-        return None
-
-    def get_material_composition(self, obj):
-        qs = obj.material_compositions.all()
-        return MeterialCompositionSerializer(qs, many=True).data
-
-    def get_who_is_this_for(self, obj):
-        qs = obj.who_is_this_for.all()
-        return WhoIsThisForSerializer(qs, many=True).data
-
-    def get_features(self, obj):
-        qs = obj.features.all()
-        return FeaturesSerializer(qs, many=True).data
-
-    def get_color_galleries(self, obj):
-        qs = obj.galleries.all()
-        return GallerySerializer(qs, many=True).data
-
-
 class ProductCreateSerializer(serializers.ModelSerializer):
     variations = ProductVariationSerializer(many=True, required=False)
-    galleries = GallerySerializer(many=True, required=False)
-    material_composition = MeterialCompositionSerializer(many=True, required=False)
-    who_is_this_for = WhoIsThisForSerializer(many=True, required=False)
-    features = FeaturesSerializer(many=True, required=False)
+    images = ProductImageSerializer(many=True, required=False)
     supplier = serializers.PrimaryKeyRelatedField(
         queryset=Supplier.objects.all(),
         required=False,
@@ -212,14 +132,12 @@ class ProductCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'sku', 'barcode', 'description', 'category', 'online_category', 'supplier',
+            'id', 'name', 'sku', 'barcode', 'description', 'category', 'supplier',
             'cost_price', 'selling_price', 'stock_quantity', 'minimum_stock', 'image',
-            'is_active', 'size_type', 'size_category', 'gender', 'variations', 'galleries',
-            'material_composition', 'who_is_this_for', 'features'
+            'is_active', 'size_type', 'size_category', 'gender', 'variations', 'images'
         ]
         extra_kwargs = {
             'category': {'required': False, 'allow_null': True},
-            'online_category': {'required': False, 'allow_null': True},
             'description': {'required': False, 'allow_blank': True},
             'barcode': {'required': False, 'allow_null': True, 'allow_blank': True},
             'image': {'required': False, 'allow_null': True},
@@ -258,10 +176,7 @@ class ProductCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         variations_data = validated_data.pop('variations', [])
-        galleries_data = validated_data.pop('galleries', [])
-        material_data = validated_data.pop('material_composition', [])
-        who_data = validated_data.pop('who_is_this_for', [])
-        features_data = validated_data.pop('features', [])
+        images_data = validated_data.pop('images', [])
         
         # Create the product first
         product = Product.objects.create(**validated_data)
@@ -286,33 +201,15 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         product.stock_quantity = total_stock
         product.save()
             
-        # Create galleries and images
-        for gallery_data in galleries_data:
-            images_data = gallery_data.pop('images', [])
-            gallery = Gallery.objects.create(product=product, **gallery_data)
-            for image_data in images_data:
-                Image.objects.create(gallery=gallery, **image_data)
-
-        # Create material composition entries
-        for item in material_data:
-            MeterialComposition.objects.create(product=product, **item)
-
-        # Create who-is-this-for entries
-        for item in who_data:
-            WhoIsThisFor.objects.create(product=product, **item)
-
-        # Create features entries
-        for item in features_data:
-            Features.objects.create(product=product, **item)
-        
+        # Create images
+        for image_data in images_data:
+            ProductImage.objects.create(product=product, **image_data)
+            
         return product
 
     def update(self, instance, validated_data):
         variations_data = validated_data.pop('variations', None)
-        galleries_data = validated_data.pop('galleries', None)
-        material_data = validated_data.pop('material_composition', None)
-        who_data = validated_data.pop('who_is_this_for', None)
-        features_data = validated_data.pop('features', None)
+        images_data = validated_data.pop('images', None)
         
         # Update product fields
         for attr, value in validated_data.items():
@@ -361,38 +258,13 @@ class ProductCreateSerializer(serializers.ModelSerializer):
             # Update product's total stock
             instance.stock_quantity = total_stock
         
-        # Handle galleries if provided
-        if galleries_data is not None:
-            # Only delete and recreate galleries if galleries_data is not empty
-            # This allows for selective gallery updates without affecting existing galleries
-            if galleries_data:
-                # Delete existing galleries and images
-                instance.galleries.all().delete()
-                # Create new galleries and images
-                for gallery_data in galleries_data:
-                    images_data = gallery_data.pop('images', [])
-                    gallery = Gallery.objects.create(product=instance, **gallery_data)
-                    for image_data in images_data:
-                        Image.objects.create(gallery=gallery, **image_data)
-            # If galleries_data is empty list, don't delete existing galleries
-
-        # Handle material composition if provided
-        if material_data is not None:
-            instance.material_compositions.all().delete()
-            for item in material_data:
-                MeterialComposition.objects.create(product=instance, **item)
-
-        # Handle who-is-this-for if provided
-        if who_data is not None:
-            instance.who_is_this_for.all().delete()
-            for item in who_data:
-                WhoIsThisFor.objects.create(product=instance, **item)
-
-        # Handle features if provided
-        if features_data is not None:
-            instance.features.all().delete()
-            for item in features_data:
-                Features.objects.create(product=instance, **item)
+        # Handle images if provided
+        if images_data is not None:
+            # Delete existing images
+            instance.images.all().delete()
+            # Create new images
+            for image_data in images_data:
+                ProductImage.objects.create(product=instance, **image_data)
         
         instance.save()
         return instance
@@ -450,34 +322,3 @@ class AddStockSerializer(serializers.Serializer):
         if value <= 0:
             raise serializers.ValidationError("variation_id must be a positive integer")
         return value
-
-
-class OnlineCategorySerializer(serializers.ModelSerializer):
-    """
-    Serializer for OnlineCategory model.
-    """
-    parent_name = serializers.CharField(source='parent.name', read_only=True)
-    children_count = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = OnlineCategory
-        fields = [
-            'id', 'name', 'slug', 'description', 'parent', 'parent_name',
-            'children_count', 'created_at', 'updated_at'
-        ]
-        read_only_fields = ['id', 'slug', 'created_at', 'updated_at']
-    
-    def get_children_count(self, obj):
-        return obj.children.count()
-    
-    def create(self, validated_data):
-        # Generate slug if not provided
-        if 'slug' not in validated_data or not validated_data['slug']:
-            validated_data['slug'] = slugify(validated_data['name'])
-        return super().create(validated_data)
-    
-    def update(self, instance, validated_data):
-        # Update slug if name is being updated
-        if 'name' in validated_data:
-            validated_data['slug'] = slugify(validated_data['name'])
-        return super().update(instance, validated_data)

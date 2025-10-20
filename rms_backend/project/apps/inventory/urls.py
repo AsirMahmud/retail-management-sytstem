@@ -2,33 +2,20 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     CategoryViewSet,
-    OnlineCategoryViewSet,
     ProductViewSet,
     ProductVariationViewSet,
     StockMovementViewSet,
     InventoryAlertViewSet,
-    DashboardViewSet,
-    MeterialCompositionViewSet,
-    WhoIsThisForViewSet,
-    FeaturesViewSet,
-    GalleryViewSet,
-    ImageViewSet
+    DashboardViewSet
 )
 
 router = DefaultRouter()
 router.register(r'categories', CategoryViewSet)
-router.register(r'online-categories', OnlineCategoryViewSet)
 router.register(r'products', ProductViewSet)
 router.register(r'variations', ProductVariationViewSet)
 router.register(r'stock-movements', StockMovementViewSet)
 router.register(r'alerts', InventoryAlertViewSet)
 router.register(r'dashboard', DashboardViewSet, basename='dashboard')
-router.register(r'material-composition', MeterialCompositionViewSet)
-router.register(r'who-is-this-for', WhoIsThisForViewSet)
-router.register(r'features', FeaturesViewSet)
-router.register(r'galleries', GalleryViewSet)
-router.register(r'images', ImageViewSet)
-
 
 urlpatterns = [
     path('', include(router.urls)),

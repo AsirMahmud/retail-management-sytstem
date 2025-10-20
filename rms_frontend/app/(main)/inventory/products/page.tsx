@@ -69,7 +69,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { getImageUrl } from "@/lib/utils";
 
 export default function ProductsPage() {
   const router = useRouter();
@@ -189,38 +188,23 @@ export default function ProductsPage() {
     );
   }
 
-  const ProductCard = ({ product }: { product: Product }) => {
-    // Get the first image from galleries for display
-    const firstImage = product.galleries?.[0]?.images?.[0];
-    const imageUrl = getImageUrl(firstImage?.image_url || firstImage?.image);
-
-    return (
-      <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 bg-gradient-to-br from-white to-slate-50">
-        <CardHeader className="pb-4">
-          <div className="flex items-start justify-between">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                {imageUrl ? (
-                  <div className="w-16 h-16 rounded-lg overflow-hidden border-2 border-gray-200 group-hover:border-blue-300 transition-colors">
-                    <img
-                      src={imageUrl}
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
-                    <Package className="h-6 w-6 text-white" />
-                  </div>
-                )}
-                <div>
-                  <CardTitle className="text-lg font-semibold group-hover:text-primary transition-colors line-clamp-1">
-                    {product.name}
-                  </CardTitle>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Barcode className="h-3 w-3" />
-                    {product.sku}
-                  </div>
+  const ProductCard = ({ product }: { product: Product }) => (
+    <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 bg-gradient-to-br from-white to-slate-50">
+      <CardHeader className="pb-4">
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+                <Package className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-lg font-semibold group-hover:text-primary transition-colors line-clamp-1">
+                  {product.name}
+                </CardTitle>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Barcode className="h-3 w-3" />
+                  {product.sku}
+                </div>
                 {(product.size_type ||
                   product.size_category ||
                   product.gender) && (
@@ -308,44 +292,6 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        {/* Gallery Preview */}
-        {product.galleries && product.galleries.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">Available Colors</p>
-            <div className="flex gap-2 flex-wrap">
-              {product.galleries.map((gallery, index) => {
-                const firstImage = gallery.images?.[0];
-                const imageUrl = getImageUrl(firstImage?.image_url || firstImage?.image);
-                return (
-                  <div
-                    key={index}
-                    className="relative group"
-                    title={`${gallery.color} (${gallery.images?.length || 0} images)`}
-                  >
-                    <div className="w-8 h-8 rounded-full border-2 border-gray-300 overflow-hidden">
-                      {imageUrl ? (
-                        <img
-                          src={imageUrl}
-                          alt={gallery.color}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div
-                          className="w-full h-full"
-                          style={{ backgroundColor: gallery.color_hax || '#000000' }}
-                        />
-                      )}
-                    </div>
-                    <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                      {gallery.color}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">Cost Price</p>
@@ -401,8 +347,7 @@ export default function ProductsPage() {
         </div>
       </CardContent>
     </Card>
-    );
-  };
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -652,33 +597,18 @@ export default function ProductsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredProducts.map((product) => {
-                    // Get the first image from galleries for display
-                    const firstImage = product.galleries?.[0]?.images?.[0];
-                    const imageUrl = getImageUrl(firstImage?.image_url || firstImage?.image);
-
-                    return (
-                      <TableRow key={product.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            {imageUrl ? (
-                              <div className="w-12 h-12 rounded-lg overflow-hidden border border-gray-200">
-                                <img
-                                  src={imageUrl}
-                                  alt={product.name}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            ) : (
-                              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
-                                <Package className="h-5 w-5 text-white" />
-                              </div>
-                            )}
-                            <div>
-                              <p className="font-medium">{product.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {product.sku}
-                              </p>
+                  {filteredProducts.map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
+                            <Package className="h-4 w-4 text-white" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{product.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {product.sku}
+                            </p>
                             {(product.size_type ||
                               product.size_category ||
                               product.gender) && (
@@ -778,8 +708,7 @@ export default function ProductsPage() {
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                    );
-                  })}
+                  ))}
                 </TableBody>
               </Table>
             </div>
