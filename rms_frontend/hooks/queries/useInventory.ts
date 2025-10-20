@@ -2,11 +2,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     categoriesApi,
-    onlineCategoriesApi,
     productsApi,
     productVariationsApi,
-    galleriesApi,
-    galleryImagesApi,
+    productImagesApi,
     dashboardApi
 } from '@/lib/api/inventory';
 import { supplierApi } from '@/lib/api/supplier';
@@ -14,18 +12,15 @@ import {
     Category,
     Product,
     ProductVariation,
-    Gallery,
-    GalleryImage,
+    ProductImage,
     CreateCategoryDTO,
     CreateProductDTO,
     CreateProductVariationDTO,
-    CreateGalleryDTO,
-    CreateGalleryImageDTO,
+    CreateProductImageDTO,
     UpdateCategoryDTO,
     UpdateProductDTO,
     UpdateProductVariationDTO,
-    UpdateGalleryDTO,
-    UpdateGalleryImageDTO,
+    UpdateProductImageDTO,
     DashboardOverview,
     CategoryMetrics,
     StockMovementAnalysis
@@ -63,8 +58,8 @@ export const inventoryKeys = {
         detail: (id: number) => [...inventoryKeys.products.details(), id] as const,
         variations: (productId: number) => [...inventoryKeys.products.detail(productId), 'variations'] as const,
         variation: (productId: number, id: number) => [...inventoryKeys.products.variations(productId), id] as const,
-        galleries: (productId: number) => [...inventoryKeys.products.detail(productId), 'galleries'] as const,
-        gallery: (productId: number, id: number) => [...inventoryKeys.products.galleries(productId), id] as const,
+        images: (productId: number) => [...inventoryKeys.products.detail(productId), 'images'] as const,
+        image: (productId: number, id: number) => [...inventoryKeys.products.images(productId), id] as const,
         analytics: (productId: number, days?: number) => [...inventoryKeys.products.detail(productId), 'analytics', days] as const,
         stockHistory: (productId: number, days?: number) => [...inventoryKeys.products.detail(productId), 'stock-history', days] as const,
         salesHistory: (productId: number, days?: number) => [...inventoryKeys.products.detail(productId), 'sales-history', days] as const,
@@ -76,23 +71,6 @@ export const useCategories = (filters?: string) => {
     return useQuery({
         queryKey: inventoryKeys.categories.list(filters || ''),
         queryFn: categoriesApi.getAll,
-    });
-};
-
-export const useOnlineCategories = (filters?: string) => {
-    return useQuery({
-        queryKey: ['online-categories', filters],
-        queryFn: () => onlineCategoriesApi.getAll(),
-    });
-};
-
-export const useCreateOnlineCategory = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: onlineCategoriesApi.create,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['online-categories'] });
-        },
     });
 };
 
@@ -281,62 +259,51 @@ export const useDeleteProductVariation = (productId: number) => {
     });
 };
 
-// Gallery Hooks
-export const useProductGalleries = (productId: number) => {
+// Product Image Hooks
+export const useProductImages = (productId: number) => {
     return useQuery({
-        queryKey: inventoryKeys.products.galleries(productId),
-        queryFn: () => galleriesApi.getAll(productId),
+        queryKey: inventoryKeys.products.images(productId),
+        queryFn: () => productImagesApi.getAll(productId),
         enabled: !!productId,
     });
 };
 
-export const useGallery = (id: number) => {
+export const useProductImage = (productId: number, id: number) => {
     return useQuery({
-        queryKey: ['gallery', id],
-        queryFn: () => galleriesApi.getById(id),
-        enabled: !!id,
+        queryKey: inventoryKeys.products.image(productId, id),
+        queryFn: () => productImagesApi.getById(productId, id),
+        enabled: !!productId && !!id,
     });
 };
 
-export const useCreateGallery = () => {
+export const useCreateProductImage = (productId: number) => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (gallery: CreateGalleryDTO) => galleriesApi.create(gallery),
+        mutationFn: (image: CreateProductImageDTO) => productImagesApi.create(productId, image),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: inventoryKeys.products.images(productId) });
+        },
+    });
+};
+
+export const useUpdateProductImage = (productId: number) => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (image: UpdateProductImageDTO) => productImagesApi.update(productId, image),
         onSuccess: (data) => {
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.products.galleries(data.id) });
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.products.detail(data.id) });
+            queryClient.invalidateQueries({ queryKey: inventoryKeys.products.images(productId) });
+            queryClient.invalidateQueries({ queryKey: inventoryKeys.products.image(productId, data.id) });
         },
     });
 };
 
-export const useUploadColorImages = (productId: number) => {
+export const useDeleteProductImage = (productId: number) => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (formData: FormData) => galleriesApi.uploadColorImages(productId, formData),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.products.galleries(productId) });
-            queryClient.invalidateQueries({ queryKey: inventoryKeys.products.detail(productId) });
-        },
-    });
-};
-
-// Gallery Image Hooks
-export const useCreateGalleryImage = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (image: CreateGalleryImageDTO) => galleryImagesApi.create(image),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['galleries'] });
-        },
-    });
-};
-
-export const useDeleteGalleryImage = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: (id: number) => galleryImagesApi.delete(id),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['galleries'] });
+        mutationFn: (id: number) => productImagesApi.delete(productId, id),
+        onSuccess: (_, id) => {
+            queryClient.invalidateQueries({ queryKey: inventoryKeys.products.images(productId) });
+            queryClient.invalidateQueries({ queryKey: inventoryKeys.products.image(productId, id) });
         },
     });
 };

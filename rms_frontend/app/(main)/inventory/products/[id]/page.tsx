@@ -30,7 +30,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddStockDialog } from "@/components/inventory/add-stock-dialog";
 import { useQuery } from "@tanstack/react-query";
 import { productsApi, type StockMovement } from "@/lib/api/inventory";
-import { getImageUrl } from "@/lib/utils";
 
 export default function ProductPage() {
   const params = useParams();
@@ -283,16 +282,6 @@ function ProductDetails({ product }: ProductDetailsProps) {
                           Category
                         </p>
                         <p className="font-medium">{categoryName}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">
-                          Online Category
-                        </p>
-                        <p className="font-medium">
-                          {typeof product.online_category === "object" 
-                            ? product.online_category?.name 
-                            : "N/A"}
-                        </p>
                       </div>
                       <div>
                         <p className="text-sm font-medium text-muted-foreground">
@@ -573,257 +562,8 @@ function ProductDetails({ product }: ProductDetailsProps) {
             </div>
           </Card>
 
-          {/* Material Composition */}
-          {product.material_composition && product.material_composition.length > 0 && (
-            <Card className="overflow-hidden border-0 shadow-lg">
-              <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 p-6 border-b">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-5 w-5 text-amber-500"
-                  >
-                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
-                    <path d="M2 17l10 5 10-5" />
-                    <path d="M2 12l10 5 10-5" />
-                  </svg>
-                  Material Composition
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Product material breakdown
-                </p>
-              </div>
-              <div className="p-6">
-                <div className="space-y-3">
-                  {product.material_composition.map((material, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900 rounded-full flex items-center justify-center">
-                          <span className="text-amber-600 dark:text-amber-400 font-bold text-sm">
-                            {material.percentige}%
-                          </span>
-                        </div>
-                        <div>
-                          <p className="font-medium">{material.title || "Material"}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {material.percentige}% composition
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Card>
-          )}
-
-          {/* Who Is This For */}
-          {product.who_is_this_for && product.who_is_this_for.length > 0 && (
-            <Card className="overflow-hidden border-0 shadow-lg">
-              <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 p-6 border-b">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-5 w-5 text-blue-500"
-                  >
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                    <circle cx="12" cy="7" r="4" />
-                  </svg>
-                  Who Is This For
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Target audience and use cases
-                </p>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {product.who_is_this_for.map((item, index) => (
-                    <div key={index} className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                      <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                        {item.title || "Target Audience"}
-                      </h4>
-                      <p className="text-sm text-blue-700 dark:text-blue-300">
-                        {item.description || "No description provided"}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Card>
-          )}
-
-          {/* Product Features */}
-          {product.features && product.features.length > 0 && (
-            <Card className="overflow-hidden border-0 shadow-lg">
-              <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 p-6 border-b">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-5 w-5 text-green-500"
-                  >
-                    <path d="M9 12l2 2 4-4" />
-                    <path d="M21 12c-1 0-3-1-3-3s2-3 3-3 3 1 3 3-2 3-3 3" />
-                    <path d="M3 12c1 0 3-1 3-3s-2-3-3-3-3 1-3 3 2 3 3 3" />
-                    <path d="M13 12h3a2 2 0 0 1 2 2v1" />
-                    <path d="M9 12H6a2 2 0 0 0-2 2v1" />
-                  </svg>
-                  Product Features
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Key features and benefits
-                </p>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {product.features.map((feature, index) => (
-                    <div key={index} className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                      <h4 className="font-semibold text-green-900 dark:text-green-100 mb-2 flex items-center gap-2">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="h-4 w-4"
-                        >
-                          <path d="M9 12l2 2 4-4" />
-                        </svg>
-                        {feature.title || "Feature"}
-                      </h4>
-                      <p className="text-sm text-green-700 dark:text-green-300">
-                        {feature.description || "No description provided"}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Card>
-          )}
-
-          {/* Product Gallery */}
-          {product.galleries && product.galleries.length > 0 && (
-            <Card className="overflow-hidden border-0 shadow-lg">
-              <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 p-6 border-b">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="h-5 w-5 text-pink-500"
-                  >
-                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                    <circle cx="9" cy="9" r="2" />
-                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-                  </svg>
-                  Product Gallery
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {product.galleries.length} color variant{product.galleries.length !== 1 ? 's' : ''} available
-                </p>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {product.galleries.map((gallery, galleryIndex) => (
-                    <div key={galleryIndex} className="space-y-3">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div
-                          className="w-6 h-6 rounded-full border-2 border-gray-300"
-                          style={{ backgroundColor: gallery.color_hax || '#000000' }}
-                        />
-                        <h4 className="font-semibold text-lg capitalize">{gallery.color}</h4>
-                        <Badge variant="outline" className="text-xs">
-                          {gallery.images?.length || 0} image{(gallery.images?.length || 0) !== 1 ? 's' : ''}
-                        </Badge>
-                      </div>
-                      
-                      {gallery.images && gallery.images.length > 0 ? (
-                        <div className="grid grid-cols-2 gap-2">
-                          {gallery.images.map((image, imageIndex) => {
-                            const imageUrl = getImageUrl((image as any).image_url || image.image);
-                            return (
-                              <div
-                                key={imageIndex}
-                                className="relative aspect-square overflow-hidden rounded-lg border-2 border-gray-200 hover:border-blue-300 transition-colors group cursor-pointer"
-                                onClick={() => {
-                                  // Open image in new tab for full view
-                                  window.open(imageUrl, '_blank');
-                                }}
-                              >
-                                <Image
-                                  src={imageUrl || "/placeholder.svg"}
-                                  alt={`${product.name} - ${gallery.color} - ${image.imageType}`}
-                                  fill
-                                  className="object-cover group-hover:scale-105 transition-transform duration-300"
-                                />
-                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
-                                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                    <svg
-                                      className="w-8 h-8 text-white"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
-                                      />
-                                    </svg>
-                                  </div>
-                                </div>
-                                <div className="absolute top-2 right-2">
-                                  <Badge 
-                                    variant="secondary" 
-                                    className="text-xs bg-black bg-opacity-70 text-white border-0"
-                                  >
-                                    {image.imageType}
-                                  </Badge>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="aspect-square bg-gray-100 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center">
-                          <div className="text-center text-gray-500">
-                            <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                            <p className="text-sm">No images</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Card>
-          )}
-
-          {/* Legacy Product image (fallback) */}
-          {product.image && (!product.galleries || product.galleries.length === 0) && (
+          {/* Product image */}
+          {product.image && (
             <Card className="overflow-hidden border-0 shadow-lg">
               <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-700 p-6 border-b">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -897,12 +637,6 @@ function ProductDetails({ product }: ProductDetailsProps) {
                           Color
                         </th>
                         <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">
-                          Waist Size
-                        </th>
-                        <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">
-                          Chest Size
-                        </th>
-                        <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">
                           Stock
                         </th>
                         <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">
@@ -945,55 +679,22 @@ function VariantPrintRow({
     <tr className="hover:bg-muted/30 transition-colors">
       <td className="px-6 py-4 font-medium">{variation.size}</td>
       <td className="px-6 py-4">
-        <div className="flex items-center gap-3">
-          {/* Find the gallery for this color and show first image */}
-          {(() => {
-            const gallery = product.galleries?.find(g => 
-              g.color.toLowerCase() === variation.color.toLowerCase()
-            );
-            const firstImage = gallery?.images?.[0];
-            const imageUrl = getImageUrl((firstImage as any)?.image_url || firstImage?.image);
-            
-            return imageUrl ? (
-              <div className="w-8 h-8 rounded-lg overflow-hidden border border-gray-200">
-                <Image
-                  src={imageUrl}
-                  alt={`${variation.color} variant`}
-                  width={32}
-                  height={32}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ) : (
-              <div
-                className="w-8 h-8 rounded-lg border-2 border-gray-300 flex items-center justify-center"
+        <div className="flex items-center gap-2">
+          <div
+            className="w-4 h-4 rounded-full border"
             style={{
-                  backgroundColor: variation.color_hax || 
-                    (variation.color.toLowerCase() === "white" ? "#ffffff" :
-                     variation.color.toLowerCase() === "blue" ? "#3b82f6" :
-                     variation.color.toLowerCase() === "black" ? "#000000" :
-                     variation.color.toLowerCase())
-                }}
-              >
-                <Package className="h-4 w-4 text-white opacity-70" />
-              </div>
-            );
-          })()}
-          <div>
-            <span className="font-medium">{variation.color}</span>
-            {variation.color_hax && (
-              <div className="text-xs text-muted-foreground">
-                {variation.color_hax}
-              </div>
-            )}
-          </div>
+              backgroundColor:
+                variation.color.toLowerCase() === "white"
+                  ? "#ffffff"
+                  : variation.color.toLowerCase() === "blue"
+                  ? "#3b82f6"
+                  : variation.color.toLowerCase() === "black"
+                  ? "#000000"
+                  : variation.color.toLowerCase(),
+            }}
+          />
+          <span>{variation.color}</span>
         </div>
-      </td>
-      <td className="px-6 py-4 font-medium">
-        {variation.waist_size ? `${variation.waist_size}"` : "N/A"}
-      </td>
-      <td className="px-6 py-4 font-medium">
-        {variation.chest_size ? `${variation.chest_size}"` : "N/A"}
       </td>
       <td className="px-6 py-4 font-medium">{variation.stock}</td>
       <td className="px-6 py-4">
