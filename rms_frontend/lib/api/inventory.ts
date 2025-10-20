@@ -245,6 +245,11 @@ export const productsApi = {
         return data;
     },
 
+    toggleOnlineAssignment: async (id: number): Promise<{ message: string; assign_to_online: boolean; product: Product }> => {
+        const { data } = await axiosInstance.post(`/inventory/products/${id}/toggle_online_assignment/`);
+        return data;
+    },
+
     // Add stock to a variation
     addStock: async (productId: number, variationId: number, quantity: number, notes?: string): Promise<{ detail: string; product_id: number; variation_id: number; new_stock: number }> => {
         const { data } = await axiosInstance.post(`/inventory/products/${productId}/add_stock/`, {

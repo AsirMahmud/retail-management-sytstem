@@ -4,20 +4,14 @@ import { cn } from "@/lib/utils"
 
 import { Ruler, Package, Users, Shirt } from "lucide-react"
 
-export function ProductDetailsSection() {
-  const sizeChart = [
-    { size: "Small", chest: "34-36", waist: "28-30", height: "5'4\"-5'6\"" },
-    { size: "Medium", chest: "38-40", waist: "32-34", height: "5'7\"-5'9\"" },
-    { size: "Large", chest: "42-44", waist: "36-38", height: "5'10\"-6'0\"" },
-    { size: "X-Large", chest: "46-48", waist: "40-42", height: "6'1\"-6'3\"" },
-  ]
+interface ProductDetailsSectionProps {
+  sizeChart: Array<{ size: string; chest: string; waist: string; height: string }>
+  materials: Array<{ name: string; percentage: string }>
+  whoIsThisFor: Array<{ title: string; description: string }>
+  features: Array<{ title: string; description: string }>
+}
 
-  const materials = [
-    { name: "Cotton", percentage: "60%" },
-    { name: "Polyester", percentage: "35%" },
-    { name: "Elastane", percentage: "5%" },
-  ]
-
+export function ProductDetailsSection({ sizeChart, materials, whoIsThisFor, features }: ProductDetailsSectionProps) {
   return (
     <div className="grid gap-8 lg:gap-12">
       {/* Size Chart Section */}
@@ -98,39 +92,14 @@ export function ProductDetailsSection() {
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2">
-          <div className="rounded-2xl border border-border p-6">
-            <h3 className="font-semibold mb-3 text-base lg:text-lg">Fit Type</h3>
-            <p className="text-muted-foreground text-sm lg:text-base leading-relaxed">
-              Regular fit with a comfortable, relaxed silhouette. Not too tight, not too loose - perfect for everyday
-              wear and casual occasions.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-border p-6">
-            <h3 className="font-semibold mb-3 text-base lg:text-lg">Best For</h3>
-            <ul className="space-y-2 text-sm lg:text-base text-muted-foreground">
-              <li>• Casual everyday wear</li>
-              <li>• Weekend outings</li>
-              <li>• Relaxed social events</li>
-              <li>• Comfortable home wear</li>
-            </ul>
-          </div>
-
-          <div className="rounded-2xl border border-border p-6">
-            <h3 className="font-semibold mb-3 text-base lg:text-lg">Body Type</h3>
-            <p className="text-muted-foreground text-sm lg:text-base leading-relaxed">
-              Suitable for all body types. The regular fit provides comfort without being restrictive, making it ideal
-              for various body shapes.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-border p-6">
-            <h3 className="font-semibold mb-3 text-base lg:text-lg">Style Tips</h3>
-            <p className="text-muted-foreground text-sm lg:text-base leading-relaxed">
-              Pair with jeans or chinos for a casual look. Layer under a jacket for cooler weather. Works great with
-              sneakers or casual shoes.
-            </p>
-          </div>
+          {whoIsThisFor.map((item, idx) => (
+            <div key={idx} className="rounded-2xl border border-border p-6">
+              <h3 className="font-semibold mb-3 text-base lg:text-lg">{item.title}</h3>
+              <p className="text-muted-foreground text-sm lg:text-base leading-relaxed">
+                {item.description}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -144,37 +113,12 @@ export function ProductDetailsSection() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div className="rounded-2xl bg-muted p-6">
-            <h3 className="font-semibold mb-2 text-sm lg:text-base">Breathable Fabric</h3>
-            <p className="text-sm text-muted-foreground">
-              Soft, breathable material keeps you comfortable all day long
-            </p>
-          </div>
-
-          <div className="rounded-2xl bg-muted p-6">
-            <h3 className="font-semibold mb-2 text-sm lg:text-base">Durable Construction</h3>
-            <p className="text-sm text-muted-foreground">High-quality stitching ensures long-lasting wear</p>
-          </div>
-
-          <div className="rounded-2xl bg-muted p-6">
-            <h3 className="font-semibold mb-2 text-sm lg:text-base">Easy Care</h3>
-            <p className="text-sm text-muted-foreground">Machine washable for convenient maintenance</p>
-          </div>
-
-          <div className="rounded-2xl bg-muted p-6">
-            <h3 className="font-semibold mb-2 text-sm lg:text-base">Fade Resistant</h3>
-            <p className="text-sm text-muted-foreground">Colors stay vibrant wash after wash</p>
-          </div>
-
-          <div className="rounded-2xl bg-muted p-6">
-            <h3 className="font-semibold mb-2 text-sm lg:text-base">Comfortable Fit</h3>
-            <p className="text-sm text-muted-foreground">Designed for all-day comfort and freedom of movement</p>
-          </div>
-
-          <div className="rounded-2xl bg-muted p-6">
-            <h3 className="font-semibold mb-2 text-sm lg:text-base">Versatile Style</h3>
-            <p className="text-sm text-muted-foreground">Perfect for various occasions and easy to style</p>
-          </div>
+          {features.map((feature, idx) => (
+            <div key={idx} className="rounded-2xl bg-muted p-6">
+              <h3 className="font-semibold mb-2 text-sm lg:text-base">{feature.title}</h3>
+              <p className="text-sm text-muted-foreground">{feature.description}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>

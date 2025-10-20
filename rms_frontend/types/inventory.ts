@@ -45,6 +45,7 @@ export interface Product {
     size_type?: string;
     size_category?: string;
     gender?: string;
+    assign_to_online?: boolean;
     created_at: string;
     updated_at: string;
     variations?: ProductVariation[];
