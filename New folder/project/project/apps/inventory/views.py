@@ -1,0 +1,885 @@
+from rest_framework import viewsets, filters, status, permissions
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from django_filters.rest_framework import DjangoFilterBackend
+from django.db.models import Q, F, Sum, Count, Avg, Case, When, IntegerField
+from django.utils import timezone
+from datetime import datetime, timedelta
+from django.db.models.functions import TruncDate, TruncMonth, TruncYear
+from .models import Category, Product, ProductImage, ProductVariation, StockMovement, InventoryAlert
+from apps.supplier.models import Supplier
+from apps.supplier.serializers import SupplierSerializer
+from .serializers import (
+    CategorySerializer,
+    ProductSerializer,
+    ProductCreateSerializer,
+    ProductVariationSerializer,
+    ProductImageSerializer,
+    StockMovementSerializer,
+    InventoryAlertSerializer,
+    BulkPriceUpdateSerializer,
+    BulkImageUploadSerializer
+)
+from rest_framework.exceptions import ValidationError
+from apps.sales.models import SaleItem
+
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    search_fields = ['name', 'description']
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Category.objects.prefetch_related('products')
+        search = self.request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(name__icontains=search)
+        # Only return root categories (those without parent)
+        if self.action == 'list':
+            return queryset.filter(parent=None)
+        return queryset
+
+    @action(detail=True, methods=['get'])
+    def products(self, request, pk=None):
+        category = self.get_object()
+        products = category.products.all()
+        serializer = ProductSerializer(products, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def stats(self, request, pk=None):
+        category = self.get_object()
+        total_products = category.products.count()
+        active_products = category.products.filter(is_active=True).count()
+        low_stock_products = category.products.filter(stock_quantity__lte=F('minimum_stock')).count()
+        total_value = category.products.aggregate(
+            total=Sum('selling_price' * 'stock_quantity')
+        )['total'] or 0
+
+        return Response({
+            'total_products': total_products,
+            'active_products': active_products,
+            'low_stock_products': low_stock_products,
+            'total_value': total_value
+        })
+
+class SupplierViewSet(viewsets.ModelViewSet):
+    queryset = Supplier.objects.all()
+    serializer_class = SupplierSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name', 'code', 'contact_person', 'email']
+
+    def get_queryset(self):
+        queryset = Supplier.objects.all()
+        is_active = self.request.query_params.get('is_active', None)
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active)
+        return queryset
+
+class ProductViewSet(viewsets.ModelViewSet):
+    queryset = Product.objects.all()
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['category', 'supplier', 'is_active']
+    search_fields = ['name', 'sku', 'barcode', 'description']
+    ordering_fields = ['name', 'created_at', 'stock_quantity', 'selling_price']
+    ordering = ['-created_at']
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return ProductCreateSerializer
+        return ProductSerializer
+
+    def get_queryset(self):
+        queryset = Product.objects.all()
+        search = self.request.query_params.get('search', None)
+        category = self.request.query_params.get('category', None)
+        supplier = self.request.query_params.get('supplier', None)
+        is_active = self.request.query_params.get('is_active', None)
+        stock_status = self.request.query_params.get('stock_status', None)
+
+        if search:
+            queryset = queryset.filter(
+                Q(name__icontains=search) |
+                Q(sku__icontains=search) |
+                Q(description__icontains=search)
+            )
+        if category:
+            queryset = queryset.filter(category_id=category)
+        if supplier:
+            queryset = queryset.filter(supplier_id=supplier)
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active)
+        if stock_status:
+            if stock_status == 'low':
+                queryset = queryset.filter(stock_quantity__lte=F('minimum_stock'))
+            elif stock_status == 'out':
+                queryset = queryset.filter(stock_quantity=0)
+
+        return queryset
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['post'])
+    def bulk_price_update(self, request):
+        serializer = BulkPriceUpdateSerializer(data=request.data)
+        if serializer.is_valid():
+            product_ids = serializer.validated_data['product_ids']
+            price_adjustment = serializer.validated_data['price_adjustment']
+            adjustment_type = serializer.validated_data['adjustment_type']
+
+            products = Product.objects.filter(id__in=product_ids)
+            
+            for product in products:
+                if adjustment_type == 'percentage':
+                    new_price = product.price * (1 + price_adjustment / 100)
+                else:
+                    new_price = product.price + price_adjustment
+                product.price = new_price
+                product.save()
+
+            return Response({'message': 'Prices updated successfully'})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def upload_images(self, request, pk=None):
+        product = self.get_object()
+        serializer = BulkImageUploadSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            images = serializer.validated_data['images']
+            is_primary = serializer.validated_data['is_primary']
+
+            for image in images:
+                ProductImage.objects.create(
+                    product=product,
+                    image=image,
+                    is_primary=is_primary
+                )
+
+            return Response({'message': 'Images uploaded successfully'})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def upload_image(self, request, pk=None):
+        product = self.get_object()
+        serializer = ProductImageSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            serializer.save(product=product)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def add_variant(self, request, pk=None):
+        product = self.get_object()
+        serializer = ProductVariationSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            serializer.save(product=product)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['get'])
+    def variants(self, request, pk=None):
+        product = self.get_object()
+        variants = product.variations.all()
+        serializer = ProductVariationSerializer(variants, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def images(self, request, pk=None):
+        product = self.get_object()
+        images = product.images.all()
+        serializer = ProductImageSerializer(images, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def add_stock(self, request, pk=None):
+        """Add stock to a specific variation and record movement"""
+        from .serializers import AddStockSerializer
+        
+        product = self.get_object()
+        serializer = AddStockSerializer(data=request.data)
+        
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        variation_id = serializer.validated_data['variation_id']
+        quantity = serializer.validated_data['quantity']
+        notes = serializer.validated_data.get('notes', '')
+        reference_number = serializer.validated_data.get('reference_number', 'MANUAL')
+
+        try:
+            variation = ProductVariation.objects.get(id=variation_id, product=product)
+        except ProductVariation.DoesNotExist:
+            return Response({'detail': 'Variation not found for this product'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Update variation stock
+        variation.stock = variation.stock + quantity
+        variation.save()
+
+        # Record stock movement
+        StockMovement.objects.create(
+            product=product,
+            variation=variation,
+            movement_type='IN',
+            quantity=quantity,
+            reference_number=reference_number,
+            notes=notes or 'Stock added via add_stock action'
+        )
+
+        # Recalculate product total stock
+        total_variant_stock = product.variations.aggregate(
+            total=Sum('stock')
+        )['total'] or 0
+        product.stock_quantity = total_variant_stock
+        product.save()
+
+        return Response({
+            'detail': 'Stock added successfully', 
+            'product_id': product.id, 
+            'variation_id': variation.id, 
+            'new_stock': variation.stock
+        })
+
+    @action(detail=True, methods=['get'])
+    def analytics(self, request, pk=None):
+        """Get comprehensive product analytics"""
+        product = self.get_object()
+        
+        # Get date range from query params
+        days_param = request.query_params.get('days')
+        
+        if days_param is None:
+            # All-time data - no date filtering
+            stock_movements = StockMovement.objects.filter(
+                product=product
+            ).order_by('created_at')
+            
+            sales_items = SaleItem.objects.filter(
+                product=product,
+                sale__status='completed'
+            )
+        else:
+            # Specific time range
+            days = int(days_param)
+            end_date = timezone.now()
+            start_date = end_date - timedelta(days=days)
+            
+            stock_movements = StockMovement.objects.filter(
+                product=product,
+                created_at__range=[start_date, end_date]
+            ).order_by('created_at')
+            
+            sales_items = SaleItem.objects.filter(
+                product=product,
+                sale__date__range=[start_date, end_date],
+                sale__status='completed'
+            )
+        
+        # Stock movement analytics
+        stock_in = stock_movements.filter(movement_type='IN').aggregate(
+            total_quantity=Sum('quantity'),
+            total_movements=Count('id')
+        )
+        
+        stock_out = stock_movements.filter(movement_type='OUT').aggregate(
+            total_quantity=Sum('quantity'),
+            total_movements=Count('id')
+        )
+        
+        # Sales analytics
+        sales_analytics = sales_items.aggregate(
+            total_quantity_sold=Sum('quantity'),
+            total_revenue=Sum('total'),
+            total_profit=Sum('profit'),
+            total_loss=Sum('loss'),
+            average_price=Avg('unit_price'),
+            total_sales=Count('id')
+        )
+        
+        # Monthly stock movements for chart
+        monthly_stock_data = []
+        if days_param is None:
+            # For all-time data, get all months from the first movement to now
+            first_movement = stock_movements.first()
+            if first_movement:
+                start_date = first_movement.created_at.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            else:
+                start_date = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            end_date = timezone.now()
+        
+        current_date = start_date
+        while current_date <= end_date:
+            month_start = current_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(seconds=1)
+            
+            month_stock_in = stock_movements.filter(
+                movement_type='IN',
+                created_at__range=[month_start, month_end]
+            ).aggregate(total=Sum('quantity'))['total'] or 0
+            
+            month_stock_out = stock_movements.filter(
+                movement_type='OUT',
+                created_at__range=[month_start, month_end]
+            ).aggregate(total=Sum('quantity'))['total'] or 0
+            
+            monthly_stock_data.append({
+                'month': current_date.strftime('%Y-%m'),
+                'stock_in': month_stock_in,
+                'stock_out': month_stock_out,
+                'net_change': month_stock_in - month_stock_out
+            })
+            
+            current_date = (month_start + timedelta(days=32)).replace(day=1)
+        
+        # Monthly sales data for chart
+        monthly_sales_data = []
+        if days_param is None:
+            # For all-time data, get all months from the first sale to now
+            first_sale = sales_items.first()
+            if first_sale:
+                start_date = first_sale.sale.date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            else:
+                start_date = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            end_date = timezone.now()
+        
+        current_date = start_date
+        while current_date <= end_date:
+            month_start = current_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            month_end = (month_start + timedelta(days=32)).replace(day=1) - timedelta(seconds=1)
+            
+            month_sales = sales_items.filter(
+                sale__date__range=[month_start, month_end]
+            ).aggregate(
+                quantity=Sum('quantity'),
+                revenue=Sum('total'),
+                profit=Sum('profit'),
+                loss=Sum('loss')
+            )
+            
+            monthly_sales_data.append({
+                'month': current_date.strftime('%Y-%m'),
+                'quantity_sold': month_sales['quantity'] or 0,
+                'revenue': float(month_sales['revenue'] or 0),
+                'profit': float(month_sales['profit'] or 0),
+                'loss': float(month_sales['loss'] or 0)
+            })
+            
+            current_date = (month_start + timedelta(days=32)).replace(day=1)
+        
+        # Recent stock movements
+        recent_stock_movements = stock_movements.order_by('-created_at')[:10]
+        
+        # Recent sales
+        recent_sales = sales_items.order_by('-sale__date')[:10]
+        
+        # Profit margin calculation
+        total_cost = float(sales_analytics['total_quantity_sold'] or 0) * float(product.cost_price)
+        total_revenue = float(sales_analytics['total_revenue'] or 0)
+        profit_margin = ((total_revenue - total_cost) / total_revenue * 100) if total_revenue > 0 else 0
+        
+        analytics_data = {
+            'product_info': {
+                'id': product.id,
+                'name': product.name,
+                'sku': product.sku,
+                'current_stock': product.stock_quantity,
+                'cost_price': float(product.cost_price),
+                'selling_price': float(product.selling_price),
+                'profit_margin_percentage': ((float(product.selling_price) - float(product.cost_price)) / float(product.selling_price) * 100)
+            },
+            'stock_analytics': {
+                'total_stock_in': stock_in['total_quantity'] or 0,
+                'total_stock_out': stock_out['total_quantity'] or 0,
+                'stock_in_movements': stock_in['total_movements'] or 0,
+                'stock_out_movements': stock_out['total_movements'] or 0,
+                'net_stock_change': (stock_in['total_quantity'] or 0) - (stock_out['total_quantity'] or 0)
+            },
+            'sales_analytics': {
+                'total_quantity_sold': sales_analytics['total_quantity_sold'] or 0,
+                'total_revenue': float(sales_analytics['total_revenue'] or 0),
+                'total_profit': float(sales_analytics['total_profit'] or 0),
+                'total_loss': float(sales_analytics['total_loss'] or 0),
+                'average_price': float(sales_analytics['average_price'] or 0),
+                'total_sales': sales_analytics['total_sales'] or 0,
+                'profit_margin': profit_margin,
+                'net_profit': float(sales_analytics['total_profit'] or 0) - float(sales_analytics['total_loss'] or 0)
+            },
+            'charts': {
+                'monthly_stock': monthly_stock_data,
+                'monthly_sales': monthly_sales_data
+            },
+            'recent_activity': {
+                'stock_movements': [
+                    {
+                        'id': movement.id,
+                        'movement_type': movement.movement_type,
+                        'quantity': movement.quantity,
+                        'reference_number': movement.reference_number,
+                        'notes': movement.notes,
+                        'created_at': movement.created_at.isoformat()
+                    }
+                    for movement in recent_stock_movements
+                ],
+                'sales': [
+                    {
+                        'id': sale_item.id,
+                        'sale_id': sale_item.sale.id,
+                        'invoice_number': sale_item.sale.invoice_number,
+                        'quantity': sale_item.quantity,
+                        'unit_price': float(sale_item.unit_price),
+                        'total': float(sale_item.total),
+                        'profit': float(sale_item.profit),
+                        'loss': float(sale_item.loss),
+                        'sale_date': sale_item.sale.date.isoformat(),
+                        'customer_name': f"{sale_item.sale.customer.first_name} {sale_item.sale.customer.last_name}" if sale_item.sale.customer else "Walk-in Customer",
+                        'payment_method': sale_item.sale.payment_method
+                    }
+                    for sale_item in recent_sales
+                ]
+            }
+        }
+        
+        return Response(analytics_data)
+
+    @action(detail=True, methods=['get'])
+    def stock_history(self, request, pk=None):
+        """Get detailed stock movement history"""
+        product = self.get_object()
+        
+        # Get date range from query params
+        days_param = request.query_params.get('days')
+        
+        if days_param is None:
+            # All-time data - no date filtering
+            stock_movements = StockMovement.objects.filter(
+                product=product
+            ).order_by('-created_at')
+        else:
+            # Specific time range
+            days = int(days_param)
+            end_date = timezone.now()
+            start_date = end_date - timedelta(days=days)
+            
+            stock_movements = StockMovement.objects.filter(
+                product=product,
+                created_at__range=[start_date, end_date]
+            ).order_by('-created_at')
+        
+        history_data = []
+        for movement in stock_movements:
+            history_data.append({
+                'id': movement.id,
+                'movement_type': movement.movement_type,
+                'quantity': movement.quantity,
+                'reference_number': movement.reference_number,
+                'notes': movement.notes,
+                'created_at': movement.created_at.isoformat(),
+                'variation_info': f"{movement.variation.size} - {movement.variation.color}" if movement.variation else "General"
+            })
+        
+        return Response({
+            'product_id': product.id,
+            'product_name': product.name,
+            'stock_history': history_data
+        })
+
+    @action(detail=True, methods=['get'])
+    def sales_history(self, request, pk=None):
+        """Get detailed sales history"""
+        product = self.get_object()
+        
+        # Get date range from query params
+        days_param = request.query_params.get('days')
+        
+        if days_param is None:
+            # All-time data - no date filtering
+            sales_items = SaleItem.objects.filter(
+                product=product,
+                sale__status='completed'
+            ).order_by('-sale__date')
+        else:
+            # Specific time range
+            days = int(days_param)
+            end_date = timezone.now()
+            start_date = end_date - timedelta(days=days)
+            
+            sales_items = SaleItem.objects.filter(
+                product=product,
+                sale__date__range=[start_date, end_date],
+                sale__status='completed'
+            ).order_by('-sale__date')
+        
+        sales_data = []
+        for sale_item in sales_items:
+            sales_data.append({
+                'id': sale_item.id,
+                'sale_id': sale_item.sale.id,
+                'invoice_number': sale_item.sale.invoice_number,
+                'quantity': sale_item.quantity,
+                'size': sale_item.size,
+                'color': sale_item.color,
+                'unit_price': float(sale_item.unit_price),
+                'discount': float(sale_item.discount),
+                'total': float(sale_item.total),
+                'profit': float(sale_item.profit),
+                'loss': float(sale_item.loss),
+                'sale_date': sale_item.sale.date.isoformat(),
+                'customer_name': f"{sale_item.sale.customer.first_name} {sale_item.sale.customer.last_name}" if sale_item.sale.customer else "Walk-in Customer",
+                'payment_method': sale_item.sale.payment_method
+            })
+        
+        return Response({
+            'product_id': product.id,
+            'product_name': product.name,
+            'sales_history': sales_data
+        })
+
+class ProductVariationViewSet(viewsets.ModelViewSet):
+    queryset = ProductVariation.objects.all()
+    serializer_class = ProductVariationSerializer
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
+    filterset_fields = ['product', 'is_active']
+    search_fields = ['size', 'color']
+
+    def perform_create(self, serializer):
+        variation = serializer.save()
+        # Update main product stock by recalculating from all variants
+        product = variation.product
+        total_variant_stock = product.variations.aggregate(
+            total=Sum('stock')
+        )['total'] or 0
+        product.stock_quantity = total_variant_stock
+        product.save()
+
+    def perform_update(self, serializer):
+        # Track stock delta for movement logging
+        instance: ProductVariation = self.get_object()
+        previous_stock = instance.stock
+        variation = serializer.save()
+        new_stock = variation.stock
+        delta = new_stock - previous_stock
+        if delta != 0:
+            StockMovement.objects.create(
+                product=variation.product,
+                variation=variation,
+                movement_type='IN' if delta > 0 else 'OUT',
+                quantity=abs(delta),
+                reference_number='MANUAL',
+                notes='Manual stock update via variation update'
+            )
+        # Update main product stock by recalculating from all variants
+        product = variation.product
+        total_variant_stock = product.variations.aggregate(
+            total=Sum('stock')
+        )['total'] or 0
+        product.stock_quantity = total_variant_stock
+        product.save()
+
+    def perform_destroy(self, instance):
+        product = instance.product
+        instance.delete()
+        # Update main product stock by recalculating from remaining variants
+        total_variant_stock = product.variations.aggregate(
+            total=Sum('stock')
+        )['total'] or 0
+        product.stock_quantity = total_variant_stock
+        product.save()
+
+    def get_queryset(self):
+        queryset = ProductVariation.objects.all()
+        product = self.request.query_params.get('product', None)
+        variation_code = self.request.query_params.get('variation_code', None)
+        is_active = self.request.query_params.get('is_active', None)
+        
+        if product:
+            queryset = queryset.filter(product_id=product)
+        if variation_code:
+            queryset = queryset.filter(variation_code=variation_code)
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active)
+        return queryset
+
+class ProductImageViewSet(viewsets.ModelViewSet):
+    queryset = ProductImage.objects.all()
+    serializer_class = ProductImageSerializer
+    parser_classes = (MultiPartParser, FormParser)
+
+    def get_queryset(self):
+        queryset = ProductImage.objects.all()
+        product = self.request.query_params.get('product', None)
+        is_primary = self.request.query_params.get('is_primary', None)
+        
+        if product:
+            queryset = queryset.filter(product_id=product)
+        if is_primary is not None:
+            queryset = queryset.filter(is_primary=is_primary)
+        return queryset
+
+class StockMovementViewSet(viewsets.ModelViewSet):
+    queryset = StockMovement.objects.all()
+    serializer_class = StockMovementSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        movement = serializer.save(created_by=self.request.user)
+        
+        # Update variant stock if specified
+        if movement.variation:
+            if movement.movement_type == 'IN':
+                movement.variation.stock += movement.quantity
+            elif movement.movement_type in ['OUT', 'GIFT']:
+                if movement.variation.stock < movement.quantity:
+                    raise ValidationError(f"Not enough stock in variation. Available: {movement.variation.stock}")
+                movement.variation.stock -= movement.quantity
+            movement.variation.save()
+        
+        # Update main product stock by recalculating from all variants
+        product = movement.product
+        total_variant_stock = product.variations.aggregate(
+            total=Sum('stock')
+        )['total'] or 0
+        product.stock_quantity = total_variant_stock
+        product.save()
+
+        # Check for alerts
+        if product.stock_quantity <= product.minimum_stock:
+            InventoryAlert.objects.create(
+                product=product,
+                variation=movement.variation,
+                alert_type='LOW',
+                message=f'Low stock alert: {product.name} has {product.stock_quantity} units remaining'
+            )
+        elif product.stock_quantity == 0:
+            InventoryAlert.objects.create(
+                product=product,
+                variation=movement.variation,
+                alert_type='OUT',
+                message=f'Out of stock alert: {product.name} has no units remaining'
+            )
+
+    def get_queryset(self):
+        queryset = StockMovement.objects.all()
+        product_id = self.request.query_params.get('product', None)
+        movement_type = self.request.query_params.get('type', None)
+        
+        if product_id:
+            queryset = queryset.filter(product_id=product_id)
+        if movement_type:
+            queryset = queryset.filter(movement_type=movement_type)
+            
+        return queryset
+
+class InventoryAlertViewSet(viewsets.ModelViewSet):
+    queryset = InventoryAlert.objects.all()
+    serializer_class = InventoryAlertSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = InventoryAlert.objects.all()
+        is_active = self.request.query_params.get('active', None)
+        alert_type = self.request.query_params.get('type', None)
+        
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active)
+        if alert_type:
+            queryset = queryset.filter(alert_type=alert_type)
+            
+        return queryset
+
+    @action(detail=True, methods=['post'])
+    def resolve(self, request, pk=None):
+        alert = self.get_object()
+        alert.resolve()
+        return Response({'message': 'Alert resolved successfully'})
+
+class DashboardViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def _get_date_range(self, period):
+        today = timezone.now()
+        if period == 'day':
+            start_date = today - timedelta(days=1)
+        elif period == 'week':
+            start_date = today - timedelta(days=7)
+        elif period == 'month':
+            start_date = today - timedelta(days=30)
+        elif period == 'year':
+            start_date = today - timedelta(days=365)
+        else:
+            start_date = today - timedelta(days=30)  # Default to month
+        return start_date, today
+
+    @action(detail=False, methods=['get'])
+    def overview(self, request):
+        # Get date range from query params
+        period = request.query_params.get('period', 'month')
+        start_date, end_date = self._get_date_range(period)
+
+        # Basic metrics
+        total_products = Product.objects.count()
+        active_products = Product.objects.filter(is_active=True).count()
+        out_of_stock_products = Product.objects.filter(stock_quantity=0).count()
+        low_stock_products = Product.objects.filter(stock_quantity__lte=F('minimum_stock')).count()
+        
+        # Calculate total inventory value
+        total_inventory_value = Product.objects.aggregate(
+            total=Sum(F('cost_price') * F('stock_quantity'))
+        )['total'] or 0
+
+        # Stock movement metrics
+        stock_movements = StockMovement.objects.filter(
+            created_at__range=(start_date, end_date)
+        )
+        stock_in = stock_movements.filter(movement_type='IN').aggregate(
+            total=Sum('quantity')
+        )['total'] or 0
+        stock_out = stock_movements.filter(movement_type='OUT').aggregate(
+            total=Sum('quantity')
+        )['total'] or 0
+
+        # Category distribution
+        category_distribution = Category.objects.annotate(
+            product_count=Count('products'),
+            total_value=Sum(F('products__selling_price') * F('products__stock_quantity'))
+        ).values('name', 'product_count', 'total_value')
+
+        # Top selling products
+        top_selling_products = Product.objects.annotate(
+            total_sold=Sum(
+                Case(
+                    When(
+                        stock_movements__movement_type='OUT',
+                        then='stock_movements__quantity'
+                    ),
+                    default=0,
+                    output_field=IntegerField()
+                )
+            )
+        ).order_by('-total_sold')[:5]
+
+        # Stock health metrics
+        stock_health = {
+            'healthy': Product.objects.filter(stock_quantity__gt=F('minimum_stock')).count(),
+            'low': low_stock_products,
+            'out': out_of_stock_products
+        }
+
+        # Recent stock movements
+        recent_movements = StockMovement.objects.select_related(
+            'product', 'variation'
+        ).order_by('-created_at')[:10]
+
+        # Supplier performance
+        supplier_metrics = Supplier.objects.annotate(
+            total_products=Count('products'),
+            total_value=Sum(F('products__selling_price') * F('products__stock_quantity')),
+            low_stock_count=Count(
+                'products',
+                filter=Q(products__stock_quantity__lte=F('products__minimum_stock'))
+            )
+        ).values(
+            'company_name',
+            'total_products',
+            'total_value',
+            'low_stock_count'
+        ).order_by('-total_value')
+
+        return Response({
+            'metrics': {
+                'total_products': total_products,
+                'active_products': active_products,
+                'out_of_stock_products': out_of_stock_products,
+                'low_stock_products': low_stock_products,
+                'total_inventory_value': total_inventory_value,
+                'stock_in': stock_in,
+                'stock_out': stock_out,
+                'stock_health': stock_health
+            },
+            'category_distribution': category_distribution,
+            'top_selling_products': ProductSerializer(top_selling_products, many=True).data,
+            'recent_movements': StockMovementSerializer(recent_movements, many=True).data,
+            'supplier_metrics': list(supplier_metrics)  # Convert QuerySet to list
+        })
+
+    @action(detail=False, methods=['get'])
+    def stock_alerts(self, request):
+        # Get low stock and out of stock products
+        low_stock_products = Product.objects.filter(
+            stock_quantity__lte=F('minimum_stock')
+        ).select_related('category', 'supplier')
+        
+        out_of_stock_products = Product.objects.filter(
+            stock_quantity=0
+        ).select_related('category', 'supplier')
+
+        # Get active alerts
+        active_alerts = InventoryAlert.objects.filter(
+            is_active=True
+        ).select_related('product', 'variation')
+
+        return Response({
+            'low_stock': ProductSerializer(low_stock_products, many=True).data,
+            'out_of_stock': ProductSerializer(out_of_stock_products, many=True).data,
+            'active_alerts': InventoryAlertSerializer(active_alerts, many=True).data
+        })
+
+    @action(detail=False, methods=['get'])
+    def category_metrics(self, request):
+        categories = Category.objects.annotate(
+            total_products=Count('products'),
+            active_products=Count('products', filter=Q(products__is_active=True)),
+            low_stock_products=Count(
+                'products',
+                filter=Q(products__stock_quantity__lte=F('products__minimum_stock'))
+            ),
+            total_value=Sum(F('products__selling_price') * F('products__stock_quantity'))
+        ).values('name', 'total_products', 'active_products', 'low_stock_products', 'total_value')
+
+        return Response(categories)
+
+    @action(detail=False, methods=['get'])
+    def stock_movement_analysis(self, request):
+        period = request.query_params.get('period', 'month')
+        start_date, end_date = self._get_date_range(period)
+
+        # Daily stock movements
+        daily_movements = StockMovement.objects.filter(
+            created_at__range=(start_date, end_date)
+        ).annotate(
+            date=TruncDate('created_at')
+        ).values('date').annotate(
+            stock_in=Sum('quantity', filter=Q(movement_type='IN')),
+            stock_out=Sum('quantity', filter=Q(movement_type='OUT'))
+        ).order_by('date')
+
+        # Movement by category
+        category_movements = StockMovement.objects.filter(
+            created_at__range=(start_date, end_date)
+        ).values('product__category__name').annotate(
+            stock_in=Sum('quantity', filter=Q(movement_type='IN')),
+            stock_out=Sum('quantity', filter=Q(movement_type='OUT'))
+        )
+
+        return Response({
+            'daily_movements': daily_movements,
+            'category_movements': category_movements
+        })

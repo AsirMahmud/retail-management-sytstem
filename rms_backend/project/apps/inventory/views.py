@@ -25,7 +25,9 @@ from .serializers import (
     BulkImageUploadSerializer,
     MeterialCompositionSerializer,
     WhoIsThisForSerializer,
-    FeaturesSerializer
+    FeaturesSerializer,
+    EcommerceProductSerializer,
+    EcommerceProductDetailSerializer
 )
 from rest_framework.exceptions import ValidationError
 from apps.sales.models import SaleItem
@@ -608,6 +610,202 @@ class ProductViewSet(viewsets.ModelViewSet):
             'sales_history': sales_data
         })
 
+    # Ecommerce Showcase APIs
+    @action(detail=False, methods=['get'], permission_classes=[])
+    def new_arrivals(self, request):
+        """Get new arrival products for ecommerce showcase"""
+        limit = int(request.query_params.get('limit', 8))
+        online_category = request.query_params.get('online_category', None)
+        
+        queryset = Product.objects.filter(is_active=True, assign_to_online=True).order_by('-created_at')
+        
+        if online_category:
+            queryset = queryset.filter(online_category_id=online_category)
+        
+        products = queryset[:limit]
+        serializer = EcommerceProductSerializer(products, many=True, context={'request': request})
+        
+        return Response({
+            'products': serializer.data,
+            'count': len(serializer.data),
+            'online_category': online_category
+        })
+
+    @action(detail=False, methods=['get'], permission_classes=[])
+    def top_selling(self, request):
+        """Get top selling products based on sales data"""
+        limit = int(request.query_params.get('limit', 8))
+        online_category = request.query_params.get('online_category', None)
+        days = int(request.query_params.get('days', 30))  # Last 30 days by default
+        
+        # Calculate date range
+        end_date = timezone.now()
+        start_date = end_date - timedelta(days=days)
+        
+        # Get top selling products based on quantity sold
+        top_products = Product.objects.filter(
+            is_active=True,
+            assign_to_online=True,
+            saleitem__sale__date__range=[start_date, end_date]
+        ).annotate(
+            total_sold=Sum('saleitem__quantity')
+        ).filter(
+            total_sold__gt=0
+        ).order_by('-total_sold')
+        
+        if online_category:
+            top_products = top_products.filter(online_category_id=online_category)
+        
+        products = top_products[:limit]
+        serializer = EcommerceProductSerializer(products, many=True, context={'request': request})
+        
+        return Response({
+            'products': serializer.data,
+            'count': len(serializer.data),
+            'online_category': online_category,
+            'period_days': days
+        })
+
+    @action(detail=False, methods=['get'], permission_classes=[])
+    def featured(self, request):
+        """Get featured products for ecommerce showcase"""
+        limit = int(request.query_params.get('limit', 8))
+        online_category = request.query_params.get('online_category', None)
+        
+        # For now, we'll use products with high stock and recent updates as "featured"
+        # You can add a 'featured' boolean field to Product model later
+        queryset = Product.objects.filter(
+            is_active=True,
+            assign_to_online=True,
+            stock_quantity__gt=0
+        ).order_by('-updated_at', '-stock_quantity')
+        
+        if online_category:
+            queryset = queryset.filter(online_category_id=online_category)
+        
+        products = queryset[:limit]
+        serializer = EcommerceProductSerializer(products, many=True, context={'request': request})
+        
+        return Response({
+            'products': serializer.data,
+            'count': len(serializer.data),
+            'online_category': online_category
+        })
+
+    @action(detail=False, methods=['get'], permission_classes=[])
+    def showcase(self, request):
+        """Get all showcase data in one API call"""
+        new_arrivals_limit = int(request.query_params.get('new_arrivals_limit', 4))
+        top_selling_limit = int(request.query_params.get('top_selling_limit', 4))
+        featured_limit = int(request.query_params.get('featured_limit', 4))
+        online_category = request.query_params.get('online_category', None)
+        
+        # New Arrivals
+        new_arrivals = Product.objects.filter(is_active=True, assign_to_online=True)
+        if online_category:
+            new_arrivals = new_arrivals.filter(online_category_id=online_category)
+        new_arrivals = new_arrivals.order_by('-created_at')[:new_arrivals_limit]
+        
+        # Top Selling (last 30 days)
+        end_date = timezone.now()
+        start_date = end_date - timedelta(days=30)
+        top_selling = Product.objects.filter(
+            is_active=True,
+            assign_to_online=True,
+            saleitem__sale__date__range=[start_date, end_date]
+        ).annotate(
+            total_sold=Sum('saleitem__quantity')
+        ).filter(
+            total_sold__gt=0
+        ).order_by('-total_sold')
+        
+        if online_category:
+            top_selling = top_selling.filter(online_category_id=online_category)
+        top_selling = top_selling[:top_selling_limit]
+        
+        # Featured
+        featured = Product.objects.filter(
+            is_active=True,
+            assign_to_online=True,
+            stock_quantity__gt=0
+        ).order_by('-updated_at', '-stock_quantity')
+        
+        if online_category:
+            featured = featured.filter(online_category_id=online_category)
+        featured = featured[:featured_limit]
+        
+        # Serialize all data
+        new_arrivals_data = EcommerceProductSerializer(new_arrivals, many=True, context={'request': request}).data
+        top_selling_data = EcommerceProductSerializer(top_selling, many=True, context={'request': request}).data
+        featured_data = EcommerceProductSerializer(featured, many=True, context={'request': request}).data
+        
+        return Response({
+            'new_arrivals': {
+                'products': new_arrivals_data,
+                'count': len(new_arrivals_data)
+            },
+            'top_selling': {
+                'products': top_selling_data,
+                'count': len(top_selling_data)
+            },
+            'featured': {
+                'products': featured_data,
+                'count': len(featured_data)
+            },
+            'online_category': online_category
+        })
+
+    @action(detail=True, methods=['get'], permission_classes=[])
+    def showcase_detail(self, request, pk=None):
+        """Get detailed product information for ecommerce showcase"""
+        product = self.get_object()
+        
+        # Get product with all related data
+        product_data = EcommerceProductDetailSerializer(product, context={'request': request}).data
+        
+        # Get related products (same online_category, excluding current product)
+        related_products = Product.objects.filter(
+            online_category=product.online_category,
+            is_active=True,
+            assign_to_online=True
+        ).exclude(id=product.id)[:4]
+        
+        related_data = EcommerceProductSerializer(related_products, many=True, context={'request': request}).data
+        
+        return Response({
+            'product': product_data,
+            'related_products': related_data,
+            'related_count': len(related_data)
+        })
+
+    @action(detail=True, methods=['post'])
+    def toggle_online_assignment(self, request, pk=None):
+        """Toggle assign_to_online status for a product"""
+        product = self.get_object()
+        product.assign_to_online = not product.assign_to_online
+        product.save()
+        
+        serializer = ProductSerializer(product, context={'request': request})
+        return Response({
+            'message': f'Product {"assigned to" if product.assign_to_online else "unassigned from"} online',
+            'assign_to_online': product.assign_to_online,
+            'product': serializer.data
+        })
+
+    @action(detail=False, methods=['get'], permission_classes=[])
+    def all_online(self, request):
+        """Public: list all products assigned to online (optionally filter by online_category)"""
+        online_category = request.query_params.get('online_category')
+        queryset = Product.objects.filter(is_active=True, assign_to_online=True)
+        if online_category:
+            queryset = queryset.filter(online_category_id=online_category)
+        queryset = queryset.order_by('-created_at')
+        serializer = EcommerceProductSerializer(queryset, many=True, context={'request': request})
+        return Response({
+            'products': serializer.data,
+            'count': len(serializer.data)
+        })
+
 class ProductVariationViewSet(viewsets.ModelViewSet):
     queryset = ProductVariation.objects.all()
     serializer_class = ProductVariationSerializer
@@ -1003,6 +1201,17 @@ class OnlineCategoryViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'description']
     ordering_fields = ['name', 'created_at']
     ordering = ['name']
+    
+    def get_permissions(self):
+        """
+        Instantiates and returns the list of permissions that this view requires.
+        For list and retrieve actions, allow public access.
+        """
+        if self.action in ['list', 'retrieve']:
+            permission_classes = []
+        else:
+            permission_classes = [permissions.IsAuthenticated]
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         queryset = super().get_queryset()

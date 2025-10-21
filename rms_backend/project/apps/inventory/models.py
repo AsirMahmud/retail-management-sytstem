@@ -79,6 +79,7 @@ class Product(models.Model):
     size_type = models.CharField(max_length=50, null=True, blank=True)
     size_category=models.CharField(max_length=50, null=True, blank=True)
     gender = models.CharField(max_length=6, choices=GENDER_CHOICES, default='UNISEX')
+    assign_to_online = models.BooleanField(default=False, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -111,6 +112,7 @@ class ProductVariation(models.Model):
     chest_size=models.PositiveIntegerField(null=True,default=None)
     height=models.PositiveIntegerField(null=True,default=None)
     stock = models.IntegerField(default=0, validators=[MinValueValidator(0)])
+    assign_to_online=models.BooleanField(default=False,null=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

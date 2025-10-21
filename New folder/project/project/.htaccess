@@ -1,0 +1,8 @@
+PassengerEnabled On
+PassengerPython /home/rawstitc/virtualenv/retail_management_system/3.12/bin/python3.12
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^(.*)$ /$1 [QSA,L]
+</IfModule> 

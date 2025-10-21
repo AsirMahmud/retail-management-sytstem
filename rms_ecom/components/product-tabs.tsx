@@ -4,7 +4,14 @@ import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { ProductDetailsSection } from "@/components/product-details-section"
 
-export function ProductTabs() {
+interface ProductTabsProps {
+  sizeChart: Array<{ size: string; chest: string; waist: string; height: string }>
+  materials: Array<{ name: string; percentage: string }>
+  whoIsThisFor: Array<{ title: string; description: string }>
+  features: Array<{ title: string; description: string }>
+}
+
+export function ProductTabs({ sizeChart, materials, whoIsThisFor, features }: ProductTabsProps) {
   const [activeTab, setActiveTab] = useState("details")
 
   const tabs = [{ id: "details", label: "Product Details" }]
@@ -28,7 +35,14 @@ export function ProductTabs() {
           ))}
         </div>
 
-        <div className="py-12">{activeTab === "details" && <ProductDetailsSection />}</div>
+        <div className="py-12">{activeTab === "details" && (
+          <ProductDetailsSection 
+            sizeChart={sizeChart}
+            materials={materials}
+            whoIsThisFor={whoIsThisFor}
+            features={features}
+          />
+        )}</div>
       </div>
     </div>
   )

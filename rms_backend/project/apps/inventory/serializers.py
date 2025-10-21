@@ -97,6 +97,219 @@ class FeaturesSerializer(serializers.ModelSerializer):
         model = Features
         fields = ['id', 'title', 'description']
 
+# Ecommerce Showcase Serializers
+class EcommerceProductSerializer(serializers.ModelSerializer):
+    """Simplified serializer for ecommerce showcase"""
+    image_url = serializers.SerializerMethodField()
+    online_category_name = serializers.CharField(source='online_category.name', read_only=True)
+    available_colors = serializers.SerializerMethodField()
+    available_sizes = serializers.SerializerMethodField()
+    primary_image = serializers.SerializerMethodField()
+    images_ordered = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Product
+        fields = [
+            'id', 'name', 'sku', 'description', 'selling_price', 'stock_quantity',
+            'image', 'image_url', 'online_category_name', 'available_colors', 'available_sizes',
+            'primary_image', 'images_ordered', 'created_at', 'updated_at'
+        ]
+    
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+    
+    def get_available_colors(self, obj):
+        """Get unique colors from product variations"""
+        colors = obj.variations.filter(is_active=True).values_list('color', 'color_hax').distinct()
+        return [{'name': color[0], 'hex': color[1]} for color in colors]
+    
+    def get_available_sizes(self, obj):
+        """Get unique sizes from product variations"""
+        sizes = obj.variations.filter(is_active=True).values_list('size', flat=True).distinct()
+        return list(sizes)
+    
+    def get_primary_image(self, obj):
+        """Get primary image from galleries"""
+        try:
+            primary_gallery = obj.galleries.first()
+            if primary_gallery:
+                primary_img = primary_gallery.images.filter(imageType='PRIMARY').first()
+                if primary_img:
+                    request = self.context.get('request')
+                    if request:
+                        return request.build_absolute_uri(primary_img.image.url)
+                    return primary_img.image.url
+        except:
+            pass
+        return None
+    
+    def get_images_ordered(self, obj):
+        """Get all product images in order: primary, secondary, third, fourth"""
+        images = []
+        try:
+            for gallery in obj.galleries.all():
+                # Get images in specific order
+                image_order = ['PRIMARY', 'SECONDARY', 'THIRD', 'FOURTH']
+                for img_type in image_order:
+                    img = gallery.images.filter(imageType=img_type).first()
+                    if img:
+                        request = self.context.get('request')
+                        if request:
+                            images.append(request.build_absolute_uri(img.image.url))
+                        else:
+                            images.append(img.image.url)
+        except:
+            pass
+        return images
+
+class EcommerceProductDetailSerializer(serializers.ModelSerializer):
+    """Comprehensive serializer for detailed product view"""
+    image_url = serializers.SerializerMethodField()
+    online_category_name = serializers.CharField(source='online_category.name', read_only=True)
+    available_colors = serializers.SerializerMethodField()
+    available_sizes = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField()
+    images_ordered = serializers.SerializerMethodField()
+    material_composition = serializers.SerializerMethodField()
+    who_is_this_for = serializers.SerializerMethodField()
+    features = serializers.SerializerMethodField()
+    size_chart = serializers.SerializerMethodField()
+    primary_image = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Product
+        fields = [
+            'id', 'name', 'sku', 'description', 'selling_price', 'stock_quantity',
+            'image', 'image_url', 'online_category_name', 'available_colors', 'available_sizes',
+            'images', 'images_ordered', 'material_composition', 'who_is_this_for', 'features', 'size_chart',
+            'primary_image', 'created_at', 'updated_at'
+        ]
+    
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+    
+    def get_available_colors(self, obj):
+        """Get unique colors from product variations"""
+        colors = obj.variations.filter(is_active=True).values_list('color', 'color_hax').distinct()
+        return [{'name': color_name, 'hex': color_hex} for color_name, color_hex in colors]
+    
+    def get_available_sizes(self, obj):
+        """Get unique sizes from product variations"""
+        sizes = obj.variations.filter(is_active=True).values_list('size', flat=True).distinct()
+        return list(sizes)
+    
+    def get_primary_image(self, obj):
+        """Get primary image from galleries"""
+        try:
+            primary_gallery = obj.galleries.first()
+            if primary_gallery:
+                primary_img = primary_gallery.images.filter(imageType='PRIMARY').first()
+                if primary_img:
+                    request = self.context.get('request')
+                    if request:
+                        return request.build_absolute_uri(primary_img.image.url)
+                    return primary_img.image.url
+        except:
+            pass
+        return None
+    
+    def get_images(self, obj):
+        """Get all product images from galleries"""
+        images = []
+        try:
+            for gallery in obj.galleries.all():
+                for img in gallery.images.all():
+                    request = self.context.get('request')
+                    if request:
+                        images.append(request.build_absolute_uri(img.image.url))
+                    else:
+                        images.append(img.image.url)
+        except:
+            pass
+        return images
+
+    def get_images_ordered(self, obj):
+        """Get images ordered by type: PRIMARY, SECONDARY, THIRD, FOURTH"""
+        ordered = []
+        try:
+            for gallery in obj.galleries.all():
+                for img_type in ['PRIMARY', 'SECONDARY', 'THIRD', 'FOURTH']:
+                    img = gallery.images.filter(imageType=img_type).first()
+                    if img:
+                        request = self.context.get('request')
+                        if request:
+                            ordered.append(request.build_absolute_uri(img.image.url))
+                        else:
+                            ordered.append(img.image.url)
+        except:
+            pass
+        return ordered
+    
+    def get_material_composition(self, obj):
+        """Get material composition data"""
+        materials = []
+        try:
+            for comp in obj.material_compositions.all():
+                materials.append({
+                    'name': comp.title or 'Unknown',
+                    'percentage': f"{comp.percentige}%"
+                })
+        except:
+            pass
+        return materials
+    
+    def get_who_is_this_for(self, obj):
+        """Get who is this for data"""
+        data = []
+        try:
+            for item in obj.who_is_this_for.all():
+                data.append({
+                    'title': item.title or '',
+                    'description': item.description or ''
+                })
+        except:
+            pass
+        return data
+    
+    def get_features(self, obj):
+        """Get product features"""
+        features = []
+        try:
+            for feature in obj.features.all():
+                features.append({
+                    'title': feature.title or '',
+                    'description': feature.description or ''
+                })
+        except:
+            pass
+        return features
+    
+    def get_size_chart(self, obj):
+        """Get size chart from variations"""
+        size_chart = []
+        try:
+            variations = obj.variations.filter(is_active=True)
+            for var in variations:
+                size_chart.append({
+                    'size': var.size,
+                    'chest': f"{var.chest_size}" if var.chest_size else 'N/A',
+                    'waist': f"{var.waist_size}" if var.waist_size else 'N/A',
+                    'height': f"{var.height}" if var.height else 'N/A'
+                })
+        except:
+            pass
+        return size_chart
+
 class ProductVariationSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -130,7 +343,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'id', 'name', 'sku', 'barcode', 'description', 'category', 'category_name',
             'online_category', 'online_category_name',
             'supplier', 'supplier_name', 'cost_price', 'selling_price', 'stock_quantity',
-            'minimum_stock', 'image', 'is_active', 'size_type', 'size_category', 'gender', 'variations', 
+            'minimum_stock', 'image', 'is_active', 'size_type', 'size_category', 'gender', 'assign_to_online', 'variations', 
             'galleries', 'color_galleries', 'material_composition', 'who_is_this_for', 'features', 'total_stock', 'created_at', 'updated_at'
         ]
         extra_kwargs = {

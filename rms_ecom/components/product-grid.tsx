@@ -82,13 +82,25 @@ const products = [
   },
 ]
 
-interface ProductGridProps {
-  category: string
+interface Product {
+  id: number | string;
+  name: string;
+  price: number;
+  originalPrice?: number;
+  rating: number;
+  image: string;
+  discount?: number;
 }
 
-export function ProductGrid({ category }: ProductGridProps) {
+interface ProductGridProps {
+  category: string;
+  products?: Product[];
+}
+
+export function ProductGrid({ category, products: propProducts }: ProductGridProps) {
   const [currentPage, setCurrentPage] = useState(1)
-  const totalProducts = 100
+  const productsToUse = propProducts || products
+  const totalProducts = productsToUse.length
   const productsPerPage = 9
 
   const totalPages = Math.ceil(totalProducts / productsPerPage)
@@ -179,7 +191,7 @@ export function ProductGrid({ category }: ProductGridProps) {
 
       {/* Product Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-        {products.map((product) => (
+        {productsToUse.map((product) => (
           <ProductCard key={product.id} {...product} />
         ))}
       </div>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useProducts, useDeleteProduct } from "@/hooks/queries/useInventory";
+import { productsApi } from "@/lib/api/inventory";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -53,6 +54,8 @@ import {
   Tag,
   Building2,
   ShoppingCart,
+  Globe,
+  Globe2,
 } from "lucide-react";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -93,6 +96,18 @@ export default function ProductsPage() {
       console.error("Error deleting product:", error);
     } finally {
       setProductToDelete(null);
+    }
+  };
+
+  const handleToggleOnlineAssignment = async (product: Product) => {
+    try {
+      const response = await productsApi.toggleOnlineAssignment(product.id);
+      toast.success(response.message);
+      // Refresh the products list
+      window.location.reload();
+    } catch (error) {
+      toast.error("Failed to toggle online assignment");
+      console.error("Error toggling online assignment:", error);
     }
   };
 
@@ -192,7 +207,7 @@ export default function ProductsPage() {
   const ProductCard = ({ product }: { product: Product }) => {
     // Get the first image from galleries for display
     const firstImage = product.galleries?.[0]?.images?.[0];
-    const imageUrl = getImageUrl(firstImage?.image_url || firstImage?.image);
+    const imageUrl = getImageUrl(firstImage?.image);
 
     return (
       <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-0 bg-gradient-to-br from-white to-slate-50">
@@ -315,7 +330,7 @@ export default function ProductsPage() {
             <div className="flex gap-2 flex-wrap">
               {product.galleries.map((gallery, index) => {
                 const firstImage = gallery.images?.[0];
-                const imageUrl = getImageUrl(firstImage?.image_url || firstImage?.image);
+                const imageUrl = getImageUrl(firstImage?.image);
                 return (
                   <div
                     key={index}
@@ -398,6 +413,37 @@ export default function ProductsPage() {
           >
             {product.is_active ? "Active" : "Inactive"}
           </Badge>
+        </div>
+
+        <div className="flex items-center justify-between pt-2 border-t">
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">Online Status</p>
+            <p className="text-sm font-medium">
+              {product.assign_to_online ? "Online" : "Offline"}
+            </p>
+          </div>
+          <Button
+            variant={product.assign_to_online ? "default" : "outline"}
+            size="sm"
+            onClick={() => handleToggleOnlineAssignment(product)}
+            className={`flex items-center gap-2 ${
+              product.assign_to_online 
+                ? "bg-green-600 hover:bg-green-700 text-white" 
+                : "border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            {product.assign_to_online ? (
+              <>
+                <Globe className="h-3 w-3" />
+                Online
+              </>
+            ) : (
+              <>
+                <Globe2 className="h-3 w-3" />
+                Offline
+              </>
+            )}
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -648,6 +694,7 @@ export default function ProductsPage() {
                     <TableHead>Cost Price</TableHead>
                     <TableHead>Selling Price</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Online</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -655,7 +702,7 @@ export default function ProductsPage() {
                   {filteredProducts.map((product) => {
                     // Get the first image from galleries for display
                     const firstImage = product.galleries?.[0]?.images?.[0];
-                    const imageUrl = getImageUrl(firstImage?.image_url || firstImage?.image);
+                    const imageUrl = getImageUrl(firstImage?.image);
 
                     return (
                       <TableRow key={product.id}>
@@ -733,6 +780,30 @@ export default function ProductsPage() {
                         >
                           {product.is_active ? "Active" : "Inactive"}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          variant={product.assign_to_online ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handleToggleOnlineAssignment(product)}
+                          className={`flex items-center gap-2 ${
+                            product.assign_to_online 
+                              ? "bg-green-600 hover:bg-green-700 text-white" 
+                              : "border-gray-300 hover:bg-gray-50"
+                          }`}
+                        >
+                          {product.assign_to_online ? (
+                            <>
+                              <Globe className="h-3 w-3" />
+                              Online
+                            </>
+                          ) : (
+                            <>
+                              <Globe2 className="h-3 w-3" />
+                              Offline
+                            </>
+                          )}
+                        </Button>
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>

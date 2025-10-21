@@ -34,7 +34,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-=i3-$(--y)2nbeogrplsh-c1z%
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = ["rawstitch.info","localhost","127.0.0.1", ".onrender.com"]
+ALLOWED_HOSTS = ["rawstitch.info","localhost","127.0.0.1", ".onrender.com",'.vercel.app']
 
 
 # Application definition
@@ -105,6 +105,7 @@ MIDDLEWARE = [
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+
     "https://rawstitch.info",
     "https://retail-management-sytstem-1.onrender.com"
 ]
@@ -203,12 +204,14 @@ AUTH_USER_MODEL = 'authentication.CustomUser'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "http://localhost:3002",
     "https://rawstitch.info",
     "http://localhost:3001",
     "https://rawstitch.vercel.app",
     "https://rmsmain.vercel.app",
     "https://retail-management-sytstem-1.onrender.com",
-    "https://rawstitc.info"  # Your cPanel domain
+    "https://rawstitc.info" ,
+    "https://rawstitc.info", # Your cPanel domain
 ]
 
 CORS_ALLOW_CREDENTIALS = True
