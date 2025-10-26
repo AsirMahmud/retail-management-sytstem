@@ -903,6 +903,9 @@ function ProductDetails({ product }: ProductDetailsProps) {
                           Chest Size
                         </th>
                         <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">
+                          Height
+                        </th>
+                        <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">
                           Stock
                         </th>
                         <th className="px-6 py-3 text-left font-medium text-sm text-muted-foreground">
@@ -994,6 +997,9 @@ function VariantPrintRow({
       </td>
       <td className="px-6 py-4 font-medium">
         {variation.chest_size ? `${variation.chest_size}"` : "N/A"}
+      </td>
+      <td className="px-6 py-4 font-medium">
+        {variation.height ? `${variation.height}"` : "N/A"}
       </td>
       <td className="px-6 py-4 font-medium">{variation.stock}</td>
       <td className="px-6 py-4">

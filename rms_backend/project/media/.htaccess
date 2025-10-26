@@ -1,0 +1,45 @@
+# Media directory .htaccess
+# This file should be placed in /home/rawstitc/public_html/media/.htaccess
+
+# Allow access to media files
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Allow direct access to all files in media directory
+    RewriteRule ^(.*)$ - [L]
+</IfModule>
+
+# Set proper MIME types for media files
+<IfModule mod_mime.c>
+    AddType image/jpeg .jpg .jpeg
+    AddType image/png .png
+    AddType image/gif .gif
+    AddType image/webp .webp
+    AddType image/svg+xml .svg
+    AddType application/pdf .pdf
+    AddType application/msword .doc
+    AddType application/vnd.openxmlformats-officedocument.wordprocessingml.document .docx
+</IfModule>
+
+# Security headers
+<IfModule mod_headers.c>
+    # Cache media files for 1 year
+    <FilesMatch "\.(jpg|jpeg|png|gif|webp|svg)$">
+        Header set Cache-Control "public, max-age=31536000"
+        Header set X-Content-Type-Options nosniff
+    </FilesMatch>
+    
+    # Cache documents for 1 month
+    <FilesMatch "\.(pdf|doc|docx)$">
+        Header set Cache-Control "public, max-age=2592000"
+        Header set X-Content-Type-Options nosniff
+    </FilesMatch>
+</IfModule>
+
+# Prevent execution of scripts in media directory
+<IfModule mod_rewrite.c>
+    RewriteCond %{REQUEST_FILENAME} \.(php|py|pl|sh|rb)$
+    RewriteRule ^(.*)$ - [F,L]
+</IfModule>
+
+

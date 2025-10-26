@@ -20,6 +20,7 @@ import {
   LogOut,
   ChartBarBigIcon,
   Clock,
+  Globe,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -91,6 +92,16 @@ const mainNavItems = [
     title: "Reports",
     icon: ChartBarBigIcon,
     href: "/reports",
+  },
+  {
+    title: "Ecommerce Settings",
+    icon: Globe,
+    href: "/ecommerce-settings",
+    subItems: [
+      { title: "Product Settings", href: "/ecommerce-settings" },
+      { title: "Discount Management", href: "/ecommerce-settings/discounts" },
+      { title: "Product Status", href: "/ecommerce-settings/product-status" },
+    ],
   },
 ];
 

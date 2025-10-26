@@ -1,13 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ChevronRight, ChevronUp, SlidersHorizontal, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
+import { ecommerceApi } from "@/lib/api"
 
-const categories = ["T-shirts", "Shorts", "Shirts", "Hoodie", "Jeans"]
+interface CategoryFiltersProps {
+  onCategoryChange?: (categoryId: number | null) => void;
+}
 
 const colors = [
   { name: "Green", value: "#00C12B" },
@@ -26,16 +29,39 @@ const sizes = ["XX-Small", "X-Small", "Small", "Medium", "Large", "X-Large", "XX
 
 const dressStyles = ["Casual", "Formal", "Party", "Gym"]
 
-export function CategoryFilters() {
+export function CategoryFilters({ onCategoryChange }: CategoryFiltersProps) {
   const [priceRange, setPriceRange] = useState([50, 200])
   const [selectedColor, setSelectedColor] = useState("Blue")
   const [selectedSize, setSelectedSize] = useState("Large")
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
+  const [categories, setCategories] = useState<Array<{ id: number; name: string; slug: string }>>([])
+  const [loading, setLoading] = useState(true)
   const [expandedSections, setExpandedSections] = useState({
+    categories: true,
     price: true,
     colors: true,
     size: true,
     dressStyle: true,
   })
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await ecommerceApi.getOnlineCategories()
+        setCategories(data)
+      } catch (error) {
+        console.error('Failed to fetch categories:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchCategories()
+  }, [])
+
+  const handleCategorySelect = (categoryId: number | null) => {
+    setSelectedCategory(categoryId)
+    onCategoryChange?.(categoryId)
+  }
 
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }))
@@ -54,16 +80,48 @@ export function CategoryFilters() {
       <Separator />
 
       {/* Categories */}
-      <div className="space-y-3">
-        {categories.map((category) => (
-          <button
-            key={category}
-            className="w-full flex items-center justify-between text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <span>{category}</span>
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        ))}
+      <div className="space-y-4">
+        <button
+          onClick={() => toggleSection("categories")}
+          className="w-full flex items-center justify-between font-semibold"
+        >
+          <span>Categories</span>
+          <ChevronUp className={cn("h-4 w-4 transition-transform", !expandedSections.categories && "rotate-180")} />
+        </button>
+        {expandedSections.categories && (
+          <div className="space-y-3">
+            <button
+              onClick={() => handleCategorySelect(null)}
+              className={cn(
+                "w-full flex items-center justify-between transition-colors",
+                selectedCategory === null 
+                  ? "text-foreground font-medium" 
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <span>All Categories</span>
+            </button>
+            {loading ? (
+              <div className="text-sm text-muted-foreground">Loading categories...</div>
+            ) : (
+              categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => handleCategorySelect(category.id)}
+                  className={cn(
+                    "w-full flex items-center justify-between transition-colors",
+                    selectedCategory === category.id 
+                      ? "text-foreground font-medium" 
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  <span>{category.name}</span>
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       <Separator />
