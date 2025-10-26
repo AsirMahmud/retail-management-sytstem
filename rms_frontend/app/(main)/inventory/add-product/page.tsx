@@ -69,6 +69,7 @@ const productFormSchema = z.object({
         stock: z.number().min(0, "Stock must be 0 or greater"),
         waist_size: z.number().optional(),
         chest_size: z.number().optional(),
+        height: z.number().optional(),
       })
     )
     .optional(),
@@ -84,6 +85,7 @@ type ColorVariant = {
   stock: number;
   waist_size?: number;
   chest_size?: number;
+  height?: number;
 };
 
 type SizeVariant = {
@@ -778,6 +780,7 @@ export default function AddProductPage() {
             stock: colorVariant.stock,
             waist_size: colorVariant.waist_size,
             chest_size: colorVariant.chest_size,
+            height: colorVariant.height,
           }))
         ),
         material_composition: materialCompositions.map((item) => ({
@@ -1405,6 +1408,7 @@ export default function AddProductPage() {
                               <th className="text-left font-medium">Stock</th>
                               <th className="text-left font-medium">Waist Size</th>
                               <th className="text-left font-medium">Chest Size</th>
+                              <th className="text-left font-medium">Height</th>
                               <th className="w-10"></th>
                             </tr>
                           </thead>
@@ -1513,6 +1517,27 @@ export default function AddProductPage() {
                                         variant.id,
                                         color.id,
                                         "chest_size",
+                                        e.target.value ? parseInt(e.target.value) : 0
+                                      )
+                                    }
+                                    className="w-20 h-10 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors"
+                                    onWheel={(e) => {
+                                      if (document.activeElement === e.target) {
+                                        e.preventDefault();
+                                      }
+                                    }}
+                                  />
+                                </td>
+                                <td className="py-3">
+                                  <Input
+                                    type="number"
+                                    placeholder="Height"
+                                    value={color.height || ""}
+                                    onChange={(e) =>
+                                      updateColorVariant(
+                                        variant.id,
+                                        color.id,
+                                        "height",
                                         e.target.value ? parseInt(e.target.value) : 0
                                       )
                                     }

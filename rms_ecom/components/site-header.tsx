@@ -25,9 +25,12 @@ export function SiteHeader() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
+          <Link href="/products" className="text-sm font-medium hover:underline underline-offset-4">
+            All Products
+          </Link>
           <DropdownMenu>
             <DropdownMenuTrigger className="text-sm font-medium hover:underline underline-offset-4">
-              Shop
+              Categories
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               {categories.map((category) => (
@@ -86,6 +89,9 @@ export function SiteHeader() {
             </SheetTrigger>
             <SheetContent side="right">
               <nav className="flex flex-col gap-4 mt-8">
+                <Link href="/products" className="text-lg font-medium">
+                  All Products
+                </Link>
                 <div className="text-sm font-semibold text-muted-foreground mb-2">Categories</div>
                 {categories.map((category) => (
                   <Link key={category.slug} href={`/category/${category.slug}`} className="text-lg font-medium">

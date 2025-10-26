@@ -33,6 +33,5 @@ urlpatterns = [
     path('api/preorder/', include('apps.preorder.urls')),
 ]
 
-# Add media URL patterns for development
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Add media URL patterns for both development and production
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

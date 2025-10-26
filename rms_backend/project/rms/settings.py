@@ -32,7 +32,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-=i3-$(--y)2nbeogrplsh-c1z%bnj8ufv87+6azgiocp=rb)fn')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
+DEBUG = True
 
 ALLOWED_HOSTS = ["rawstitch.info","localhost",'127.0.0.1']
 
@@ -184,7 +184,39 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
+# Media configuration
+MEDIA_URL = '/media/'
+
+# Production vs Development media root
+if os.getenv('DEBUG', 'True') == 'False':
+    # Production settings
+    MEDIA_ROOT = '/home/rawstitc/public_html/media'
+else:
+    # Development settings
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# File upload settings
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+FILE_UPLOAD_PERMISSIONS = 0o644
+
+# Ensure media directory exists in production
+if os.getenv('DEBUG', 'True') == 'False':
+    import os
+    if not os.path.exists(MEDIA_ROOT):
+        try:
+            os.makedirs(MEDIA_ROOT, exist_ok=True)
+        except PermissionError:
+            # If we can't create the directory, log the error but continue
+            print(f"Warning: Could not create media directory {MEDIA_ROOT}")
+            print("Please ensure the directory exists and has proper permissions")
+
+# Static files configuration
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -196,6 +228,7 @@ AUTH_USER_MODEL = 'authentication.CustomUser'
 # CORS settings
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
+    "http://localhost:3001",
     "http://127.0.0.1:3000",
     "https://rawstitch.info",
     "https://rawstitch.vercel.app"
