@@ -46,3 +46,4 @@ def setup_media_directory():
 if __name__ == "__main__":
     setup_media_directory()
 
+
