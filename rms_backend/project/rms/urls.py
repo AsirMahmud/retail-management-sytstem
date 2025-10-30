@@ -31,6 +31,7 @@ urlpatterns = [
     path('api/reports/', include('apps.reports.urls')),
     path('api/settings/', include('apps.setting.urls')),
     path('api/preorder/', include('apps.preorder.urls')),
+    path('api/ecommerce/', include('apps.ecommerce.urls')),
 ]
 
 # Add media URL patterns for both development and production

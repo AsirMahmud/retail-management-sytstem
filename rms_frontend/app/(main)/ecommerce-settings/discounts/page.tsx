@@ -37,80 +37,78 @@ import {
   Trash2,
   Save,
   X,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
+import { 
+  useDiscounts, 
+  useCreateDiscount, 
+  useUpdateDiscount, 
+  useDeleteDiscount 
+} from "@/hooks/queries/useEcommerce";
 
-// Mock data for discounts
-const mockDiscounts = [
-  {
-    id: 1,
-    name: "Summer Sale",
-    type: "app-wide",
-    value: 20,
-    startDate: "2024-06-01",
-    endDate: "2024-08-31",
-    status: "active",
-    description: "Summer clearance sale on all products",
-  },
-  {
-    id: 2,
-    name: "Electronics Discount",
-    type: "category",
-    value: 15,
-    startDate: "2024-07-01",
-    endDate: "2024-07-31",
-    status: "active",
-    description: "Discount on electronics category",
-  },
-  {
-    id: 3,
-    name: "Flash Sale",
-    type: "product",
-    value: 30,
-    startDate: "2024-06-15",
-    endDate: "2024-06-16",
-    status: "expired",
-    description: "Limited time flash sale",
-  },
-];
+interface Discount {
+  id: number;
+  name: string;
+  discount_type: string;
+  value: number;
+  start_date: string;
+  end_date: string;
+  status: string;
+  description: string;
+  is_active: boolean;
+}
 
 export default function DiscountManagementPage() {
-  const [discounts, setDiscounts] = useState(mockDiscounts);
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     name: "",
-    type: "app-wide",
+    type: "APP_WIDE",
     value: "",
     startDate: "",
     endDate: "",
     description: "",
   });
 
-  const handleCreateDiscount = () => {
+  // Use React Query hooks
+  const { data: discounts = [], isLoading, refetch } = useDiscounts();
+  const createDiscountMutation = useCreateDiscount();
+  const updateDiscountMutation = useUpdateDiscount();
+  const deleteDiscountMutation = useDeleteDiscount();
+
+  const handleCreateDiscount = async () => {
     if (!formData.name || !formData.value || !formData.startDate || !formData.endDate) {
       toast.error("Please fill in all required fields");
       return;
     }
 
-    const newDiscount = {
-      id: discounts.length + 1,
-      ...formData,
-      value: parseInt(formData.value),
-      status: "active",
-    };
-
-    setDiscounts([...discounts, newDiscount]);
-    setFormData({
-      name: "",
-      type: "app-wide",
-      value: "",
-      startDate: "",
-      endDate: "",
-      description: "",
-    });
-    setIsCreating(false);
-    toast.success("Discount created successfully!");
+    try {
+      await createDiscountMutation.mutateAsync({
+        name: formData.name,
+        discount_type: formData.type as 'APP_WIDE' | 'CATEGORY' | 'PRODUCT',
+        value: parseInt(formData.value),
+        start_date: formData.startDate,
+        end_date: formData.endDate,
+        description: formData.description,
+        is_active: true,
+        status: 'ACTIVE',
+      });
+      
+      setFormData({
+        name: "",
+        type: "APP_WIDE",
+        value: "",
+        startDate: "",
+        endDate: "",
+        description: "",
+      });
+      setIsCreating(false);
+      toast.success("Discount created successfully!");
+    } catch (error) {
+      console.error('Error creating discount:', error);
+      toast.error("Failed to create discount");
+    }
   };
 
   const handleEditDiscount = (id: number) => {
@@ -118,55 +116,61 @@ export default function DiscountManagementPage() {
     if (discount) {
       setFormData({
         name: discount.name,
-        type: discount.type,
+        type: discount.discount_type,
         value: discount.value.toString(),
-        startDate: discount.startDate,
-        endDate: discount.endDate,
+        startDate: discount.start_date,
+        endDate: discount.end_date,
         description: discount.description,
       });
       setEditingId(id);
     }
   };
 
-  const handleUpdateDiscount = () => {
+  const handleUpdateDiscount = async () => {
     if (!formData.name || !formData.value || !formData.startDate || !formData.endDate) {
       toast.error("Please fill in all required fields");
       return;
     }
 
-    setDiscounts(prev => prev.map(discount => 
-      discount.id === editingId 
-        ? {
-            ...discount,
-            name: formData.name,
-            type: formData.type,
-            value: parseInt(formData.value),
-            startDate: formData.startDate,
-            endDate: formData.endDate,
-            description: formData.description,
-          }
-        : discount
-    ));
+    try {
+      await updateDiscountMutation.mutateAsync({
+        id: editingId!,
+        name: formData.name,
+        discount_type: formData.type as 'APP_WIDE' | 'CATEGORY' | 'PRODUCT',
+        value: parseInt(formData.value),
+        start_date: formData.startDate,
+        end_date: formData.endDate,
+        description: formData.description,
+      });
 
-    setFormData({
-      name: "",
-      type: "app-wide",
-      value: "",
-      startDate: "",
-      endDate: "",
-      description: "",
-    });
-    setEditingId(null);
-    toast.success("Discount updated successfully!");
+      setFormData({
+        name: "",
+        type: "APP_WIDE",
+        value: "",
+        startDate: "",
+        endDate: "",
+        description: "",
+      });
+      setEditingId(null);
+      toast.success("Discount updated successfully!");
+    } catch (error) {
+      console.error('Error updating discount:', error);
+      toast.error("Failed to update discount");
+    }
   };
 
-  const handleDeleteDiscount = (id: number) => {
-    setDiscounts(prev => prev.filter(discount => discount.id !== id));
-    toast.success("Discount deleted successfully!");
+  const handleDeleteDiscount = async (id: number) => {
+    try {
+      await deleteDiscountMutation.mutateAsync(id);
+      toast.success("Discount deleted successfully!");
+    } catch (error) {
+      console.error('Error deleting discount:', error);
+      toast.error("Failed to delete discount");
+    }
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case "active":
         return <Badge className="bg-green-100 text-green-800">Active</Badge>;
       case "expired":
@@ -180,11 +184,11 @@ export default function DiscountManagementPage() {
 
   const getTypeLabel = (type: string) => {
     switch (type) {
-      case "app-wide":
+      case "APP_WIDE":
         return "App-Wide";
-      case "category":
+      case "CATEGORY":
         return "Category";
-      case "product":
+      case "PRODUCT":
         return "Product";
       default:
         return type;
@@ -246,9 +250,9 @@ export default function DiscountManagementPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="app-wide">App-Wide Discount</SelectItem>
-                          <SelectItem value="category">Category Discount</SelectItem>
-                          <SelectItem value="product">Product Discount</SelectItem>
+                          <SelectItem value="APP_WIDE">App-Wide Discount</SelectItem>
+                          <SelectItem value="CATEGORY">Category Discount</SelectItem>
+                          <SelectItem value="PRODUCT">Product Discount</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -316,7 +320,7 @@ export default function DiscountManagementPage() {
                         setEditingId(null);
                         setFormData({
                           name: "",
-                          type: "app-wide",
+                          type: "APP_WIDE",
                           value: "",
                           startDate: "",
                           endDate: "",
@@ -361,50 +365,57 @@ export default function DiscountManagementPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Value</TableHead>
-                    <TableHead>Start Date</TableHead>
-                    <TableHead>End Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {discounts.map((discount) => (
-                    <TableRow key={discount.id}>
-                      <TableCell className="font-medium">{discount.name}</TableCell>
-                      <TableCell>{getTypeLabel(discount.type)}</TableCell>
-                      <TableCell>{discount.value}%</TableCell>
-                      <TableCell>{new Date(discount.startDate).toLocaleDateString()}</TableCell>
-                      <TableCell>{new Date(discount.endDate).toLocaleDateString()}</TableCell>
-                      <TableCell>{getStatusBadge(discount.status)}</TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditDiscount(discount.id)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDeleteDiscount(discount.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
+                  <span className="ml-2 text-gray-600">Loading discounts...</span>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Value</TableHead>
+                      <TableHead>Start Date</TableHead>
+                      <TableHead>End Date</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {discounts.map((discount) => (
+                      <TableRow key={discount.id}>
+                        <TableCell className="font-medium">{discount.name}</TableCell>
+                        <TableCell>{getTypeLabel(discount.discount_type)}</TableCell>
+                        <TableCell>{discount.value}%</TableCell>
+                        <TableCell>{new Date(discount.start_date).toLocaleDateString()}</TableCell>
+                        <TableCell>{new Date(discount.end_date).toLocaleDateString()}</TableCell>
+                        <TableCell>{getStatusBadge(discount.status)}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleEditDiscount(discount.id)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteDiscount(discount.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </div>

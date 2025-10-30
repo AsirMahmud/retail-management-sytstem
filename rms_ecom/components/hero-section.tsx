@@ -1,7 +1,50 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ArrowRight } from "lucide-react"
+import { ecommerceApi } from "@/lib/api"
+
+interface HomePageSettings {
+  logo_image_url?: string
+  logo_text?: string
+  hero_badge_text?: string
+  hero_heading_line1?: string
+  hero_heading_line2?: string
+  hero_heading_line3?: string
+  hero_heading_line4?: string
+  hero_heading_line5?: string
+  hero_description?: string
+  hero_primary_image_url?: string
+  hero_secondary_image_url?: string
+  stat_brands?: string
+  stat_products?: string
+  stat_customers?: string
+}
 
 export function HeroSection() {
+  const [settings, setSettings] = useState<HomePageSettings>({})
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const data = await ecommerceApi.getHomePageSettings()
+        setSettings(data)
+      } catch (error) {
+        console.error('Failed to fetch home page settings:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchSettings()
+  }, [])
+
+  if (loading) {
+    return <div className="w-full h-96 bg-gray-200 animate-pulse" />
+  }
+
   return (
     <section className="relative w-full overflow-hidden bg-gradient-to-br from-secondary via-background to-secondary/50">
       <div className="container px-4 py-12 md:py-20 lg:py-24">
@@ -22,23 +65,26 @@ export function HeroSection() {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-background opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-background"></span>
                   </span>
-                  New Collection 2024
+                  {settings.hero_badge_text || "New Collection 2024"}
                 </div>
 
                 {/* Main Heading with Creative Layout */}
                 <div className="space-y-2">
                   <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tighter leading-[0.9]">
-                    <span className="block">FIND</span>
-                    <span className="block text-muted-foreground/40">CLOTHES</span>
-                    <span className="block">THAT</span>
-                    <span className="block italic font-serif">Matches</span>
-                    <span className="block">YOUR STYLE</span>
+                    <span className="block">{settings.hero_heading_line1 || "FIND"}</span>
+                    <span className="block text-muted-foreground/40">
+                      {settings.hero_heading_line2 || "CLOTHES"}
+                    </span>
+                    <span className="block">{settings.hero_heading_line3 || "THAT"}</span>
+                    <span className="block italic font-serif">
+                      {settings.hero_heading_line4 || "Matches"}
+                    </span>
+                    <span className="block">{settings.hero_heading_line5 || "YOUR STYLE"}</span>
                   </h1>
                 </div>
 
                 <p className="text-base md:text-lg text-muted-foreground max-w-md text-pretty leading-relaxed">
-                  Browse through our diverse range of meticulously crafted garments, designed to bring out your
-                  individuality and cater to your sense of style.
+                  {settings.hero_description || "Browse through our diverse range of meticulously crafted garments, designed to bring out your individuality and cater to your sense of style."}
                 </p>
 
                 <div className="flex flex-wrap gap-4 pt-2">
@@ -58,15 +104,25 @@ export function HeroSection() {
               {/* Main Image */}
               <div className="absolute top-0 right-0 w-[70%] h-[75%] rounded-3xl overflow-hidden shadow-2xl border-4 border-background">
                 <img
-                  src="/fashion-models-wearing-modern-streetwear.jpg"
+                  src={settings.hero_primary_image_url || "/fashion-models-wearing-modern-streetwear.jpg"}
                   alt="Fashion model"
                   className="object-cover w-full h-full"
+                  onError={(e) => {
+                    e.currentTarget.src = "/fashion-models-wearing-modern-streetwear.jpg"
+                  }}
                 />
               </div>
 
               {/* Secondary Image - Overlapping */}
               <div className="absolute bottom-0 left-0 w-[60%] h-[50%] rounded-3xl overflow-hidden shadow-2xl border-4 border-background">
-                <img src="/product-model.jpg" alt="Fashion style" className="object-cover w-full h-full" />
+                <img 
+                  src={settings.hero_secondary_image_url || "/product-model.jpg"} 
+                  alt="Fashion style" 
+                  className="object-cover w-full h-full"
+                  onError={(e) => {
+                    e.currentTarget.src = "/product-model.jpg"
+                  }}
+                />
               </div>
 
               {/* Decorative Circle */}
@@ -83,23 +139,22 @@ export function HeroSection() {
           <div className="mt-12 lg:mt-16">
             <div className="flex flex-wrap justify-center lg:justify-start gap-8 lg:gap-12 p-6 rounded-2xl bg-foreground/5 backdrop-blur-sm border border-foreground/10 w-fit mx-auto lg:mx-0">
               <div className="text-center lg:text-left">
-                <div className="text-3xl lg:text-4xl font-bold">200+</div>
+                <div className="text-3xl lg:text-4xl font-bold">{settings.stat_brands || "200+"}</div>
                 <div className="text-sm text-muted-foreground mt-1">International Brands</div>
               </div>
               <div className="h-16 w-px bg-border hidden sm:block" />
               <div className="text-center lg:text-left">
-                <div className="text-3xl lg:text-4xl font-bold">2,000+</div>
+                <div className="text-3xl lg:text-4xl font-bold">{settings.stat_products || "2,000+"}</div>
                 <div className="text-sm text-muted-foreground mt-1">High-Quality Products</div>
               </div>
               <div className="h-16 w-px bg-border hidden sm:block" />
               <div className="text-center lg:text-left">
-                <div className="text-3xl lg:text-4xl font-bold">30,000+</div>
+                <div className="text-3xl lg:text-4xl font-bold">{settings.stat_customers || "30,000+"}</div>
                 <div className="text-sm text-muted-foreground mt-1">Happy Customers</div>
               </div>
             </div>
           </div>
         </div>
-        {/* </CHANGE> */}
       </div>
 
       {/* Decorative Elements */}

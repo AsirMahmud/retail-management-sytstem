@@ -80,6 +80,10 @@ class Product(models.Model):
     size_category=models.CharField(max_length=50, null=True, blank=True)
     gender = models.CharField(max_length=6, choices=GENDER_CHOICES, default='UNISEX')
     assign_to_online = models.BooleanField(default=False, null=True)
+    # Ecommerce status fields
+    is_new_arrival = models.BooleanField(default=False)
+    is_trending = models.BooleanField(default=False)
+    is_featured = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

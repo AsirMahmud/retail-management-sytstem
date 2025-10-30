@@ -1,3 +1,4 @@
+
 import type React from "react"
 import type { Metadata } from "next"
 import { GeistSans } from "geist/font/sans"
@@ -5,6 +6,7 @@ import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { Suspense } from "react"
+import { DiscountInitializer } from "@/components/discount-initializer"
 
 export const metadata: Metadata = {
   title: "SHOP.CO - Your Fashion Destination",
@@ -20,6 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} antialiased`} suppressHydrationWarning>
       <body className=" bg-background font-sans text-foreground">
+        <DiscountInitializer />
         <Suspense fallback={null}>{children}</Suspense>
         <Analytics />
       </body>
