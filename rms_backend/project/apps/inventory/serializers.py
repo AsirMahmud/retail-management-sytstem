@@ -102,17 +102,22 @@ class EcommerceProductSerializer(serializers.ModelSerializer):
     """Simplified serializer for ecommerce showcase"""
     image_url = serializers.SerializerMethodField()
     online_category_name = serializers.CharField(source='online_category.name', read_only=True)
+    online_category_id = serializers.IntegerField(source='online_category.id', read_only=True)
     available_colors = serializers.SerializerMethodField()
     available_sizes = serializers.SerializerMethodField()
+    variants = serializers.SerializerMethodField()
     primary_image = serializers.SerializerMethodField()
     images_ordered = serializers.SerializerMethodField()
+    original_price = serializers.SerializerMethodField()
+    discount = serializers.SerializerMethodField()
     
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'sku', 'description', 'selling_price', 'stock_quantity',
-            'image', 'image_url', 'online_category_name', 'available_colors', 'available_sizes',
-            'primary_image', 'images_ordered', 'created_at', 'updated_at'
+            'id', 'name', 'sku', 'description', 'selling_price', 'original_price', 'discount',
+            'stock_quantity', 'image', 'image_url', 'online_category_name', 'online_category_id',
+            'available_colors', 'available_sizes', 'variants', 'primary_image', 'images_ordered',
+            'created_at', 'updated_at'
         ]
     
     def get_image_url(self, obj):
@@ -166,28 +171,131 @@ class EcommerceProductSerializer(serializers.ModelSerializer):
         except:
             pass
         return images
+    
+    def get_variants(self, obj):
+        """Get all active product variants with stock information"""
+        from apps.ecommerce.models import Discount
+        from django.utils import timezone
+        now = timezone.now()
+        
+        variants = obj.variations.filter(is_active=True, assign_to_online=True)
+        result = []
+        
+        for variant in variants:
+            result.append({
+                'size': variant.size,
+                'color': variant.color,
+                'color_hex': variant.color_hax,
+                'stock': variant.stock,
+                'variant_id': variant.id
+            })
+        
+        return result
+    
+    def get_original_price(self, obj):
+        """Get original price before discount"""
+        # Check for discounts in order: product > category > app-wide
+        from apps.ecommerce.models import Discount
+        from django.utils import timezone
+        now = timezone.now()
+        
+        # Check product-specific discount
+        product_discount = Discount.objects.filter(
+            product=obj,
+            is_active=True,
+            start_date__lte=now,
+            end_date__gte=now,
+            status='ACTIVE'
+        ).first()
+        
+        if product_discount:
+            return obj.selling_price
+        
+        # Check category discount
+        category_discount = None
+        if obj.online_category:
+            category_discount = Discount.objects.filter(
+                online_category=obj.online_category,
+                discount_type='CATEGORY',
+                is_active=True,
+                start_date__lte=now,
+                end_date__gte=now,
+                status='ACTIVE'
+            ).first()
+        
+        if category_discount:
+            return obj.selling_price
+        
+        # Check app-wide discount
+        app_wide_discount = Discount.objects.filter(
+            discount_type='APP_WIDE',
+            is_active=True,
+            start_date__lte=now,
+            end_date__gte=now,
+            status='ACTIVE'
+        ).first()
+        
+        if app_wide_discount:
+            return obj.selling_price
+        
+        return None
+    
+    def get_discount(self, obj):
+        """Get discount percentage"""
+        from apps.ecommerce.models import Discount
+        from django.utils import timezone
+        now = timezone.now()
+        
+        # Check discounts in order: product > category > app-wide
+        product_discount = Discount.objects.filter(
+            product=obj,
+            is_active=True,
+            start_date__lte=now,
+            end_date__gte=now,
+            status='ACTIVE'
+        ).first()
+        
+        if product_discount:
+            return float(product_discount.value)
+        
+        category_discount = None
+        if obj.online_category:
+            category_discount = Discount.objects.filter(
+                online_category=obj.online_category,
+                discount_type='CATEGORY',
+                is_active=True,
+                start_date__lte=now,
+                end_date__gte=now,
+                status='ACTIVE'
+            ).first()
+        
+        if category_discount:
+            return float(category_discount.value)
+        
+        app_wide_discount = Discount.objects.filter(
+            discount_type='APP_WIDE',
+            is_active=True,
+            start_date__lte=now,
+            end_date__gte=now,
+            status='ACTIVE'
+        ).first()
+        
+        if app_wide_discount:
+            return float(app_wide_discount.value)
+        
+        return None
 
-class EcommerceProductDetailSerializer(serializers.ModelSerializer):
-    """Comprehensive serializer for detailed product view"""
-    image_url = serializers.SerializerMethodField()
-    online_category_name = serializers.CharField(source='online_category.name', read_only=True)
-    available_colors = serializers.SerializerMethodField()
-    available_sizes = serializers.SerializerMethodField()
+class EcommerceProductDetailSerializer(EcommerceProductSerializer):
+    """Comprehensive serializer for detailed product view - extends EcommerceProductSerializer"""
     images = serializers.SerializerMethodField()
-    images_ordered = serializers.SerializerMethodField()
     material_composition = serializers.SerializerMethodField()
     who_is_this_for = serializers.SerializerMethodField()
     features = serializers.SerializerMethodField()
     size_chart = serializers.SerializerMethodField()
-    primary_image = serializers.SerializerMethodField()
     
-    class Meta:
-        model = Product
-        fields = [
-            'id', 'name', 'sku', 'description', 'selling_price', 'stock_quantity',
-            'image', 'image_url', 'online_category_name', 'available_colors', 'available_sizes',
-            'images', 'images_ordered', 'material_composition', 'who_is_this_for', 'features', 'size_chart',
-            'primary_image', 'created_at', 'updated_at'
+    class Meta(EcommerceProductSerializer.Meta):
+        fields = EcommerceProductSerializer.Meta.fields + [
+            'images', 'material_composition', 'who_is_this_for', 'features', 'size_chart'
         ]
     
     def get_image_url(self, obj):
@@ -343,7 +451,9 @@ class ProductSerializer(serializers.ModelSerializer):
             'id', 'name', 'sku', 'barcode', 'description', 'category', 'category_name',
             'online_category', 'online_category_name',
             'supplier', 'supplier_name', 'cost_price', 'selling_price', 'stock_quantity',
-            'minimum_stock', 'image', 'is_active', 'size_type', 'size_category', 'gender', 'assign_to_online', 'variations', 
+            'minimum_stock', 'image', 'is_active', 'size_type', 'size_category', 'gender', 'assign_to_online', 
+            'is_new_arrival', 'is_trending', 'is_featured',
+            'variations', 
             'galleries', 'color_galleries', 'material_composition', 'who_is_this_for', 'features', 'total_stock', 'created_at', 'updated_at'
         ]
         extra_kwargs = {

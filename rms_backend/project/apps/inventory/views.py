@@ -700,11 +700,15 @@ class ProductViewSet(viewsets.ModelViewSet):
         featured_limit = int(request.query_params.get('featured_limit', 4))
         online_category = request.query_params.get('online_category', None)
         
-        # New Arrivals
-        new_arrivals = Product.objects.filter(is_active=True, assign_to_online=True)
+        # New Arrivals (explicit flag)
+        new_arrivals = Product.objects.filter(
+            is_active=True,
+            assign_to_online=True,
+            is_new_arrival=True,
+        )
         if online_category:
             new_arrivals = new_arrivals.filter(online_category_id=online_category)
-        new_arrivals = new_arrivals.order_by('-created_at')[:new_arrivals_limit]
+        new_arrivals = new_arrivals.order_by('-updated_at', '-created_at')[:new_arrivals_limit]
         
         # Top Selling (last 30 days)
         end_date = timezone.now()
@@ -723,21 +727,35 @@ class ProductViewSet(viewsets.ModelViewSet):
             top_selling = top_selling.filter(online_category_id=online_category)
         top_selling = top_selling[:top_selling_limit]
         
-        # Featured
+        # Featured (explicit flag)
         featured = Product.objects.filter(
             is_active=True,
             assign_to_online=True,
-            stock_quantity__gt=0
-        ).order_by('-updated_at', '-stock_quantity')
+            is_featured=True,
+            stock_quantity__gt=0,
+        ).order_by('-updated_at')
         
         if online_category:
             featured = featured.filter(online_category_id=online_category)
         featured = featured[:featured_limit]
         
+        # Trending (explicit flag)
+        trending_limit = int(request.query_params.get('trending_limit', 4))
+        trending = Product.objects.filter(
+            is_active=True,
+            assign_to_online=True,
+            is_trending=True,
+            stock_quantity__gt=0,
+        )
+        if online_category:
+            trending = trending.filter(online_category_id=online_category)
+        trending = trending.order_by('-updated_at')[:trending_limit]
+        
         # Serialize all data
         new_arrivals_data = EcommerceProductSerializer(new_arrivals, many=True, context={'request': request}).data
         top_selling_data = EcommerceProductSerializer(top_selling, many=True, context={'request': request}).data
         featured_data = EcommerceProductSerializer(featured, many=True, context={'request': request}).data
+        trending_data = EcommerceProductSerializer(trending, many=True, context={'request': request}).data
         
         return Response({
             'new_arrivals': {
@@ -751,6 +769,10 @@ class ProductViewSet(viewsets.ModelViewSet):
             'featured': {
                 'products': featured_data,
                 'count': len(featured_data)
+            },
+            'trending': {
+                'products': trending_data,
+                'count': len(trending_data)
             },
             'online_category': online_category
         })
@@ -790,6 +812,53 @@ class ProductViewSet(viewsets.ModelViewSet):
             'message': f'Product {"assigned to" if product.assign_to_online else "unassigned from"} online',
             'assign_to_online': product.assign_to_online,
             'product': serializer.data
+        })
+
+    @action(detail=True, methods=['patch'])
+    def update_ecommerce_status(self, request, pk=None):
+        """Update ecommerce status fields (is_new_arrival, is_trending, is_featured)"""
+        product = self.get_object()
+        
+        # Allowed fields for ecommerce status
+        allowed_fields = ['is_new_arrival', 'is_trending', 'is_featured']
+        
+        for field in allowed_fields:
+            if field in request.data:
+                setattr(product, field, request.data[field])
+        
+        product.save()
+        serializer = ProductSerializer(product, context={'request': request})
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['patch'])
+    def bulk_update_ecommerce_status(self, request):
+        """Bulk update ecommerce status for multiple products"""
+        product_ids = request.data.get('product_ids', [])
+        ecommerce_fields = {}
+        
+        # Allowed fields for ecommerce status
+        allowed_fields = ['is_new_arrival', 'is_trending', 'is_featured']
+        
+        for field in allowed_fields:
+            if field in request.data:
+                ecommerce_fields[field] = request.data[field]
+        
+        if not product_ids or not ecommerce_fields:
+            return Response(
+                {'error': 'product_ids and at least one ecommerce status field are required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Update all products
+        updated_count = Product.objects.filter(id__in=product_ids).update(**ecommerce_fields)
+        
+        # Return updated products
+        products = Product.objects.filter(id__in=product_ids)
+        serializer = ProductSerializer(products, many=True, context={'request': request})
+        
+        return Response({
+            'message': f'Updated {updated_count} products',
+            'products': serializer.data
         })
 
     @action(detail=False, methods=['get'], permission_classes=[])

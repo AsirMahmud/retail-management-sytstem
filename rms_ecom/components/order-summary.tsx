@@ -3,13 +3,14 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Tag, ArrowRight } from "lucide-react"
+import { useGlobalDiscount } from "@/lib/useGlobalDiscount"
 import { useState } from "react"
 
 export function OrderSummary() {
   const [promoCode, setPromoCode] = useState("")
-
+  const globalDiscountValue = useGlobalDiscount((state) => state.discount?.value || 0)
   const subtotal = 565
-  const discountPercent = 20
+  const discountPercent = globalDiscountValue
   const discount = (subtotal * discountPercent) / 100
   const deliveryFee = 15
   const total = subtotal - discount + deliveryFee
@@ -28,7 +29,7 @@ export function OrderSummary() {
         {/* Discount */}
         <div className="flex justify-between text-base">
           <span className="text-muted-foreground">Discount (-{discountPercent}%)</span>
-          <span className="font-semibold text-destructive">-${discount}</span>
+          <span className="font-semibold text-destructive">-${discount.toFixed(2)}</span>
         </div>
 
         {/* Delivery Fee */}
@@ -40,7 +41,7 @@ export function OrderSummary() {
         <div className="border-t pt-4">
           <div className="flex justify-between text-lg">
             <span className="font-semibold">Total</span>
-            <span className="font-bold text-xl">${total}</span>
+            <span className="font-bold text-xl">${total.toFixed(2)}</span>
           </div>
         </div>
 

@@ -11,6 +11,7 @@ import { ProductTabs } from "@/components/product-tabs"
 import { ProductRecommendations } from "@/components/product-recommendations"
 import { Breadcrumb } from "@/components/breadcrumb"
 import { ecommerceApi, EcommerceProductDetail, EcommerceProduct } from "@/lib/api"
+import { useGlobalDiscount } from "@/lib/useGlobalDiscount"
 
 export default function ProductPage() {
   const params = useParams()
@@ -20,6 +21,7 @@ export default function ProductPage() {
     related_products: EcommerceProduct[];
   } | null>(null)
   const [loading, setLoading] = useState(true)
+  const globalDiscountValue = useGlobalDiscount((state) => state.discount?.value || 0);
 
   useEffect(() => {
     const fetchProductData = async () => {
@@ -67,16 +69,21 @@ export default function ProductPage() {
   }
 
   const { product, related_products } = productData
+  // Combine global (Zustand) and product-specific discounts
+  const effectiveDiscount = Math.max(globalDiscountValue, product.discount || 0);
+  const discountedPriceRaw = effectiveDiscount
+    ? product.selling_price * (1 - effectiveDiscount / 100)
+    : product.selling_price;
+  const discountedPrice = Math.round(discountedPriceRaw);
+  const originalPrice = product.original_price || (effectiveDiscount ? product.selling_price : undefined)
 
   // Transform product data to match component interface
   const transformedProduct = {
     id: product.id.toString(),
     name: product.name,
-    price: product.selling_price,
-    originalPrice: product.selling_price * 1.15, // Add some original price for discount calculation
-    discount: 15,
-    rating: 4.5, // Default rating
-    reviewCount: 451, // Default review count
+    price: discountedPrice,
+    originalPrice: originalPrice,
+    discount: effectiveDiscount,
     description: product.description || "This product offers superior comfort and style.",
     images: (product.images_ordered && product.images_ordered.length > 0)
       ? product.images_ordered
@@ -86,17 +93,23 @@ export default function ProductPage() {
       value: (color as any).hex || (color as any).value || '#000000'
     })),
     sizes: product.available_sizes,
+    variants: product.variants || [],
   }
 
-  const recommendations = related_products.map(relatedProduct => ({
-    id: relatedProduct.id.toString(),
-    name: relatedProduct.name,
-    price: relatedProduct.selling_price,
-    originalPrice: relatedProduct.selling_price * 1.1,
-    rating: 4.5,
-    image: relatedProduct.primary_image || relatedProduct.image_url || relatedProduct.image || "/placeholder.jpg",
-    discount: 10,
-  }))
+  const recommendations = related_products.map(relatedProduct => {
+    const discountedPrice = relatedProduct.discount 
+      ? relatedProduct.selling_price * (1 - relatedProduct.discount / 100)
+      : relatedProduct.selling_price
+    
+    return {
+      id: relatedProduct.id.toString(),
+      name: relatedProduct.name,
+      price: discountedPrice,
+      originalPrice: relatedProduct.original_price || (relatedProduct.discount ? relatedProduct.selling_price : undefined),
+      image: relatedProduct.primary_image || relatedProduct.image_url || relatedProduct.image || "/placeholder.jpg",
+      discount: relatedProduct.discount,
+    }
+  })
 
   return (
     <div className="flex min-h-screen flex-col">

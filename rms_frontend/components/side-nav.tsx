@@ -99,6 +99,7 @@ const mainNavItems = [
     href: "/ecommerce-settings",
     subItems: [
       { title: "Product Settings", href: "/ecommerce-settings" },
+      { title: "Home Page Settings", href: "/ecommerce-settings/home-page" },
       { title: "Discount Management", href: "/ecommerce-settings/discounts" },
       { title: "Product Status", href: "/ecommerce-settings/product-status" },
     ],

@@ -1,20 +1,32 @@
 // API configuration and functions for ecommerce frontend
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rawstitch.info/v2/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 // Types
+export interface ProductVariant {
+  size: string;
+  color: string;
+  color_hex: string;
+  stock: number;
+  variant_id: number;
+}
+
 export interface EcommerceProduct {
   id: number;
   name: string;
   sku: string;
   description?: string;
   selling_price: number;
+  original_price?: number;
   stock_quantity: number;
+  discount?: number;
   image?: string;
   image_url?: string;
   online_category_name?: string;
+  online_category_id?: number;
   available_colors: Array<{ name: string; hex: string }>;
   available_sizes: string[];
+  variants: ProductVariant[];
   primary_image?: string;
   images_ordered: string[];
   created_at: string;
@@ -48,7 +60,25 @@ export interface ShowcaseResponse {
     products: EcommerceProduct[];
     count: number;
   };
+  trending: {
+    products: EcommerceProduct[];
+    count: number;
+  };
   online_category?: number;
+}
+
+export interface Discount {
+  id: number;
+  name: string;
+  discount_type: string;
+  value: number;
+  description?: string;
+  start_date: string;
+  end_date: string;
+  status: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 // API Functions
@@ -58,12 +88,14 @@ export const ecommerceApi = {
     new_arrivals_limit?: number;
     top_selling_limit?: number;
     featured_limit?: number;
+    trending_limit?: number;
     online_category?: number;
   }): Promise<ShowcaseResponse> => {
     const searchParams = new URLSearchParams();
     if (params?.new_arrivals_limit) searchParams.set('new_arrivals_limit', params.new_arrivals_limit.toString());
     if (params?.top_selling_limit) searchParams.set('top_selling_limit', params.top_selling_limit.toString());
     if (params?.featured_limit) searchParams.set('featured_limit', params.featured_limit.toString());
+    if (params?.trending_limit) searchParams.set('trending_limit', params.trending_limit.toString());
     if (params?.online_category) searchParams.set('online_category', params.online_category.toString());
 
     const response = await fetch(`${API_BASE_URL}/inventory/products/showcase/?${searchParams}`);
@@ -139,6 +171,49 @@ export const ecommerceApi = {
   getOnlineCategories: async (): Promise<Array<{ id: number; name: string; slug: string }>> => {
     const response = await fetch(`${API_BASE_URL}/inventory/online-categories/`);
     if (!response.ok) throw new Error('Failed to fetch online categories');
+    return response.json();
+  },
+  
+  // Get home page settings
+  getHomePageSettings: async (): Promise<{
+    logo_image_url?: string;
+    logo_text?: string;
+    hero_badge_text?: string;
+    hero_heading_line1?: string;
+    hero_heading_line2?: string;
+    hero_heading_line3?: string;
+    hero_heading_line4?: string;
+    hero_heading_line5?: string;
+    hero_description?: string;
+    hero_primary_image_url?: string;
+    hero_secondary_image_url?: string;
+    stat_brands?: string;
+    stat_products?: string;
+    stat_customers?: string;
+  }> => {
+    const response = await fetch(`${API_BASE_URL}/ecommerce/public/home-page-settings/`);
+    if (!response.ok) throw new Error('Failed to fetch home page settings');
+    return response.json();
+  },
+
+  // Get brands
+  getBrands: async (): Promise<Array<{
+    id: number;
+    name: string;
+    logo_image?: string;
+    logo_image_url?: string;
+    logo_text?: string;
+    website_url?: string;
+  }>> => {
+    const response = await fetch(`${API_BASE_URL}/ecommerce/public/brands/`);
+    if (!response.ok) throw new Error('Failed to fetch brands');
+    return response.json();
+  },
+
+  // Get active app-wide discounts
+  getActiveAppWideDiscount: async (): Promise<Discount[]> => {
+    const response = await fetch(`${API_BASE_URL}/ecommerce/discounts/active/?discount_type=APP_WIDE`);
+    if (!response.ok) throw new Error('Failed to fetch active app-wide discounts');
     return response.json();
   },
 };

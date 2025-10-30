@@ -17,6 +17,7 @@ export default function HomePage() {
     new_arrivals: EcommerceProduct[];
     top_selling: EcommerceProduct[];
     featured: EcommerceProduct[];
+    trending: EcommerceProduct[];
   } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -27,11 +28,13 @@ export default function HomePage() {
           new_arrivals_limit: 4,
           top_selling_limit: 4,
           featured_limit: 4,
+          trending_limit: 4,
         });
         setShowcaseData({
           new_arrivals: data.new_arrivals.products,
           top_selling: data.top_selling.products,
           featured: data.featured.products,
+          trending: data.trending.products,
         });
       } catch (error) {
         console.error('Failed to fetch showcase data:', error);
@@ -78,17 +81,39 @@ export default function HomePage() {
         <BrandShowcase />
         {showcaseData && (
           <>
-            <ProductSection 
-              title="NEW ARRIVALS" 
-              products={showcaseData.new_arrivals.map(transformProduct)} 
-            />
-            <div className="container px-4">
-              <hr className="border-border" />
-            </div>
-            <ProductSection 
-              title="TOP SELLING" 
-              products={showcaseData.top_selling.map(transformProduct)} 
-            />
+            {showcaseData.new_arrivals.length > 0 && (
+              <ProductSection 
+                title="NEW ARRIVALS" 
+                products={showcaseData.new_arrivals.map(transformProduct)} 
+              />
+            )}
+            {showcaseData.top_selling.length > 0 && (
+              <>
+                <div className="container px-4"><hr className="border-border" /></div>
+                <ProductSection 
+                  title="TOP SELLING" 
+                  products={showcaseData.top_selling.map(transformProduct)} 
+                />
+              </>
+            )}
+            {showcaseData.trending.length > 0 && (
+              <>
+                <div className="container px-4"><hr className="border-border" /></div>
+                <ProductSection 
+                  title="TRENDING" 
+                  products={showcaseData.trending.map(transformProduct)} 
+                />
+              </>
+            )}
+            {showcaseData.featured.length > 0 && (
+              <>
+                <div className="container px-4"><hr className="border-border" /></div>
+                <ProductSection 
+                  title="FEATURED" 
+                  products={showcaseData.featured.map(transformProduct)} 
+                />
+              </>
+            )}
           </>
         )}
         <CategorySection />

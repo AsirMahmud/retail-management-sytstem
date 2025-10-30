@@ -5,7 +5,6 @@ interface Product {
   name: string
   price: number
   originalPrice?: number
-  rating: number
   image: string
   discount?: number
 }

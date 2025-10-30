@@ -30,93 +30,77 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
+import { useProducts } from "@/hooks/queries/useInventory";
+import { useUpdateProductEcommerceStatus } from "@/hooks/queries/useEcommerce";
 
-// Mock data for products with status
-const mockProducts = [
-  {
-    id: 1,
-    name: "Red Running Shoes",
-    sku: "RS-001",
-    image: "/placeholder.jpg",
-    category: "Footwear",
-    price: 89.99,
-    stock: 25,
-    isNewArrival: true,
-    isTrending: false,
-    isFeatured: true,
-    status: "active",
-  },
-  {
-    id: 2,
-    name: "Vintage Camera",
-    sku: "VC-012",
-    image: "/placeholder.jpg",
-    category: "Electronics",
-    price: 299.99,
-    stock: 8,
-    isNewArrival: false,
-    isTrending: true,
-    isFeatured: false,
-    status: "active",
-  },
-  {
-    id: 3,
-    name: "Wireless Headphones",
-    sku: "WH-055",
-    image: "/placeholder.jpg",
-    category: "Electronics",
-    price: 149.99,
-    stock: 15,
-    isNewArrival: false,
-    isTrending: false,
-    isFeatured: true,
-    status: "active",
-  },
-  {
-    id: 4,
-    name: "Blue Jeans",
-    sku: "BJ-023",
-    image: "/placeholder.jpg",
-    category: "Clothing",
-    price: 59.99,
-    stock: 30,
-    isNewArrival: true,
-    isTrending: true,
-    isFeatured: false,
-    status: "active",
-  },
-  {
-    id: 5,
-    name: "Smart Watch",
-    sku: "SW-078",
-    image: "/placeholder.jpg",
-    category: "Electronics",
-    price: 199.99,
-    stock: 0,
-    isNewArrival: false,
-    isTrending: false,
-    isFeatured: false,
-    status: "inactive",
-  },
-];
+interface Product {
+  id: number;
+  name: string;
+  sku: string;
+  image: string;
+  image_url?: string;
+  category: string;
+  online_category_name?: string;
+  price: number;
+  selling_price: number;
+  stock: number;
+  stock_quantity: number;
+  is_new_arrival: boolean;
+  is_trending: boolean;
+  is_featured: boolean;
+  status: string;
+  assign_to_online: boolean;
+}
 
 export default function ProductStatusPage() {
-  const [products, setProducts] = useState(mockProducts);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [featureFilter, setFeatureFilter] = useState("all");
 
-  const handleToggleStatus = (productId: number, status: 'newArrival' | 'trending' | 'featured') => {
-    setProducts(prev => prev.map(product => 
-      product.id === productId 
-        ? { ...product, [`is${status.charAt(0).toUpperCase() + status.slice(1)}`]: !product[`is${status.charAt(0).toUpperCase() + status.slice(1)}`] }
-        : product
-    ));
+  // Use React Query hooks
+  const { data: products = [], isLoading, error, refetch } = useProducts();
+
+  // Transform products data
+  const transformedProducts = products.map((product: any) => ({
+    id: product.id,
+    name: product.name,
+    sku: product.sku,
+    image: product.image || product.image_url || "/placeholder.jpg",
+    category: product.online_category_name || product.category_name || "Uncategorized",
+    price: product.selling_price || product.cost_price || 0,
+    stock: product.stock_quantity || 0,
+    is_new_arrival: product.is_new_arrival || false,
+    is_trending: product.is_trending || false,
+    is_featured: product.is_featured || false,
+    status: product.assign_to_online ? "active" : "inactive",
+    assign_to_online: product.assign_to_online || false,
+  }));
+
+  // Update product status using React Query mutation
+  const updateProductStatusMutation = useUpdateProductEcommerceStatus();
+  
+  const updateProductStatus = async (productId: number, field: string, value: boolean) => {
+    try {
+      await updateProductStatusMutation.mutateAsync({ 
+        productId, 
+        status: { [field]: value } 
+      });
+      toast.success(`${field.replace('_', ' ')} status updated successfully`);
+    } catch (error: any) {
+      console.error('Error updating product status:', error);
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to update product status";
+      toast.error(errorMessage);
+    }
+  };
+
+  const handleToggleStatus = (productId: number, status: 'new_arrival' | 'trending' | 'featured') => {
+    const currentValue = transformedProducts.find(p => p.id === productId)?.[`is_${status}`] || false;
+    updateProductStatus(productId, `is_${status}`, !currentValue);
   };
 
   const handleSaveChanges = () => {
-    toast.success("Product status changes saved successfully!");
+    toast.success("All changes are saved automatically!");
   };
 
   const handleResetFilters = () => {
@@ -126,20 +110,20 @@ export default function ProductStatusPage() {
     setFeatureFilter("all");
   };
 
-  const filteredProducts = products.filter(product => {
+  const filteredProducts = transformedProducts.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          product.sku.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter === "all" || product.category === categoryFilter;
     const matchesStatus = statusFilter === "all" || product.status === statusFilter;
     const matchesFeature = featureFilter === "all" || 
-                          (featureFilter === "new" && product.isNewArrival) ||
-                          (featureFilter === "trending" && product.isTrending) ||
-                          (featureFilter === "featured" && product.isFeatured);
+                          (featureFilter === "new" && product.is_new_arrival) ||
+                          (featureFilter === "trending" && product.is_trending) ||
+                          (featureFilter === "featured" && product.is_featured);
     
     return matchesSearch && matchesCategory && matchesStatus && matchesFeature;
   });
 
-  const categories = Array.from(new Set(products.map(p => p.category)));
+  const categories = Array.from(new Set(transformedProducts.map(p => p.category)));
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -255,7 +239,7 @@ export default function ProductStatusPage() {
               
               <div className="flex justify-between items-center mt-6">
                 <div className="text-sm text-gray-500">
-                  Showing {filteredProducts.length} of {products.length} products
+                  Showing {filteredProducts.length} of {transformedProducts.length} products
                 </div>
                 <Button
                   variant="outline"
@@ -282,42 +266,69 @@ export default function ProductStatusPage() {
                   </CardDescription>
                 </div>
                 <Button
-                  onClick={handleSaveChanges}
-                  className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg"
+                  onClick={() => refetch()}
+                  variant="outline"
+                  className="flex items-center space-x-2"
                 >
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Changes
+                  <RefreshCw className="h-4 w-4" />
+                  <span>Refresh</span>
                 </Button>
               </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {/* Table Header */}
-                <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-500 border-b pb-2">
-                  <div className="col-span-4">Product</div>
-                  <div className="col-span-2 text-center">Status</div>
-                  <div className="col-span-2 text-center">Stock</div>
-                  <div className="col-span-1 text-center">New</div>
-                  <div className="col-span-1 text-center">Trending</div>
-                  <div className="col-span-1 text-center">Featured</div>
-                  <div className="col-span-1 text-center">Actions</div>
+              {isLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
+                  <span className="ml-2 text-gray-600">Loading products...</span>
                 </div>
-                
-                {/* Products */}
-                {filteredProducts.map((product) => (
+              ) : error ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="text-red-500 mb-4">
+                    <svg className="h-12 w-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to load products</h3>
+                  <p className="text-gray-500 mb-4">There was an error loading the products data.</p>
+                  <Button onClick={() => refetch()} variant="outline">
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Try Again
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Table Header */}
+                  <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-500 border-b pb-2">
+                    <div className="col-span-4">Product</div>
+                    <div className="col-span-2 text-center">Status</div>
+                    <div className="col-span-2 text-center">Stock</div>
+                    <div className="col-span-1 text-center">New</div>
+                    <div className="col-span-1 text-center">Trending</div>
+                    <div className="col-span-1 text-center">Featured</div>
+                    <div className="col-span-1 text-center">Actions</div>
+                  </div>
+                  
+                  {/* Products */}
+                  {filteredProducts.map((product) => (
                   <div key={product.id} className="grid grid-cols-12 gap-4 items-center py-4 border-b border-gray-100 hover:bg-gray-50 rounded-lg px-2">
                     <div className="col-span-4 flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                        <Image 
-                          src={product.image} 
-                          alt={product.name}
-                          width={32}
-                          height={32}
-                          className="object-cover rounded"
-                          onError={(e) => {
-                            e.currentTarget.src = '/placeholder.jpg';
-                          }}
-                        />
+                      <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                        {product.image && product.image !== "/placeholder.jpg" ? (
+                          <Image 
+                            src={product.image} 
+                            alt={product.name}
+                            width={48}
+                            height={48}
+                            className="object-cover w-full h-full"
+                            onError={(e) => {
+                              e.currentTarget.src = '/placeholder.jpg';
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">
+                            No Image
+                          </div>
+                        )}
                       </div>
                       <div>
                         <div className="font-medium text-gray-900">{product.name}</div>
@@ -336,38 +347,41 @@ export default function ProductStatusPage() {
                     
                     <div className="col-span-1 flex justify-center">
                       <Switch
-                        checked={product.isNewArrival}
-                        onCheckedChange={() => handleToggleStatus(product.id, 'newArrival')}
+                        checked={product.is_new_arrival}
+                        onCheckedChange={() => handleToggleStatus(product.id, 'new_arrival')}
                         className="data-[state=checked]:bg-blue-600"
+                        disabled={updateProductStatusMutation.isPending}
                       />
                     </div>
                     
                     <div className="col-span-1 flex justify-center">
                       <Switch
-                        checked={product.isTrending}
+                        checked={product.is_trending}
                         onCheckedChange={() => handleToggleStatus(product.id, 'trending')}
                         className="data-[state=checked]:bg-blue-600"
+                        disabled={updateProductStatusMutation.isPending}
                       />
                     </div>
                     
                     <div className="col-span-1 flex justify-center">
                       <Switch
-                        checked={product.isFeatured}
+                        checked={product.is_featured}
                         onCheckedChange={() => handleToggleStatus(product.id, 'featured')}
                         className="data-[state=checked]:bg-blue-600"
+                        disabled={updateProductStatusMutation.isPending}
                       />
                     </div>
                     
                     <div className="col-span-1 text-center">
                       <div className="flex justify-center space-x-1">
-                        {product.isNewArrival && (
-                          <Sparkles className="h-4 w-4 text-blue-500" title="New Arrival" />
+                        {product.is_new_arrival && (
+                          <Sparkles className="h-4 w-4 text-blue-500" />
                         )}
-                        {product.isTrending && (
-                          <TrendingUp className="h-4 w-4 text-green-500" title="Trending" />
+                        {product.is_trending && (
+                          <TrendingUp className="h-4 w-4 text-green-500" />
                         )}
-                        {product.isFeatured && (
-                          <Star className="h-4 w-4 text-yellow-500" title="Featured" />
+                        {product.is_featured && (
+                          <Star className="h-4 w-4 text-yellow-500" />
                         )}
                       </div>
                     </div>
@@ -380,6 +394,7 @@ export default function ProductStatusPage() {
                   </div>
                 )}
               </div>
+              )}
             </CardContent>
           </Card>
         </div>
