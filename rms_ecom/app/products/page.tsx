@@ -21,6 +21,13 @@ export default function AllProductsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("popular")
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
+  const [activeFilters, setActiveFilters] = useState<{
+    online_category?: number
+    price_min?: number
+    price_max?: number
+    colors?: string[]
+    sizes?: string[]
+  }>({})
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -39,7 +46,7 @@ export default function AllProductsPage() {
     fetchProducts()
   }, [selectedCategory])
 
-  // Filter and sort products
+  // Apply search + active filters + sort
   useEffect(() => {
     let filtered = products
 
@@ -50,6 +57,76 @@ export default function AllProductsPage() {
         product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.sku.toLowerCase().includes(searchTerm.toLowerCase())
       )
+    }
+
+    // Category filter (defensive; backend may already filter by category)
+    if (activeFilters.online_category) {
+      filtered = filtered.filter(p => p.online_category_id === activeFilters.online_category)
+    }
+
+    // Price range
+    if (typeof activeFilters.price_min === 'number') {
+      filtered = filtered.filter(p => p.selling_price >= (activeFilters.price_min as number))
+    }
+    if (typeof activeFilters.price_max === 'number') {
+      filtered = filtered.filter(p => p.selling_price <= (activeFilters.price_max as number))
+    }
+
+    // Colors
+    if (activeFilters.colors && activeFilters.colors.length > 0) {
+      filtered = filtered.filter(p => {
+        const names = new Set((p.available_colors || []).map(c => (c.name || '').toLowerCase()))
+        const variantColors = new Set((p.variants || []).map(v => (v.color || '').toLowerCase()))
+        return activeFilters.colors!.some(c => names.has(c.toLowerCase()) || variantColors.has(c.toLowerCase()))
+      })
+    }
+
+    // Sizes (normalize for matching e.g., "XX-Small" -> "xxs", "3X-Large" -> "3xl")
+    const normalizeSize = (val: string) => {
+      const raw = (val || '').toLowerCase().trim()
+      const directMap: Record<string, string> = {
+        'xx-small': 'xxs',
+        'x-small': 'xs',
+        'small': 's',
+        'medium': 'm',
+        'large': 'l',
+        'x-large': 'xl',
+        'xx-large': 'xxl',
+        '3x-large': '3xl',
+        '4x-large': '4xl',
+        // common compact forms
+        'xxs': 'xxs',
+        'xs': 'xs',
+        's': 's',
+        'm': 'm',
+        'l': 'l',
+        'xl': 'xl',
+        'xxl': 'xxl',
+        'xxxl': '3xl',
+        '3xl': '3xl',
+        '4xl': '4xl',
+      }
+      if (directMap[raw]) return directMap[raw]
+      const compact = raw.replace(/\s|-/g, '') // remove spaces and hyphens
+      if (directMap[compact]) return directMap[compact]
+      const match = compact.match(/^(\d+)x?large$/)
+      if (match) return `${match[1]}xl`
+      const match2 = compact.match(/^(\d+)xl$/)
+      if (match2) return `${match2[1]}xl`
+      return compact
+    }
+
+    if (activeFilters.sizes && activeFilters.sizes.length > 0) {
+      const wanted = new Set(activeFilters.sizes.map(s => normalizeSize(s)))
+      filtered = filtered.filter(p => {
+        const sizeList = new Set((p.available_sizes || []).map(s => normalizeSize(s)))
+        const variantSizes = new Set((p.variants || []).map(v => normalizeSize(v.size)))
+        // match if any desired size appears in either list
+        for (const w of wanted) {
+          if (sizeList.has(w) || variantSizes.has(w)) return true
+        }
+        return false
+      })
     }
 
     // Sort products
@@ -73,10 +150,31 @@ export default function AllProductsPage() {
     }
 
     setFilteredProducts(filtered)
-  }, [products, searchTerm, sortBy])
+  }, [products, searchTerm, sortBy, activeFilters])
 
   const handleCategoryChange = (categoryId: number | null) => {
     setSelectedCategory(categoryId)
+  }
+
+  const handleFiltersChange = (filters: {
+    online_category?: number
+    price_min?: number
+    price_max?: number
+    colors?: string[]
+    sizes?: string[]
+    dress_styles?: string[]
+  }) => {
+    // Keep category in sync with left sidebar category selection
+    if (typeof filters.online_category !== 'undefined') {
+      setSelectedCategory(filters.online_category ?? null)
+    }
+    setActiveFilters({
+      online_category: filters.online_category,
+      price_min: filters.price_min,
+      price_max: filters.price_max,
+      colors: filters.colors,
+      sizes: filters.sizes,
+    })
   }
 
   return (
@@ -136,7 +234,7 @@ export default function AllProductsPage() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-full sm:w-[400px] overflow-y-auto">
-                <CategoryFilters onCategoryChange={handleCategoryChange} />
+                <CategoryFilters onCategoryChange={handleCategoryChange} onFiltersChange={handleFiltersChange} />
               </SheetContent>
             </Sheet>
           </div>
@@ -144,7 +242,7 @@ export default function AllProductsPage() {
           <div className="flex gap-6">
             {/* Desktop Sidebar */}
             <aside className="hidden lg:block w-64 flex-shrink-0">
-              <CategoryFilters onCategoryChange={handleCategoryChange} />
+              <CategoryFilters onCategoryChange={handleCategoryChange} onFiltersChange={handleFiltersChange} />
             </aside>
 
             {/* Main Content */}

@@ -43,7 +43,7 @@ export default function OrderCompletePage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total:</span>
-                  <span className="font-medium">$565.00</span>
+                  <span className="font-medium">৳565.00</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Payment Method:</span>

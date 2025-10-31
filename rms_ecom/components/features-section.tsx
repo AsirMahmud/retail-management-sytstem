@@ -4,7 +4,7 @@ const features = [
   {
     icon: Package,
     title: "Free Shipping",
-    description: "Free shipping on all orders over $100",
+    description: "Free shipping on all orders over ৳100",
   },
   {
     icon: Shield,

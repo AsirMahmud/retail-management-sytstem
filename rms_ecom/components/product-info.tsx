@@ -101,11 +101,11 @@ export function ProductInfo({ product }: ProductInfoProps) {
         )}
 
         <div className="flex items-center gap-3 mb-5">
-          <span className="text-3xl lg:text-[32px] font-bold">${Math.round(product.price)}</span>
+          <span className="text-3xl lg:text-[32px] font-bold">৳{Math.round(product.price)}</span>
           {product.originalPrice && (
             <>
               <span className="text-2xl lg:text-[28px] text-muted-foreground/60 line-through">
-                ${Math.round(product.originalPrice)}
+                ৳{Math.round(product.originalPrice)}
               </span>
               <span className="rounded-full bg-red-100 px-3.5 py-1.5 text-xs font-medium text-red-600">
                 -{product.discount}%

@@ -51,7 +51,7 @@ export function CheckoutSummary() {
               <p className="text-xs text-muted-foreground">
                 {item.size} / {item.color}
               </p>
-              <p className="text-sm font-semibold mt-1">${item.price}</p>
+              <p className="text-sm font-semibold mt-1">৳{item.price}</p>
             </div>
             <div className="text-sm text-muted-foreground">x{item.quantity}</div>
           </div>
@@ -62,15 +62,15 @@ export function CheckoutSummary() {
       <div className="space-y-3 pt-4 border-t">
         <div className="flex justify-between text-base">
           <span className="text-muted-foreground">Subtotal</span>
-          <span className="font-semibold">${subtotal}</span>
+          <span className="font-semibold">৳{subtotal}</span>
         </div>
         <div className="flex justify-between text-base">
           <span className="text-muted-foreground">Shipping</span>
-          <span className="font-semibold">{shipping === 0 ? "Free" : `$${shipping}`}</span>
+          <span className="font-semibold">{shipping === 0 ? "Free" : `৳${shipping}`}</span>
         </div>
         <div className="flex justify-between text-lg font-bold pt-2 border-t">
           <span>Total</span>
-          <span>${total}</span>
+          <span>৳{total}</span>
         </div>
       </div>
     </div>

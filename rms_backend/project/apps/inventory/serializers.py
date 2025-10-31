@@ -121,12 +121,18 @@ class EcommerceProductSerializer(serializers.ModelSerializer):
         ]
     
     def get_image_url(self, obj):
-        if obj.image:
+        try:
+            if not obj.image:
+                return None
+            url = getattr(obj.image, 'url', None)
+            if not url:
+                return None
             request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image.url)
-            return obj.image.url
-        return None
+            if request and isinstance(url, str):
+                return request.build_absolute_uri(url)
+            return url
+        except Exception:
+            return None
     
     def get_available_colors(self, obj):
         """Get unique colors from product variations"""
@@ -144,11 +150,12 @@ class EcommerceProductSerializer(serializers.ModelSerializer):
             primary_gallery = obj.galleries.first()
             if primary_gallery:
                 primary_img = primary_gallery.images.filter(imageType='PRIMARY').first()
-                if primary_img:
+                if primary_img and getattr(primary_img.image, 'url', None):
+                    url = primary_img.image.url
                     request = self.context.get('request')
-                    if request:
-                        return request.build_absolute_uri(primary_img.image.url)
-                    return primary_img.image.url
+                    if request and isinstance(url, str):
+                        return request.build_absolute_uri(url)
+                    return url
         except:
             pass
         return None
@@ -162,12 +169,13 @@ class EcommerceProductSerializer(serializers.ModelSerializer):
                 image_order = ['PRIMARY', 'SECONDARY', 'THIRD', 'FOURTH']
                 for img_type in image_order:
                     img = gallery.images.filter(imageType=img_type).first()
-                    if img:
+                    if img and getattr(img.image, 'url', None):
+                        url = img.image.url
                         request = self.context.get('request')
-                        if request:
-                            images.append(request.build_absolute_uri(img.image.url))
+                        if request and isinstance(url, str):
+                            images.append(request.build_absolute_uri(url))
                         else:
-                            images.append(img.image.url)
+                            images.append(url)
         except:
             pass
         return images
