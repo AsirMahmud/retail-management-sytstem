@@ -207,7 +207,7 @@ export function ProductGrid({ category, products: propProducts }: ProductGridPro
       </div>
 
       {/* Product Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+      <div className="grid  grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {paginatedProducts.map((product) => (
           <ProductCard key={product.id} {...product} id={String(product.id)} />
         ))}

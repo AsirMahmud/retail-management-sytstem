@@ -572,7 +572,7 @@ export function ModernPOS() {
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
+                  {/* <Input
                     ref={barcodeInputRef}
                     placeholder="Scan barcode or QR code (Always Ready)"
                     value={searchQuery}
@@ -588,7 +588,7 @@ export function ModernPOS() {
                     }}
                     autoFocus
                     className="pl-10"
-                  />
+                  /> */}
                 </div>
                 <Button
                   variant="outline"

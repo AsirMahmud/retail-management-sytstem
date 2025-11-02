@@ -3,75 +3,138 @@
 import Image from "next/image"
 import { Trash2, Minus, Plus, Tag } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useMemo } from "react"
+import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { useCartStore } from "@/hooks/useCartStore"
-// Local-only cart: no server pricing. We render minimal information and enforce optional local maxStock if present.
+import { ecommerceApi } from "@/lib/api"
+
+interface PricedCartItem {
+  productId: number
+  name: string
+  image_url?: string | null
+  unit_price: number
+  quantity: number
+  line_total: number
+  max_stock?: number
+  variant?: { color?: string | null; size?: string | null }
+}
 
 export function CartItems() {
   const items = useCartStore((s) => s.items)
   const updateQty = useCartStore((s) => s.updateQuantity)
   const removeLine = useCartStore((s) => s.removeItem)
+  const [pricedItems, setPricedItems] = useState<PricedCartItem[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchPricedItems = async () => {
+      if (items.length === 0) {
+        setPricedItems([])
+        setLoading(false)
+        return
+      }
+
+      try {
+        setLoading(true)
+        const response = await ecommerceApi.priceCart(items)
+        setPricedItems(response.items)
+      } catch (error) {
+        console.error("Failed to fetch cart prices:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchPricedItems()
+  }, [items])
 
   if (items.length === 0) {
     return <div className="text-center text-muted-foreground py-8">Your cart is empty.</div>
   }
 
+  if (loading) {
+    return <div className="text-center text-muted-foreground py-8">Loading cart items...</div>
+  }
+
   return (
     <div className="space-y-4">
-      {items.map((it) => (
-        <div key={`${it.productId}-${JSON.stringify(it.variations||{})}`} className="flex gap-4 p-4 border rounded-lg bg-card">
-          <div className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted" />
-          <div className="flex-1 min-w-0">
-            <div className="flex justify-between items-start gap-4">
-              <div className="flex-1">
-                <h3 className="font-semibold text-base md:text-lg mb-1">Product {it.productId}{it.variations?.color || it.variations?.size ? ` / ${[it.variations?.color, it.variations?.size].filter(Boolean).join('/')}` : ''}</h3>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
-                onClick={() => removeLine(String(it.productId), it.variations)}
-              >
-                <Trash2 className="h-5 w-5" />
-                <span className="sr-only">Remove item</span>
-              </Button>
+      {items.map((it) => {
+        const pricedItem = pricedItems.find(
+          (pi) => pi.productId === Number(it.productId) &&
+          pi.variant?.color === it.variations?.color &&
+          pi.variant?.size === it.variations?.size
+        )
+
+        const productName = pricedItem?.name || `Product ${it.productId}`
+        const productImage = pricedItem?.image_url || "/placeholder.svg"
+        const color = pricedItem?.variant?.color || it.variations?.color
+        const size = pricedItem?.variant?.size || it.variations?.size
+
+        return (
+          <div key={`${it.productId}-${JSON.stringify(it.variations||{})}`} className="flex gap-4 p-4 border rounded-lg bg-card">
+            <div className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
+              <Image
+                src={productImage}
+                alt={productName}
+                fill
+                className="object-cover"
+              />
             </div>
-            <div className="flex justify-between items-center mt-4">
-              <p className="text-sm text-muted-foreground">Price shown at checkout</p>
-              <div className="flex items-center gap-3 bg-muted rounded-full px-4 py-2">
+            <div className="flex-1 min-w-0">
+              <div className="flex justify-between items-start gap-4">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-base md:text-lg mb-1">{productName}</h3>
+                  <p className="text-xs text-muted-foreground mb-1">ID: {it.productId}</p>
+                  {(color || size) && (
+                    <div className="flex gap-2 text-sm text-muted-foreground mt-1">
+                      {color && <span>Color: <span className="font-medium">{color}</span></span>}
+                      {size && <span>Size: <span className="font-medium">{size}</span></span>}
+                    </div>
+                  )}
+                </div>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 rounded-full hover:bg-background"
-                  onClick={() => updateQty(String(it.productId), it.quantity - 1, it.variations)}
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
+                  onClick={() => removeLine(String(it.productId), it.variations)}
                 >
-                  <Minus className="h-3 w-3" />
-                  <span className="sr-only">Decrease quantity</span>
+                  <Trash2 className="h-5 w-5" />
+                  <span className="sr-only">Remove item</span>
                 </Button>
-                <span className="text-sm font-medium w-8 text-center">{it.quantity}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 rounded-full hover:bg-background"
-                  disabled={(() => { const m = Number((it.variations as any)?.maxStock); return Number.isFinite(m) && m > 0 ? it.quantity >= m : false })()}
-                  onClick={() => {
-                    const max = Number((it.variations as any)?.maxStock)
-                    if (Number.isFinite(max) && max > 0) {
-                      if (it.quantity < max) updateQty(String(it.productId), it.quantity + 1, it.variations)
-                    } else {
+              </div>
+              <div className="flex justify-between items-center mt-4">
+                <p className="text-sm text-muted-foreground">Price shown at checkout</p>
+                <div className="flex items-center gap-3 bg-muted rounded-full px-4 py-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 rounded-full hover:bg-background"
+                    onClick={() => updateQty(String(it.productId), it.quantity - 1, it.variations)}
+                  >
+                    <Minus className="h-3 w-3" />
+                    <span className="sr-only">Decrease quantity</span>
+                  </Button>
+                  <span className="text-sm font-medium w-8 text-center">{it.quantity}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 rounded-full hover:bg-background"
+                    disabled={pricedItem?.max_stock ? it.quantity >= pricedItem.max_stock : false}
+                    onClick={() => {
+                      const max = pricedItem?.max_stock
+                      if (max && it.quantity >= max) return
                       updateQty(String(it.productId), it.quantity + 1, it.variations)
-                    }
-                  }}
-                >
-                  <Plus className="h-3 w-3" />
-                  <span className="sr-only">Increase quantity</span>
-                </Button>
+                    }}
+                  >
+                    <Plus className="h-3 w-3" />
+                    <span className="sr-only">Increase quantity</span>
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
 
       {/* Coupon Code Section (placeholder) */}
       <div className="pt-6">

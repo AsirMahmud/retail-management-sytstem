@@ -31,9 +31,9 @@ export function ProductCard({ id, name, price, originalPrice, image, discount }:
   const addToCart = useCartStore((s) => s.addItem)
 
   return (
-    <Link href={`/product/${id}`}>
-      <Card className="group cursor-pointer border-0 shadow-none h-[520px]">
-        <CardContent className="p-0">
+    <Link href={`/product/${id}`} className="block w-full ">
+      <Card className="group cursor-pointer border-0 shadow-none lg:min-h-[420px] w-full">
+        <CardContent className="p-0 w-full">
           <div className="relative aspect-square overflow-hidden rounded-2xl bg-muted mb-4">
             {showDiscount && (
               <div className="absolute left-3 top-3 z-10">
