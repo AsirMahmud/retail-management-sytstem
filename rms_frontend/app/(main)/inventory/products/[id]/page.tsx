@@ -31,6 +31,7 @@ import { AddStockDialog } from "@/components/inventory/add-stock-dialog";
 import { useQuery } from "@tanstack/react-query";
 import { productsApi, type StockMovement } from "@/lib/api/inventory";
 import { getImageUrl } from "@/lib/utils";
+import QRCodeSVG from "react-qr-code";
 
 export default function ProductPage() {
   const params = useParams();
@@ -879,7 +880,7 @@ function ProductDetails({ product }: ProductDetailsProps) {
                   <Button
                     size="sm"
                     variant="default"
-                    onClick={() => handlePrintAllVariantsByStock(product)}
+                    onClick={async () => await handlePrintAllVariantsByStock(product)}
                   >
                     Print All by Stock
                   </Button>
@@ -1056,8 +1057,151 @@ function VariantPrintRow({
   );
 }
 
-function handlePrintLabel(product: Product, variation: any, count: number) {
+// Helper function to generate QR code data URL
+function generateQRCodeDataURL(productId: number, size: string, color: string): Promise<string> {
+  return new Promise((resolve) => {
+    // Create cart data structure similar to ReceiptModal
+    const cartData = {
+      items: [{
+        productId: String(productId),
+        quantity: 1,
+        variations: {
+          color: color || "",
+          size: size || "",
+        },
+      }],
+    };
+    
+    // Compress by encoding as base64 JSON
+    const qrCodeData = btoa(JSON.stringify(cartData));
+    
+    // Create a temporary container to render QR code (35mm ≈ 132px at 96 DPI)
+    const qrSize = 132; // 35mm in pixels at 96 DPI
+    const container = document.createElement("div");
+    container.style.position = "fixed";
+    container.style.left = "-9999px";
+    container.style.top = "-9999px";
+    container.style.width = `${qrSize}px`;
+    container.style.height = `${qrSize}px`;
+    container.style.visibility = "hidden";
+    document.body.appendChild(container);
+    
+    // Use React imports from the component
+    const React = require("react");
+    const ReactDOM = require("react-dom/client");
+    
+    const qrElement = React.createElement(QRCodeSVG, {
+      value: qrCodeData,
+      size: qrSize,
+      level: "M",
+      bgColor: "#ffffff",
+      fgColor: "#000000",
+    });
+    
+    let root: any = null;
+    try {
+      root = ReactDOM.createRoot(container);
+      root.render(qrElement);
+    } catch (error) {
+      console.error("Failed to create React root:", error);
+      document.body.removeChild(container);
+      resolve("");
+      return;
+    }
+    
+    // Wait longer for QR code to render and increase retries
+    let attempts = 0;
+    const maxAttempts = 20;
+    
+    const checkForSVG = () => {
+      attempts++;
+      const svgElement = container.querySelector("svg");
+      
+      if (svgElement && svgElement.innerHTML) {
+        try {
+          const svgData = new XMLSerializer().serializeToString(svgElement);
+          // Convert SVG to base64 data URL directly
+          const base64Svg = btoa(unescape(encodeURIComponent(svgData)));
+          const dataUrl = `data:image/svg+xml;base64,${base64Svg}`;
+          
+          // Also create PNG version for better print compatibility
+          const img = document.createElement("img");
+          img.crossOrigin = "anonymous";
+          
+          img.onload = () => {
+            try {
+              const canvas = document.createElement("canvas");
+              canvas.width = qrSize;
+              canvas.height = qrSize;
+              const ctx = canvas.getContext("2d");
+              if (ctx) {
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, qrSize, qrSize);
+                ctx.drawImage(img, 0, 0, qrSize, qrSize);
+                const pngDataUrl = canvas.toDataURL("image/png");
+                document.body.removeChild(container);
+                if (root) root.unmount();
+                resolve(pngDataUrl);
+              } else {
+                // Fallback to SVG
+                document.body.removeChild(container);
+                if (root) root.unmount();
+                resolve(dataUrl);
+              }
+            } catch (err) {
+              console.error("Error converting to PNG:", err);
+              document.body.removeChild(container);
+              if (root) root.unmount();
+              resolve(dataUrl);
+            }
+          };
+          
+          img.onerror = () => {
+            console.error("Error loading SVG image");
+            document.body.removeChild(container);
+            if (root) root.unmount();
+            resolve(dataUrl); // Fallback to SVG data URL
+          };
+          
+          img.src = dataUrl;
+        } catch (err) {
+          console.error("Error serializing SVG:", err);
+          document.body.removeChild(container);
+          if (root) root.unmount();
+          resolve("");
+        }
+      } else if (attempts < maxAttempts) {
+        setTimeout(checkForSVG, 50);
+      } else {
+        console.error("QR code failed to render after", maxAttempts, "attempts");
+        document.body.removeChild(container);
+        if (root) root.unmount();
+        resolve("");
+      }
+    };
+    
+    // Start checking after initial delay
+    setTimeout(checkForSVG, 200);
+  });
+}
+
+async function handlePrintLabel(product: Product, variation: any, count: number) {
   if (!count || count < 1) return;
+  
+  // Generate QR code data URL
+  const qrCodeDataURL = await generateQRCodeDataURL(
+    product.id,
+    variation.size,
+    variation.color
+  );
+  
+  // Log for debugging
+  console.log("QR Code Data URL generated:", qrCodeDataURL ? "Yes" : "No", qrCodeDataURL ? qrCodeDataURL.substring(0, 50) + "..." : "");
+  if (!qrCodeDataURL) {
+    console.error("QR code generation failed");
+    // Continue anyway - will show "No QR" placeholder
+  }
+  
   const printWindow = window.open("", "_blank", "width=220,height=120");
   if (!printWindow) return;
   const style = `
@@ -1119,6 +1263,28 @@ function handlePrintLabel(product: Product, variation: any, count: number) {
         margin-right: 4px;
         border: 1px solid #000;
         background: #fff;
+      }
+      .label-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        height: 100%;
+        justify-content: space-between;
+      }
+      .label-text {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+        justify-content: center;
+      }
+      .qr-code {
+        width: 100px;
+        height: 100px;
+        margin-top: 2mm;
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
       }
       @media print {
         body {
@@ -1133,14 +1299,20 @@ function handlePrintLabel(product: Product, variation: any, count: number) {
   for (let i = 0; i < count; i++) {
     labels += `
       <div class="label">
-        <div class="sku">SKU: ${product.sku}</div>
-        <div class="price">Price: ৳${product.selling_price}</div>
-        <div class="size">Size: ${variation.size}</div>
-        <div class="color">Color: <span class="color-swatch" style="background:${variation.color};"></span>${variation.color}</div>
+        <div class="label-content">
+          <div class="label-text">
+            <div class="sku">SKU: ${product.sku}</div>
+            <div class="price">Price: ৳${product.selling_price}</div>
+            <div class="size">Size: ${variation.size}</div>
+            <div class="color">Color: <span class="color-swatch" style="background:${variation.color_hax || variation.color};"></span>${variation.color}</div>
+          </div>
+          ${qrCodeDataURL ? `<img src="${qrCodeDataURL.replace(/"/g, '&quot;')}" alt="QR Code" class="qr-code" />` : '<div class="qr-code" style="display: flex; align-items: center; justify-content: center; text-align: center; font-size: 10px; color: #000;">No QR</div>'}
+        </div>
       </div>
     `;
   }
   const html = `
+    <!DOCTYPE html>
     <html>
       <head>
         <title>Print Label</title>
@@ -1150,10 +1322,42 @@ function handlePrintLabel(product: Product, variation: any, count: number) {
         ${labels}
         <script>
         window.onload = function() {
-          setTimeout(function() {
-            window.print();
-            window.onafterprint = function() { window.close(); };
-          }, 300);
+          // Wait for images to load
+          const images = document.querySelectorAll('img');
+          let loadedCount = 0;
+          const totalImages = images.length;
+          
+          if (totalImages === 0) {
+            setTimeout(function() {
+              window.print();
+              window.onafterprint = function() { window.close(); };
+            }, 300);
+          } else {
+            images.forEach(function(img) {
+              img.onload = function() {
+                loadedCount++;
+                if (loadedCount === totalImages) {
+                  setTimeout(function() {
+                    window.print();
+                    window.onafterprint = function() { window.close(); };
+                  }, 500);
+                }
+              };
+              img.onerror = function() {
+                loadedCount++;
+                if (loadedCount === totalImages) {
+                  setTimeout(function() {
+                    window.print();
+                    window.onafterprint = function() { window.close(); };
+                  }, 500);
+                }
+              };
+              // Trigger load if already loaded
+              if (img.complete) {
+                img.onload();
+              }
+            });
+          }
         };
         </script>
       </body>
@@ -1163,9 +1367,24 @@ function handlePrintLabel(product: Product, variation: any, count: number) {
   printWindow.document.close();
 }
 
-function handlePrintAllVariantsByStock(product: Product) {
+async function handlePrintAllVariantsByStock(product: Product) {
   const printWindow = window.open("", "_blank", "width=220,height=120");
   if (!printWindow) return;
+  
+  // Generate QR codes for all variations
+  const variations = product.variations ?? [];
+  const qrCodeMap: Record<string, string> = {};
+  
+  for (const variation of variations) {
+    const key = `${variation.size}-${variation.color}`;
+    if (!qrCodeMap[key]) {
+      qrCodeMap[key] = await generateQRCodeDataURL(
+        product.id,
+        variation.size,
+        variation.color
+      );
+    }
+  }
   const style = `
     <style>
       @page {
@@ -1185,17 +1404,17 @@ function handlePrintAllVariantsByStock(product: Product) {
       }
       .label {
         width: 58mm;
-        height: 25mm;
+        height: 68mm;
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        justify-content: space-between;
         align-items: center;
         font-family: 'Courier New', monospace;
         font-size: 15px;
         border: 2px solid #000;
         background: #fff;
         font-weight: 700;
-        padding: 2mm;
+        padding: 3mm;
         margin-bottom: 5px;
         box-sizing: border-box;
       }
@@ -1226,6 +1445,34 @@ function handlePrintAllVariantsByStock(product: Product) {
         border: 1px solid #000;
         background: #fff;
       }
+      .label-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        height: 100%;
+        justify-content: space-between;
+        gap: 2mm;
+      }
+      .label-text {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        flex-shrink: 0;
+      }
+      .qr-code {
+        width: 35mm;
+        height: 35mm;
+        max-width: 35mm;
+        max-height: 35mm;
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+        display: block;
+        border: 1px solid #000;
+        background: #fff;
+        flex-shrink: 0;
+      }
       @media print {
         body {
           width: 58mm;
@@ -1236,20 +1483,29 @@ function handlePrintAllVariantsByStock(product: Product) {
     </style>
   `;
   let labels = "";
-  const variations = product.variations ?? [];
-  for (const variation of variations) {
+  const productVariations = product.variations ?? [];
+  for (const variation of productVariations) {
+    const key = `${variation.size}-${variation.color}`;
+    const qrCodeDataURL = qrCodeMap[key] || "";
+    
     for (let i = 0; i < variation.stock; i++) {
       labels += `
         <div class="label">
-          <div class="sku">SKU: ${product.sku}</div>
-          <div class="price">Price: ৳${product.selling_price}</div>
-          <div class="size">Size: ${variation.size}</div>
-          <div class="color">Color: <span class="color-swatch" style="background:${variation.color};"></span>${variation.color}</div>
+          <div class="label-content">
+            <div class="label-text">
+              <div class="sku">SKU: ${product.sku}</div>
+              <div class="price">Price: ৳${product.selling_price}</div>
+              <div class="size">Size: ${variation.size}</div>
+              <div class="color">Color: <span class="color-swatch" style="background:${variation.color_hax || variation.color};"></span>${variation.color}</div>
+            </div>
+            ${qrCodeDataURL ? `<img src="${qrCodeDataURL.replace(/"/g, '&quot;')}" alt="QR Code" class="qr-code" />` : '<div class="qr-code" style="display: flex; align-items: center; justify-content: center; text-align: center; font-size: 10px; color: #000;">No QR</div>'}
+          </div>
         </div>
       `;
     }
   }
   const html = `
+    <!DOCTYPE html>
     <html>
       <head>
         <title>Print All Labels</title>
@@ -1259,10 +1515,42 @@ function handlePrintAllVariantsByStock(product: Product) {
         ${labels}
         <script>
         window.onload = function() {
-          setTimeout(function() {
-            window.print();
-            window.onafterprint = function() { window.close(); };
-          }, 300);
+          // Wait for images to load
+          const images = document.querySelectorAll('img');
+          let loadedCount = 0;
+          const totalImages = images.length;
+          
+          if (totalImages === 0) {
+            setTimeout(function() {
+              window.print();
+              window.onafterprint = function() { window.close(); };
+            }, 300);
+          } else {
+            images.forEach(function(img) {
+              img.onload = function() {
+                loadedCount++;
+                if (loadedCount === totalImages) {
+                  setTimeout(function() {
+                    window.print();
+                    window.onafterprint = function() { window.close(); };
+                  }, 500);
+                }
+              };
+              img.onerror = function() {
+                loadedCount++;
+                if (loadedCount === totalImages) {
+                  setTimeout(function() {
+                    window.print();
+                    window.onafterprint = function() { window.close(); };
+                  }, 500);
+                }
+              };
+              // Trigger load if already loaded
+              if (img.complete) {
+                img.onload();
+              }
+            });
+          }
         };
         </script>
       </body>

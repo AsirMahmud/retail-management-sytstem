@@ -3,6 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { useCartStore } from "@/hooks/useCartStore"
 import Link from "next/link"
 import { useGlobalDiscount } from "@/lib/useGlobalDiscount"
 
@@ -27,6 +28,8 @@ export function ProductCard({ id, name, price, originalPrice, image, discount }:
   const numericDiscounted = Number.isFinite(discounted) ? Math.round(discounted) : 0
   const numericOriginal = showDiscount ? basePrice : (originalPrice !== undefined ? Number(originalPrice) : undefined)
 
+  const addToCart = useCartStore((s) => s.addItem)
+
   return (
     <Link href={`/product/${id}`}>
       <Card className="group cursor-pointer border-0 shadow-none h-[520px]">
@@ -46,7 +49,7 @@ export function ProductCard({ id, name, price, originalPrice, image, discount }:
             />
           </div>
           <div className="space-y-3">
-            <h3 className="font-bold text-sm lg:text-base leading-snug line-clamp-2">{name}</h3>
+            <h3 className="font-bold text-sm lg:text-base leading-snug line-clamp-2">{toTitleCase(name)}</h3>
             <div className="flex items-center gap-3">
               <span className="text-xl lg:text-2xl font-bold">৳{numericDiscounted.toFixed(0)}</span>
               {showDiscount && numericOriginal !== undefined && (
@@ -56,7 +59,7 @@ export function ProductCard({ id, name, price, originalPrice, image, discount }:
             <div className="pt-1">
               <Button
                 className="w-full rounded-full bg-black text-white hover:bg-black/90"
-                onClick={(e) => { e.preventDefault() }}
+                onClick={(e) => { e.preventDefault(); addToCart({ productId: id, quantity: 1 }) }}
               >
                 Add to Cart
               </Button>
@@ -66,4 +69,13 @@ export function ProductCard({ id, name, price, originalPrice, image, discount }:
       </Card>
     </Link>
   )
+}
+
+// Capitalize each word for product titles
+function toTitleCase(input: string): string {
+  return (input || "")
+    .toLowerCase()
+    .split(/\s+/)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ")
 }

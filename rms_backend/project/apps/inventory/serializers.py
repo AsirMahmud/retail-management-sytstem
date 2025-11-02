@@ -97,6 +97,19 @@ class FeaturesSerializer(serializers.ModelSerializer):
         model = Features
         fields = ['id', 'title', 'description']
 
+# Variation serializer (placed before EcommerceProductSerializer for reference)
+class ProductVariationSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ProductVariation
+        fields = ['size', 'color', 'color_hax', 'stock', 'waist_size', 'chest_size', 'height', 'is_active']
+        extra_kwargs = {
+            'is_active': {'required': False, 'default': True},
+            'waist_size': {'required': False, 'allow_null': True},
+            'chest_size': {'required': False, 'allow_null': True},
+            'height': {'required': False, 'allow_null': True},
+        }
+
 # Ecommerce Showcase Serializers
 class EcommerceProductSerializer(serializers.ModelSerializer):
     """Simplified serializer for ecommerce showcase"""
@@ -105,7 +118,8 @@ class EcommerceProductSerializer(serializers.ModelSerializer):
     online_category_id = serializers.IntegerField(source='online_category.id', read_only=True)
     available_colors = serializers.SerializerMethodField()
     available_sizes = serializers.SerializerMethodField()
-    variants = serializers.SerializerMethodField()
+    # Use the same variation serializer as ProductSerializer, keeping the key name 'variants'
+    variants = ProductVariationSerializer(many=True, read_only=True, source='variations')
     primary_image = serializers.SerializerMethodField()
     images_ordered = serializers.SerializerMethodField()
     original_price = serializers.SerializerMethodField()
@@ -180,25 +194,7 @@ class EcommerceProductSerializer(serializers.ModelSerializer):
             pass
         return images
     
-    def get_variants(self, obj):
-        """Get all active product variants with stock information"""
-        from apps.ecommerce.models import Discount
-        from django.utils import timezone
-        now = timezone.now()
-        
-        variants = obj.variations.filter(is_active=True, assign_to_online=True)
-        result = []
-        
-        for variant in variants:
-            result.append({
-                'size': variant.size,
-                'color': variant.color,
-                'color_hex': variant.color_hax,
-                'stock': variant.stock,
-                'variant_id': variant.id
-            })
-        
-        return result
+    # No custom method needed; nested serializer handles the shape
     
     def get_original_price(self, obj):
         """Get original price before discount"""

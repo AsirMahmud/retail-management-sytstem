@@ -81,6 +81,7 @@ const mainNavItems = [
       { title: "Dashboard", href: "/preorder" },
       { title: "Create Preorder", href: "/preorder/create" },
       { title: "Add Product", href: "/preorder?tab=add-product" },
+      { title: "Online Preorders", href: "/online-preorders" },
     ],
   },
   {

@@ -10,7 +10,7 @@ import { CategorySection } from "@/components/category-section"
 import { FeaturesSection } from "@/components/features-section"
 import { NewsletterSection } from "@/components/newsletter-section"
 import { SiteFooter } from "@/components/site-footer"
-import { ecommerceApi, EcommerceProduct } from "@/lib/api"
+import { ecommerceApi, EcommerceProduct, ProductByColorEntry } from "@/lib/api"
 
 export default function HomePage() {
   const [showcaseData, setShowcaseData] = useState<{
@@ -47,13 +47,13 @@ export default function HomePage() {
   }, []);
 
   // Transform API data to match component interface
-  const transformProduct = (product: EcommerceProduct) => ({
-    id: product.id.toString(),
-    name: product.name,
-    price: product.selling_price,
-    rating: 4.5, // Default rating since not in API
-    image: product.primary_image || product.image_url || product.image || "/placeholder.jpg",
-  });
+  const toCard = (entry: ProductByColorEntry) => ({
+    id: `${entry.product_id}/${entry.color_slug}`,
+    name: `${entry.product_name} - ${entry.color_name}`,
+    price: Number(entry.product_price),
+    rating: 4.5,
+    image: entry.cover_image_url || "/placeholder.jpg",
+  })
 
   if (loading) {
     return (
@@ -82,36 +82,24 @@ export default function HomePage() {
         {showcaseData && (
           <>
             {showcaseData.new_arrivals.length > 0 && (
-              <ProductSection 
-                title="NEW ARRIVALS" 
-                products={showcaseData.new_arrivals.map(transformProduct)} 
-              />
+              <ColorSection title="NEW ARRIVALS" baseProducts={showcaseData.new_arrivals} toCard={toCard} />
             )}
             {showcaseData.top_selling.length > 0 && (
               <>
                 <div className="container px-4"><hr className="border-border" /></div>
-                <ProductSection 
-                  title="TOP SELLING" 
-                  products={showcaseData.top_selling.map(transformProduct)} 
-                />
+                <ColorSection title="TOP SELLING" baseProducts={showcaseData.top_selling} toCard={toCard} />
               </>
             )}
             {showcaseData.trending.length > 0 && (
               <>
                 <div className="container px-4"><hr className="border-border" /></div>
-                <ProductSection 
-                  title="TRENDING" 
-                  products={showcaseData.trending.map(transformProduct)} 
-                />
+                <ColorSection title="TRENDING" baseProducts={showcaseData.trending} toCard={toCard} />
               </>
             )}
             {showcaseData.featured.length > 0 && (
               <>
                 <div className="container px-4"><hr className="border-border" /></div>
-                <ProductSection 
-                  title="FEATURED" 
-                  products={showcaseData.featured.map(transformProduct)} 
-                />
+                <ColorSection title="FEATURED" baseProducts={showcaseData.featured} toCard={toCard} />
               </>
             )}
           </>
@@ -122,5 +110,29 @@ export default function HomePage() {
       </main>
       <SiteFooter />
     </div>
+  )
+}
+
+function ColorSection({ title, baseProducts, toCard }: { title: string; baseProducts: EcommerceProduct[]; toCard: (e: ProductByColorEntry)=>{id:string;name:string;price:number;rating:number;image:string} }) {
+  const [entries, setEntries] = useState<ProductByColorEntry[]>([])
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const ids = baseProducts.map(p => p.id)
+        if (ids.length === 0) { setEntries([]); return }
+        const data = await ecommerceApi.getProductsByColor({ product_ids: ids })
+        setEntries(data)
+      } catch (e) {
+        setEntries([])
+      }
+    }
+    load()
+  }, [baseProducts])
+  if (entries.length === 0) return null
+  return (
+    <ProductSection
+      title={title}
+      products={entries.slice(0, 8).map(toCard)}
+    />
   )
 }

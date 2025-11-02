@@ -9,14 +9,80 @@ import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { getCart, clearCart } from "@/lib/cart"
+import { ecommerceApi } from "@/lib/api"
 
 export function CheckoutForm() {
   const router = useRouter()
-  const [paymentMethod, setPaymentMethod] = useState("card")
+  const [paymentMethod] = useState("cod")
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    router.push("/order-complete")
+    setError(null)
+    setSubmitting(true)
+    try {
+      const form = e.currentTarget
+      const formData = new FormData(form)
+      const firstName = String(formData.get("firstName") || "").trim()
+      const lastName = String(formData.get("lastName") || "").trim()
+      const customer_name = `${firstName} ${lastName}`.trim()
+      const customer_phone = String(formData.get("phone") || "").trim()
+      const customer_email = String(formData.get("email") || "").trim()
+      const shipping_address = {
+        address: String(formData.get("address") || ""),
+        city: String(formData.get("city") || ""),
+        state: String(formData.get("state") || ""),
+        zip: String(formData.get("zip") || ""),
+        country: String(formData.get("country") || ""),
+      }
+      const notes = String(formData.get("notes") || "")
+
+      const cartItems = getCart()
+      if (!cartItems.length) throw new Error("Your cart is empty.")
+
+      // Fetch authoritative prices for each product
+      const uniqueIds = Array.from(new Set(cartItems.map((i) => Number(i.productId))))
+      const idToPrice = new Map<number, number>()
+      await Promise.all(
+        uniqueIds.map(async (id) => {
+          const detail = await ecommerceApi.getProductDetail(id)
+          idToPrice.set(id, Number(detail.product.selling_price ?? detail.product.price))
+        })
+      )
+
+      const items = cartItems.map((it) => {
+        const pid = Number(it.productId)
+        const unit_price = idToPrice.get(pid) ?? 0
+        const size = it.variations?.size || ""
+        const color = it.variations?.color || ""
+        return {
+          product_id: pid,
+          size,
+          color,
+          quantity: it.quantity,
+          unit_price,
+          discount: 0,
+        }
+      })
+
+      const payload = {
+        customer_name,
+        customer_phone,
+        customer_email,
+        shipping_address,
+        notes,
+        items,
+      }
+      const created = await ecommerceApi.createOnlinePreorder(payload)
+      clearCart()
+      router.push(`/order-complete?preorder_id=${created.id}`)
+    } catch (err: any) {
+      setError(err?.message || "Failed to place order. Please try again.")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -73,59 +139,36 @@ export function CheckoutForm() {
         </div>
       </div>
 
-      {/* Payment Method */}
+      {/* Payment Method (COD-only) */}
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">Payment Method</h2>
-        <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-3">
-          <div className="flex items-center space-x-3 border rounded-lg p-4">
-            <RadioGroupItem value="card" id="card" />
-            <Label htmlFor="card" className="cursor-pointer flex-1 font-medium">
-              Credit / Debit Card
-            </Label>
-          </div>
-          <div className="flex items-center space-x-3 border rounded-lg p-4">
-            <RadioGroupItem value="paypal" id="paypal" />
-            <Label htmlFor="paypal" className="cursor-pointer flex-1 font-medium">
-              PayPal
-            </Label>
-          </div>
-          <div className="flex items-center space-x-3 border rounded-lg p-4">
-            <RadioGroupItem value="bank" id="bank" />
-            <Label htmlFor="bank" className="cursor-pointer flex-1 font-medium">
-              Bank Transfer
-            </Label>
-          </div>
-        </RadioGroup>
-
-        {paymentMethod === "card" && (
-          <div className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label htmlFor="cardNumber">Card Number</Label>
-              <Input id="cardNumber" placeholder="1234 5678 9012 3456" required />
+        <div className="flex items-center space-x-3 border rounded-lg p-4 bg-muted/30">
+          <RadioGroup value="cod" className="space-y-3">
+            <div className="flex items-center space-x-3">
+              <RadioGroupItem value="cod" id="cod" checked readOnly />
+              <Label htmlFor="cod" className="cursor-pointer flex-1 font-medium">
+                Cash on Delivery (Pay at delivery)
+              </Label>
             </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="expiry">Expiry Date</Label>
-                <Input id="expiry" placeholder="MM/YY" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cvv">CVV</Label>
-                <Input id="cvv" placeholder="123" required />
-              </div>
-            </div>
-          </div>
-        )}
+          </RadioGroup>
+        </div>
       </div>
 
       {/* Order Notes */}
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">Order Notes (Optional)</h2>
-        <Textarea placeholder="Add any special instructions for your order..." rows={4} />
+        <Textarea name="notes" placeholder="Add any special instructions for your order..." rows={4} />
       </div>
 
+      {error && (
+        <div className="text-red-600 text-sm" role="alert">
+          {error}
+        </div>
+      )}
+
       {/* Submit Button */}
-      <Button type="submit" size="lg" className="w-full h-12 text-base">
-        Place Order
+      <Button type="submit" size="lg" className="w-full h-12 text-base" disabled={submitting}>
+        {submitting ? "Placing Order..." : "Place Order"}
       </Button>
     </form>
   )

@@ -40,10 +40,11 @@ export const preorderVariationsApi = {
 
 // Preorders
 export const preordersApi = {
-    getAll: (status?: string, productId?: number) => {
+    getAll: (status?: string, productId?: number, source?: string) => {
         const params = new URLSearchParams();
         if (status && status !== 'all') params.append('status', status);
         if (productId) params.append('product', productId.toString());
+        if (source) params.append('source', source);
         const queryString = params.toString();
         return api.get<Preorder[]>(`/preorder/orders/${queryString ? `?${queryString}` : ''}`);
     },

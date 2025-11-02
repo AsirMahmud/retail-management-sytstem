@@ -181,3 +181,31 @@ class HomePageSettings(models.Model):
         # Prevent deletion of the singleton
         pass
 
+
+class DeliverySettings(models.Model):
+    """Singleton model for delivery charges"""
+    inside_dhaka_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    outside_dhaka_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Delivery Settings'
+        verbose_name_plural = 'Delivery Settings'
+
+    def __str__(self):
+        return "Delivery Settings"
+
+    def save(self, *args, **kwargs):
+        # Ensure only one instance exists
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def delete(self, *args, **kwargs):
+        # Prevent deletion of the singleton
+        pass
+
