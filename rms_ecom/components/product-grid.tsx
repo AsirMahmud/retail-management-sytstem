@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { CategoryFilters } from "@/components/category-filters"
+import { useEffect } from "react"
 
 const products = [
   {
@@ -105,6 +106,22 @@ export function ProductGrid({ category, products: propProducts }: ProductGridPro
 
   const totalPages = Math.ceil(totalProducts / productsPerPage)
 
+  const startIndex = (currentPage - 1) * productsPerPage
+  const endIndex = Math.min(startIndex + productsPerPage, totalProducts)
+  const paginatedProducts = productsToUse.slice(startIndex, endIndex)
+
+  // Clamp current page if total pages shrink (e.g., after filtering)
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages || 1)
+    }
+  }, [totalPages])
+
+  // Reset to first page when the list changes significantly
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [productsToUse.length])
+
   const renderPageNumbers = () => {
     const pages = []
 
@@ -112,7 +129,7 @@ export function ProductGrid({ category, products: propProducts }: ProductGridPro
       pages.push(1)
     }
 
-    if (currentPage > 2) {
+  if (currentPage > 2) {
       pages.push(2)
     }
 
@@ -148,7 +165,7 @@ export function ProductGrid({ category, products: propProducts }: ProductGridPro
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-h-screen">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -191,8 +208,8 @@ export function ProductGrid({ category, products: propProducts }: ProductGridPro
 
       {/* Product Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-        {productsToUse.map((product) => (
-          <ProductCard key={product.id} {...product} />
+        {paginatedProducts.map((product) => (
+          <ProductCard key={product.id} {...product} id={String(product.id)} />
         ))}
       </div>
 

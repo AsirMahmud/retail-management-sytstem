@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { useCartStore } from "@/hooks/useCartStore"
 
 export function SiteHeader() {
   const categories = [
@@ -14,6 +15,8 @@ export function SiteHeader() {
     { name: "Party", slug: "party" },
     { name: "Gym", slug: "gym" },
   ]
+
+  const totalItems = useCartStore((s) => s.totalItems)
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -68,9 +71,11 @@ export function SiteHeader() {
           <Link href="/cart">
             <Button variant="ghost" size="icon" className="relative">
               <ShoppingCart className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] font-medium text-primary-foreground flex items-center justify-center">
-                3
-              </span>
+              {totalItems > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-4 h-4 rounded-full bg-primary text-[10px] font-medium text-primary-foreground flex items-center justify-center px-1">
+                  {totalItems}
+                </span>
+              )}
               <span className="sr-only">Shopping cart</span>
             </Button>
           </Link>

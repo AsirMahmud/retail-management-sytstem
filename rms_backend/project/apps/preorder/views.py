@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db.models import Sum, Count
 from django.utils import timezone
 from datetime import timedelta
@@ -80,6 +80,7 @@ class PreorderViewSet(viewsets.ModelViewSet):
         queryset = Preorder.objects.all()
         status_filter = self.request.query_params.get('status', None)
         product_filter = self.request.query_params.get('product', None)
+        source_filter = self.request.query_params.get('source', None)
         
         if status_filter and status_filter != 'all':
             queryset = queryset.filter(status=status_filter)
@@ -87,6 +88,8 @@ class PreorderViewSet(viewsets.ModelViewSet):
         if product_filter:
             # Filter by product_id in items JSON field
             queryset = queryset.filter(items__contains=[{'product_id': int(product_filter)}])
+        if source_filter:
+            queryset = queryset.filter(source=source_filter)
         
         return queryset.order_by('-created_at')
     
@@ -158,6 +161,18 @@ class PreorderViewSet(viewsets.ModelViewSet):
         
         preorder.cancel()
         return Response({'message': 'Preorder cancelled successfully'})
+
+    @action(detail=False, methods=['post'], permission_classes=[AllowAny])
+    def online(self, request):
+        """Public-ish endpoint to create online COD preorders. Forces source=ONLINE and payment_method=COD."""
+        payload = request.data.copy()
+        payload['source'] = 'ONLINE'
+        payload['payment_method'] = 'COD'
+        payload['preorder_type'] = 'online'
+        serializer = PreorderCreateSerializer(data=payload)
+        serializer.is_valid(raise_exception=True)
+        preorder = serializer.save()
+        return Response(PreorderSerializer(preorder).data, status=status.HTTP_201_CREATED)
     
     @action(detail=True, methods=['post'])
     def update_status(self, request, pk=None):

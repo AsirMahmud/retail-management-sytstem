@@ -82,7 +82,7 @@ const STATUS_OPTIONS = [
   { value: "COMPLETED", label: "Completed" },
 ];
 
-export function PreorderList() {
+export function PreorderList({ source, title = "Preorders", showCreateButton = true }: { source?: string; title?: string; showCreateButton?: boolean }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [productFilter, setProductFilter] = useState("all");
@@ -95,7 +95,9 @@ export function PreorderList() {
     useState<Preorder | null>(null);
   const [additionalDeposit, setAdditionalDeposit] = useState("");
   const { data: preorders, isLoading } = usePreorders(
-    statusFilter === "all" ? undefined : statusFilter
+    statusFilter === "all" ? undefined : statusFilter,
+    undefined,
+    source
   );
   const updateStatus = useUpdatePreorderStatus();
   const deletePreorder = useDeletePreorder();
@@ -337,17 +339,19 @@ export function PreorderList() {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-2xl font-bold text-gray-900">
-              Preorders
+              {title}
             </CardTitle>
             <CardDescription>
               Manage customer preorders and track their status
             </CardDescription>
           </div>
-          <Link href="/preorder/create">
-            <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
-              Create Preorder
-            </Button>
-          </Link>
+          {showCreateButton && (
+            <Link href="/preorder/create">
+              <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                Create Preorder
+              </Button>
+            </Link>
+          )}
         </div>
       </CardHeader>
       <CardContent>

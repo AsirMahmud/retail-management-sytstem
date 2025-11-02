@@ -6,8 +6,11 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { ProductVariant } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
+import { useCartStore } from "@/hooks/useCartStore"
+import { useGlobalDiscount } from "@/lib/useGlobalDiscount"
 
 interface ProductInfoProps {
+  productId: string | number
   product: {
     name: string
     price: number
@@ -18,12 +21,22 @@ interface ProductInfoProps {
     sizes: string[]
     variants: ProductVariant[]
   }
+  // Optional: when provided, render color options as links (navigating to other color pages)
+  colorLinks?: Array<{ name: string; value: string; href: string; active?: boolean; oos?: boolean }>
 }
 
-export function ProductInfo({ product }: ProductInfoProps) {
+export function ProductInfo({ productId, product, colorLinks }: ProductInfoProps) {
   const [selectedColor, setSelectedColor] = useState(0)
   const [selectedSize, setSelectedSize] = useState(0)
   const [quantity, setQuantity] = useState(1)
+  const addToCart = useCartStore((s) => s.addItem)
+
+  // Global or product discount
+  const globalDiscountValue = useGlobalDiscount((state) => state.discount?.value || 0)
+  const finalDiscount = Math.max(globalDiscountValue, product.discount || 0)
+  const showDiscount = finalDiscount > 0
+  const basePrice = product.originalPrice !== undefined ? Number(product.originalPrice) : Number(product.price)
+  const discounted = showDiscount ? basePrice * (1 - finalDiscount / 100) : basePrice
 
   // Get current color
   const currentColor = product.colors[selectedColor]
@@ -72,7 +85,7 @@ export function ProductInfo({ product }: ProductInfoProps) {
   return (
     <div className="flex flex-col gap-4 lg:gap-5">
       <div>
-        <h1 className="font-serif text-3xl lg:text-[40px] font-bold mb-3 leading-tight">{product.name}</h1>
+        <h1 className="font-serif text-3xl lg:text-[40px] font-bold mb-3 leading-tight">{toTitleCase(product.name)}</h1>
 
         {/* Stock Information Badge */}
         {selectedSizeStock > 0 && (
@@ -101,14 +114,14 @@ export function ProductInfo({ product }: ProductInfoProps) {
         )}
 
         <div className="flex items-center gap-3 mb-5">
-          <span className="text-3xl lg:text-[32px] font-bold">${Math.round(product.price)}</span>
-          {product.originalPrice && (
+          <span className="text-3xl lg:text-[32px] font-bold">৳{Math.round(discounted)}</span>
+          {showDiscount && (
             <>
               <span className="text-2xl lg:text-[28px] text-muted-foreground/60 line-through">
-                ${Math.round(product.originalPrice)}
+                ৳{Math.round(basePrice)}
               </span>
               <span className="rounded-full bg-red-100 px-3.5 py-1.5 text-xs font-medium text-red-600">
-                -{product.discount}%
+                -{finalDiscount}%
               </span>
             </>
           )}
@@ -121,23 +134,38 @@ export function ProductInfo({ product }: ProductInfoProps) {
 
       <div>
         <h3 className="mb-4 text-muted-foreground">Select Colors</h3>
-        <div className="flex gap-4">
-          {product.colors.map((color, index) => (
-            <button
-              key={index}
-              onClick={() => setSelectedColor(index)}
-              className={cn(
-                "relative h-10 w-10 rounded-full transition-all hover:scale-105",
-                selectedColor === index && "ring-2 ring-foreground ring-offset-2",
-              )}
-              style={{ backgroundColor: color.value }}
-              aria-label={color.name}
-            >
-              {selectedColor === index && (
-                <Check className="absolute inset-0 m-auto h-5 w-5 text-white drop-shadow-md" />
-              )}
-            </button>
-          ))}
+        <div className="flex gap-4 flex-wrap">
+          {(colorLinks && colorLinks.length > 0 ? colorLinks : product.colors.map((c, idx) => ({ name: c.name, value: c.value, href: "", active: idx === selectedColor }))).map((color, index) => {
+            const swatch = (
+              <span
+                className={cn(
+                  "relative h-10 w-10 rounded-full inline-block transition-all",
+                  (colorLinks ? color.active : selectedColor === index) && "ring-2 ring-foreground ring-offset-2",
+                  color.oos && "opacity-50"
+                )}
+                style={{ backgroundColor: color.value }}
+                aria-label={color.name}
+              >
+                {!colorLinks && selectedColor === index && (
+                  <Check className="absolute inset-0 m-auto h-5 w-5 text-white drop-shadow-md" />
+                )}
+              </span>
+            )
+            return colorLinks ? (
+              <a key={color.href + index} href={color.href} className="rounded-full" aria-label={color.name}>
+                {swatch}
+              </a>
+            ) : (
+              <button
+                key={index}
+                onClick={() => setSelectedColor(index)}
+                aria-label={color.name}
+                className="rounded-full"
+              >
+                {swatch}
+              </button>
+            )
+          })}
         </div>
       </div>
 
@@ -207,10 +235,31 @@ export function ProductInfo({ product }: ProductInfoProps) {
           size="lg" 
           className="flex-1 rounded-full h-auto py-4 text-base font-medium"
           disabled={selectedSizeStock === 0}
+          onClick={() => {
+            if (selectedSizeStock === 0) return
+            const sizeName = availableSizesWithStock[selectedSize]?.size
+            const colorName = product.colors[selectedColor]?.name
+            addToCart({
+              productId: String(productId),
+              quantity,
+              variations: {
+                color: colorName,
+                size: sizeName,
+              },
+            })
+          }}
         >
           {selectedSizeStock === 0 ? "Out of Stock" : "Add to Cart"}
         </Button>
       </div>
     </div>
   )
+}
+
+function toTitleCase(input: string): string {
+  return (input || "")
+    .toLowerCase()
+    .split(/\s+/)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ")
 }

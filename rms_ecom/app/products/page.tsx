@@ -7,7 +7,7 @@ import { Breadcrumb } from "@/components/breadcrumb"
 import { ProductGrid } from "@/components/product-grid"
 import { CategoryFilters } from "@/components/category-filters"
 import { NewsletterSection } from "@/components/newsletter-section"
-import { ecommerceApi, EcommerceProduct } from "@/lib/api"
+import { ecommerceApi, EcommerceProduct, ProductByColorEntry } from "@/lib/api"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
@@ -15,21 +15,23 @@ import { Search, SlidersHorizontal } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 export default function AllProductsPage() {
-  const [products, setProducts] = useState<EcommerceProduct[]>([])
-  const [filteredProducts, setFilteredProducts] = useState<EcommerceProduct[]>([])
+  const [products, setProducts] = useState<ProductByColorEntry[]>([])
+  const [filteredProducts, setFilteredProducts] = useState<ProductByColorEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("popular")
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
+  const [activeFilters, setActiveFilters] = useState<{
+    colors?: string[]
+  }>({})
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const data = await ecommerceApi.getAllProducts({ 
-          online_category: selectedCategory || undefined 
-        })
-        setProducts(data.products)
-        setFilteredProducts(data.products)
+        // Use public per-color endpoint
+        const data = await ecommerceApi.getProductsByColor({})
+        setProducts(data)
+        setFilteredProducts(data)
       } catch (e) {
         console.error('Failed to fetch products', e)
       } finally {
@@ -39,45 +41,58 @@ export default function AllProductsPage() {
     fetchProducts()
   }, [selectedCategory])
 
-  // Filter and sort products
+  // Apply search + active filters + sort
   useEffect(() => {
     let filtered = products
 
     // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.sku.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(item =>
+        item.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.color_name.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
+
+    // Category filter (defensive; backend may already filter by category)
+    // Not applicable directly for public endpoint; skipping online_category filter client-side
+
+    // Price range
+    // Price filtering is not directly available; skipping here (could be added server-side)
+
+    // Colors
+    if (activeFilters.colors && activeFilters.colors.length > 0) {
+      const wanted = new Set(activeFilters.colors.map(c => c.toLowerCase()))
+      filtered = filtered.filter(p => wanted.has(p.color_name.toLowerCase()))
+    }
+
+    // Size filtering skipped for per-color list
 
     // Sort products
     switch (sortBy) {
       case "newest":
-        filtered = [...filtered].sort((a, b) => 
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        )
+        // No created_at in flat list; keep order
         break
       case "price-low":
-        filtered = [...filtered].sort((a, b) => a.selling_price - b.selling_price)
+        filtered = [...filtered].sort((a, b) => Number(a.product_price) - Number(b.product_price))
         break
       case "price-high":
-        filtered = [...filtered].sort((a, b) => b.selling_price - a.selling_price)
+        filtered = [...filtered].sort((a, b) => Number(b.product_price) - Number(a.product_price))
         break
       case "name":
-        filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name))
+        filtered = [...filtered].sort((a, b) => a.product_name.localeCompare(b.product_name))
         break
       default: // popular - keep original order
         break
     }
 
     setFilteredProducts(filtered)
-  }, [products, searchTerm, sortBy])
+  }, [products, searchTerm, sortBy, activeFilters])
 
   const handleCategoryChange = (categoryId: number | null) => {
     setSelectedCategory(categoryId)
   }
+
+  // Filters UI is local-only in CategoryFilters; we only honor category here
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -172,12 +187,12 @@ export default function AllProductsPage() {
               ) : (
                 <ProductGrid
                   category={`${filteredProducts.length} Products`}
-                  products={filteredProducts.map(p => ({
-                    id: p.id,
-                    name: p.name,
-                    price: p.selling_price,
-                    rating: 4.5, // Default rating since it's not provided by API
-                    image: p.primary_image || p.image_url || p.image || "/placeholder.jpg",
+                  products={filteredProducts.map(item => ({
+                    id: `${item.product_id}/${item.color_slug}`,
+                    name: `${item.product_name} - ${item.color_name}`,
+                    price: Number(item.product_price),
+                    rating: 4.5,
+                    image: item.cover_image_url || "/placeholder.jpg",
                   }))}
                 />
               )}

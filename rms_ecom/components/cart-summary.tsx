@@ -3,57 +3,42 @@
 import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import { useState } from "react"
+import { useMemo } from "react"
 import Link from "next/link"
+import { useCartStore } from "@/hooks/useCartStore"
 
 export function CartSummary() {
-  const [promoCode, setPromoCode] = useState("")
-  const [shippingMethod, setShippingMethod] = useState("free")
-
-  const subtotal = 1234.0
-  const shippingCosts = {
-    free: 0,
-    express: 15.0,
-    pickup: 21.0,
-  }
-
-  const shippingFee = shippingCosts[shippingMethod as keyof typeof shippingCosts]
-  const total = subtotal + shippingFee
+  const items = useCartStore((s) => s.items)
+  const itemCount = useMemo(() => items.reduce((n, it) => n + it.quantity, 0), [items])
+  const shippingMethod: 'inside' | 'outside' = 'inside'
+  const shippingFee = 0
+  const subtotal = 0
+  const total = 0
 
   return (
     <div className="border rounded-lg p-6 bg-card">
       <h2 className="text-xl font-bold mb-6">Cart summary</h2>
 
-      {/* Shipping Options */}
-      <RadioGroup value={shippingMethod} onValueChange={setShippingMethod} className="space-y-3 mb-6">
+      {/* Delivery Options (prices shown at checkout) */}
+      <RadioGroup value={shippingMethod} className="space-y-3 mb-6">
         <div className="flex items-center justify-between border rounded-lg p-4 cursor-pointer hover:bg-accent/50 transition-colors">
           <div className="flex items-center gap-3">
-            <RadioGroupItem value="free" id="free" />
-            <Label htmlFor="free" className="cursor-pointer font-medium">
-              Free shipping
+            <RadioGroupItem value="inside" id="inside" />
+            <Label htmlFor="inside" className="cursor-pointer font-medium">
+              Inside Dhaka
             </Label>
           </div>
-          <span className="font-semibold">${shippingCosts.free.toFixed(2)}</span>
+          <span className="font-semibold">—</span>
         </div>
 
         <div className="flex items-center justify-between border rounded-lg p-4 cursor-pointer hover:bg-accent/50 transition-colors">
           <div className="flex items-center gap-3">
-            <RadioGroupItem value="express" id="express" />
-            <Label htmlFor="express" className="cursor-pointer font-medium">
-              Express shipping
+            <RadioGroupItem value="outside" id="outside" />
+            <Label htmlFor="outside" className="cursor-pointer font-medium">
+              Outside Dhaka
             </Label>
           </div>
-          <span className="font-semibold">+${shippingCosts.express.toFixed(2)}</span>
-        </div>
-
-        <div className="flex items-center justify-between border rounded-lg p-4 cursor-pointer hover:bg-accent/50 transition-colors">
-          <div className="flex items-center gap-3">
-            <RadioGroupItem value="pickup" id="pickup" />
-            <Label htmlFor="pickup" className="cursor-pointer font-medium">
-              Pick Up
-            </Label>
-          </div>
-          <span className="font-semibold">%{shippingCosts.pickup.toFixed(2)}</span>
+          <span className="font-semibold">—</span>
         </div>
       </RadioGroup>
 
@@ -61,12 +46,17 @@ export function CartSummary() {
       <div className="space-y-3 pt-4 border-t">
         <div className="flex justify-between text-base">
           <span className="text-muted-foreground">Subtotal</span>
-          <span className="font-semibold">${subtotal.toFixed(2)}</span>
+          <span className="font-semibold">—</span>
+        </div>
+
+        <div className="flex justify-between text-base">
+          <span className="text-muted-foreground">Delivery</span>
+          <span className="font-semibold">—</span>
         </div>
 
         <div className="flex justify-between text-lg font-bold pt-2">
           <span>Total</span>
-          <span>${total.toFixed(2)}</span>
+          <span>—</span>
         </div>
       </div>
 

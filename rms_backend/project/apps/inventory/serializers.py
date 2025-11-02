@@ -97,6 +97,19 @@ class FeaturesSerializer(serializers.ModelSerializer):
         model = Features
         fields = ['id', 'title', 'description']
 
+# Variation serializer (placed before EcommerceProductSerializer for reference)
+class ProductVariationSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = ProductVariation
+        fields = ['size', 'color', 'color_hax', 'stock', 'waist_size', 'chest_size', 'height', 'is_active']
+        extra_kwargs = {
+            'is_active': {'required': False, 'default': True},
+            'waist_size': {'required': False, 'allow_null': True},
+            'chest_size': {'required': False, 'allow_null': True},
+            'height': {'required': False, 'allow_null': True},
+        }
+
 # Ecommerce Showcase Serializers
 class EcommerceProductSerializer(serializers.ModelSerializer):
     """Simplified serializer for ecommerce showcase"""
@@ -105,7 +118,8 @@ class EcommerceProductSerializer(serializers.ModelSerializer):
     online_category_id = serializers.IntegerField(source='online_category.id', read_only=True)
     available_colors = serializers.SerializerMethodField()
     available_sizes = serializers.SerializerMethodField()
-    variants = serializers.SerializerMethodField()
+    # Use the same variation serializer as ProductSerializer, keeping the key name 'variants'
+    variants = ProductVariationSerializer(many=True, read_only=True, source='variations')
     primary_image = serializers.SerializerMethodField()
     images_ordered = serializers.SerializerMethodField()
     original_price = serializers.SerializerMethodField()
@@ -121,12 +135,18 @@ class EcommerceProductSerializer(serializers.ModelSerializer):
         ]
     
     def get_image_url(self, obj):
-        if obj.image:
+        try:
+            if not obj.image:
+                return None
+            url = getattr(obj.image, 'url', None)
+            if not url:
+                return None
             request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.image.url)
-            return obj.image.url
-        return None
+            if request and isinstance(url, str):
+                return request.build_absolute_uri(url)
+            return url
+        except Exception:
+            return None
     
     def get_available_colors(self, obj):
         """Get unique colors from product variations"""
@@ -144,11 +164,12 @@ class EcommerceProductSerializer(serializers.ModelSerializer):
             primary_gallery = obj.galleries.first()
             if primary_gallery:
                 primary_img = primary_gallery.images.filter(imageType='PRIMARY').first()
-                if primary_img:
+                if primary_img and getattr(primary_img.image, 'url', None):
+                    url = primary_img.image.url
                     request = self.context.get('request')
-                    if request:
-                        return request.build_absolute_uri(primary_img.image.url)
-                    return primary_img.image.url
+                    if request and isinstance(url, str):
+                        return request.build_absolute_uri(url)
+                    return url
         except:
             pass
         return None
@@ -162,35 +183,18 @@ class EcommerceProductSerializer(serializers.ModelSerializer):
                 image_order = ['PRIMARY', 'SECONDARY', 'THIRD', 'FOURTH']
                 for img_type in image_order:
                     img = gallery.images.filter(imageType=img_type).first()
-                    if img:
+                    if img and getattr(img.image, 'url', None):
+                        url = img.image.url
                         request = self.context.get('request')
-                        if request:
-                            images.append(request.build_absolute_uri(img.image.url))
+                        if request and isinstance(url, str):
+                            images.append(request.build_absolute_uri(url))
                         else:
-                            images.append(img.image.url)
+                            images.append(url)
         except:
             pass
         return images
     
-    def get_variants(self, obj):
-        """Get all active product variants with stock information"""
-        from apps.ecommerce.models import Discount
-        from django.utils import timezone
-        now = timezone.now()
-        
-        variants = obj.variations.filter(is_active=True, assign_to_online=True)
-        result = []
-        
-        for variant in variants:
-            result.append({
-                'size': variant.size,
-                'color': variant.color,
-                'color_hex': variant.color_hax,
-                'stock': variant.stock,
-                'variant_id': variant.id
-            })
-        
-        return result
+    # No custom method needed; nested serializer handles the shape
     
     def get_original_price(self, obj):
         """Get original price before discount"""

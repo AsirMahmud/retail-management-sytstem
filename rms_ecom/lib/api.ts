@@ -47,6 +47,36 @@ export interface EcommerceProductDetail extends EcommerceProduct {
   }>;
 }
 
+// Public per-color listing entry
+export interface ProductByColorEntry {
+  product_id: number;
+  product_name: string;
+  product_price: string;
+  color_name: string;
+  color_slug: string;
+  total_stock: number;
+  cover_image_url?: string | null;
+}
+
+// Public per-color detail response
+export interface ProductDetailByColorResponse {
+  product: {
+    id: number;
+    name: string;
+    price: string;
+    category?: string | null;
+  };
+  color: {
+    name: string;
+    slug: string;
+    hex?: string | null;
+  };
+  images: Array<{ type: string; url: string }>;
+  sizes: Array<{ size: string; stock_qty: number; in_stock: boolean }>;
+  available_colors: Array<{ color_name: string; color_slug: string; total_stock: number; color_hex?: string | null }>;
+  total_stock_for_color: number;
+}
+
 export interface ShowcaseResponse {
   new_arrivals: {
     products: EcommerceProduct[];
@@ -112,6 +142,27 @@ export const ecommerceApi = {
     return response.json()
   },
 
+  // Public: Get flat products by color
+  getProductsByColor: async (params?: {
+    search?: string;
+    category?: string; // category slug
+    online_category?: string; // online category slug
+    only_in_stock?: boolean;
+    product_id?: number;
+    product_ids?: number[];
+  }): Promise<ProductByColorEntry[]> => {
+    const searchParams = new URLSearchParams()
+    if (params?.search) searchParams.set('search', params.search)
+    if (params?.category) searchParams.set('category', params.category)
+    if (params?.online_category) searchParams.set('online_category', params.online_category)
+    if (typeof params?.only_in_stock !== 'undefined') searchParams.set('only_in_stock', String(params.only_in_stock))
+    if (params?.product_id) searchParams.set('product_id', String(params.product_id))
+    if (params?.product_ids && params.product_ids.length > 0) searchParams.set('product_ids', params.product_ids.join(','))
+    const response = await fetch(`${API_BASE_URL}/ecommerce/public/products-by-color/?${searchParams}`)
+    if (!response.ok) throw new Error('Failed to fetch products by color')
+    return response.json()
+  },
+
   // Get new arrivals
   getNewArrivals: async (params?: {
     limit?: number;
@@ -167,6 +218,13 @@ export const ecommerceApi = {
     return response.json();
   },
 
+  // Public: Get product detail by color (color-scoped images and stock)
+  getProductDetailByColor: async (productId: number, colorSlug: string): Promise<ProductDetailByColorResponse> => {
+    const response = await fetch(`${API_BASE_URL}/ecommerce/public/product-details/${productId}/${colorSlug}/`)
+    if (!response.ok) throw new Error('Failed to fetch product detail by color')
+    return response.json()
+  },
+
   // Get online categories
   getOnlineCategories: async (): Promise<Array<{ id: number; name: string; slug: string }>> => {
     const response = await fetch(`${API_BASE_URL}/inventory/online-categories/`);
@@ -215,5 +273,53 @@ export const ecommerceApi = {
     const response = await fetch(`${API_BASE_URL}/ecommerce/discounts/active/?discount_type=APP_WIDE`);
     if (!response.ok) throw new Error('Failed to fetch active app-wide discounts');
     return response.json();
+  },
+
+  // Public: Get delivery settings
+  getDeliverySettings: async (): Promise<{ inside_dhaka_charge: number; outside_dhaka_charge: number; updated_at: string }> => {
+    const response = await fetch(`${API_BASE_URL}/ecommerce/public/delivery-settings/`)
+    if (!response.ok) throw new Error('Failed to fetch delivery settings')
+    return response.json()
+  },
+
+  // Public: Price cart items on the server
+  priceCart: async (items: Array<{ productId: string | number; quantity: number; variations?: Record<string, string> }>): Promise<{
+    items: Array<{ productId: number; name: string; image_url?: string | null; unit_price: number; quantity: number; line_total: number; max_stock?: number; variant?: { color?: string | null; size?: string | null } }>
+    subtotal: number
+    delivery: { inside_dhaka_charge: number; outside_dhaka_charge: number; updated_at: string }
+  }> => {
+    const response = await fetch(`${API_BASE_URL}/ecommerce/public/cart/price/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items }),
+    })
+    if (!response.ok) throw new Error('Failed to price cart')
+    return response.json()
+  },
+
+  // Create Online Preorder (COD-only). Backend enforces COD and online type.
+  createOnlinePreorder: async (payload: {
+    customer_name: string;
+    customer_phone: string;
+    customer_email?: string;
+    shipping_address?: Record<string, unknown>;
+    notes?: string;
+    items: Array<{
+      product_id: number;
+      size: string;
+      color: string;
+      quantity: number;
+      unit_price: number;
+      discount?: number;
+    }>;
+    expected_delivery_date?: string; // ISO date
+  }): Promise<{ id: number } & Record<string, unknown>> => {
+    const response = await fetch(`${API_BASE_URL}/preorder/orders/online/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    if (!response.ok) throw new Error('Failed to create online preorder')
+    return response.json()
   },
 };

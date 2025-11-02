@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useRef, useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { QRCodeSVG } from "qrcode.react";
 
 interface ReceiptModalProps {
   open: boolean;
@@ -42,6 +43,65 @@ export default function ReceiptModal({
   formatCurrency,
 }: ReceiptModalProps) {
   if (!data) return null;
+
+  const qrCodeRef = useRef<HTMLDivElement>(null);
+  const [qrCodeDataURL, setQrCodeDataURL] = useState<string>("");
+
+  // Generate compressed cart data for QR code
+  const qrCodeData = useMemo(() => {
+    const cartData = {
+      items: data.items.map((item) => ({
+        productId: String(item.productId),
+        quantity: item.quantity,
+        variations: {
+          color: item.color || "",
+          size: item.size || "",
+        },
+      })),
+    };
+    // Compress by encoding as base64 JSON
+    return btoa(JSON.stringify(cartData));
+  }, [data.items]);
+
+  // Generate QR code as data URL for printing
+  useEffect(() => {
+    if (!open || !data) {
+      setQrCodeDataURL("");
+      return;
+    }
+
+    // Wait for SVG to be rendered
+    const timer = setTimeout(() => {
+      if (qrCodeRef.current) {
+        const svgElement = qrCodeRef.current.querySelector("svg");
+        if (svgElement) {
+          const svgData = new XMLSerializer().serializeToString(svgElement);
+          const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
+          const url = URL.createObjectURL(svgBlob);
+          
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            canvas.width = 200;
+            canvas.height = 200;
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              ctx.drawImage(img, 0, 0);
+              const dataUrl = canvas.toDataURL("image/png");
+              setQrCodeDataURL(dataUrl);
+              URL.revokeObjectURL(url);
+            }
+          };
+          img.onerror = () => {
+            URL.revokeObjectURL(url);
+          };
+          img.src = url;
+        }
+      }
+    }, 200); // Small delay to ensure SVG is rendered
+
+    return () => clearTimeout(timer);
+  }, [qrCodeData, open, data]); // Regenerate when modal opens or data changes
 
   const handlePrint = () => {
     const printWindow = window.open("", "_blank");
@@ -320,7 +380,16 @@ export default function ReceiptModal({
 
           <div class="footer">
             <div>Thanks for your purchase!</div>
-            <div style=>Return policy:3 days with receipt before wash </div>
+            <div>Return policy:3 days with receipt before wash</div>
+          </div>
+
+          <div style="text-align: center; margin: 15px 0;">
+            <div style="font-weight: 600; margin-bottom: 5px; font-size: 12px;">Scan to Reorder</div>
+            ${
+              qrCodeDataURL
+                ? `<img src="${qrCodeDataURL}" alt="QR Code" style="width: 120px; height: 120px; margin: 0 auto; display: block;" />`
+                : ""
+            }
           </div>
 
           <div class="no-print" style="margin-top: 20px; text-align: center;">
@@ -482,6 +551,14 @@ export default function ReceiptModal({
             <p className={data.isPaid ? "text-green-600" : "text-red-600"}>
               {data.isPaid ? "PAID" : "DUE"}
             </p>
+          </div>
+
+          {/* QR Code for Reordering */}
+          <div className="flex flex-col items-center space-y-2 border-t pt-4">
+            <p className="text-xs font-medium text-muted-foreground">Scan to Reorder</p>
+            <div ref={qrCodeRef} className="flex items-center justify-center">
+              <QRCodeSVG value={qrCodeData} size={120} level="M" />
+            </div>
           </div>
 
           {/* Actions */}

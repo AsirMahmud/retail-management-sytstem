@@ -3,114 +3,66 @@
 import Image from "next/image"
 import { Trash2, Minus, Plus, Tag } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
+import { useMemo } from "react"
 import { Input } from "@/components/ui/input"
-
-interface CartItem {
-  id: string
-  name: string
-  image: string
-  size: string
-  color: string
-  price: number
-  quantity: number
-}
-
-const initialCartItems: CartItem[] = [
-  {
-    id: "1",
-    name: "Gradient Graphic T-shirt",
-    image: "/gradient-graphic-tshirt.jpg",
-    size: "Large",
-    color: "White",
-    price: 145,
-    quantity: 1,
-  },
-  {
-    id: "2",
-    name: "Checkered Shirt",
-    image: "/checkered-shirt.jpg",
-    size: "Medium",
-    color: "Red",
-    price: 180,
-    quantity: 1,
-  },
-  {
-    id: "3",
-    name: "Skinny Fit Jeans",
-    image: "/blue-skinny-jeans.jpg",
-    size: "Large",
-    color: "Blue",
-    price: 240,
-    quantity: 1,
-  },
-]
+import { useCartStore } from "@/hooks/useCartStore"
+// Local-only cart: no server pricing. We render minimal information and enforce optional local maxStock if present.
 
 export function CartItems() {
-  const [items, setItems] = useState<CartItem[]>(initialCartItems)
+  const items = useCartStore((s) => s.items)
+  const updateQty = useCartStore((s) => s.updateQuantity)
+  const removeLine = useCartStore((s) => s.removeItem)
 
-  const updateQuantity = (id: string, newQuantity: number) => {
-    if (newQuantity < 1) return
-    setItems(items.map((item) => (item.id === id ? { ...item, quantity: newQuantity } : item)))
-  }
-
-  const removeItem = (id: string) => {
-    setItems(items.filter((item) => item.id !== id))
+  if (items.length === 0) {
+    return <div className="text-center text-muted-foreground py-8">Your cart is empty.</div>
   }
 
   return (
     <div className="space-y-4">
-      {items.map((item) => (
-        <div key={item.id} className="flex gap-4 p-4 border rounded-lg bg-card">
-          {/* Product Image */}
-          <div className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
-            <Image src={item.image || "/placeholder.svg"} alt={item.name} fill className="object-cover" />
-          </div>
-
-          {/* Product Details */}
+      {items.map((it) => (
+        <div key={`${it.productId}-${JSON.stringify(it.variations||{})}`} className="flex gap-4 p-4 border rounded-lg bg-card">
+          <div className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted" />
           <div className="flex-1 min-w-0">
             <div className="flex justify-between items-start gap-4">
               <div className="flex-1">
-                <h3 className="font-semibold text-base md:text-lg mb-1">{item.name}</h3>
-                <p className="text-sm text-muted-foreground">Size: {item.size}</p>
-                <p className="text-sm text-muted-foreground">Color: {item.color}</p>
+                <h3 className="font-semibold text-base md:text-lg mb-1">Product {it.productId}{it.variations?.color || it.variations?.size ? ` / ${[it.variations?.color, it.variations?.size].filter(Boolean).join('/')}` : ''}</h3>
               </div>
-
-              {/* Delete Button */}
               <Button
                 variant="ghost"
                 size="icon"
                 className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
-                onClick={() => removeItem(item.id)}
+                onClick={() => removeLine(String(it.productId), it.variations)}
               >
                 <Trash2 className="h-5 w-5" />
                 <span className="sr-only">Remove item</span>
               </Button>
             </div>
-
-            {/* Price and Quantity */}
             <div className="flex justify-between items-center mt-4">
-              <p className="text-xl font-bold">${item.price}</p>
-
-              {/* Quantity Controls */}
+              <p className="text-sm text-muted-foreground">Price shown at checkout</p>
               <div className="flex items-center gap-3 bg-muted rounded-full px-4 py-2">
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6 rounded-full hover:bg-background"
-                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                  onClick={() => updateQty(String(it.productId), it.quantity - 1, it.variations)}
                 >
                   <Minus className="h-3 w-3" />
                   <span className="sr-only">Decrease quantity</span>
                 </Button>
-
-                <span className="text-sm font-medium w-8 text-center">{item.quantity}</span>
-
+                <span className="text-sm font-medium w-8 text-center">{it.quantity}</span>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6 rounded-full hover:bg-background"
-                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                  disabled={(() => { const m = Number((it.variations as any)?.maxStock); return Number.isFinite(m) && m > 0 ? it.quantity >= m : false })()}
+                  onClick={() => {
+                    const max = Number((it.variations as any)?.maxStock)
+                    if (Number.isFinite(max) && max > 0) {
+                      if (it.quantity < max) updateQty(String(it.productId), it.quantity + 1, it.variations)
+                    } else {
+                      updateQty(String(it.productId), it.quantity + 1, it.variations)
+                    }
+                  }}
                 >
                   <Plus className="h-3 w-3" />
                   <span className="sr-only">Increase quantity</span>
@@ -121,7 +73,7 @@ export function CartItems() {
         </div>
       ))}
 
-      {/* Coupon Code Section */}
+      {/* Coupon Code Section (placeholder) */}
       <div className="pt-6">
         <h3 className="text-lg font-semibold mb-2">Have a coupon?</h3>
         <p className="text-sm text-muted-foreground mb-4">Add your code for an instant cart discount</p>

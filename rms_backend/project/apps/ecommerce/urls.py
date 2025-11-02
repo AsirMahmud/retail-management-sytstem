@@ -5,7 +5,12 @@ from .views import (
     BrandViewSet,
     HomePageSettingsViewSet,
     PublicHomePageSettingsView,
-    PublicBrandsView
+    PublicBrandsView,
+    PublicProductsByColorView,
+    PublicProductDetailByColorView,
+    PublicDeliverySettingsView,
+    DeliverySettingsView,
+    PublicCartPriceView,
 )
 
 router = DefaultRouter()
@@ -17,5 +22,10 @@ urlpatterns = [
     path('', include(router.urls)),
     path('public/home-page-settings/', PublicHomePageSettingsView.as_view(), name='public-home-page-settings'),
     path('public/brands/', PublicBrandsView.as_view(), name='public-brands'),
+    path('public/products-by-color/', PublicProductsByColorView.as_view(), name='public-products-by-color'),
+    path('public/product-details/<int:product_id>/<slug:color_slug>/', PublicProductDetailByColorView.as_view(), name='public-product-detail-by-color'),
+    path('public/delivery-settings/', PublicDeliverySettingsView.as_view(), name='public-delivery-settings'),
+    path('delivery-settings/', DeliverySettingsView.as_view(), name='delivery-settings'),
+    path('public/cart/price/', PublicCartPriceView.as_view(), name='public-cart-price'),
 ]
 

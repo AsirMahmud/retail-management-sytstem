@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Discount, Brand, HomePageSettings
+from .models import Discount, Brand, HomePageSettings, DeliverySettings
 from apps.inventory.serializers import ProductSerializer, CategorySerializer, OnlineCategorySerializer
 
 
@@ -298,4 +298,15 @@ class HomePageSettingsSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+
+class DeliverySettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DeliverySettings
+        fields = [
+            'inside_dhaka_charge',
+            'outside_dhaka_charge',
+            'updated_at',
+        ]
+        read_only_fields = ['updated_at']
 

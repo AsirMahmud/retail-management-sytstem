@@ -50,6 +50,7 @@ import DiscountModal from "./DiscountModal";
 import { usePOSStore } from "@/store/pos-store";
 import { Product, ProductVariation } from "@/types/inventory";
 import ReceiptModal from "./ReceiptModal";
+import { useProducts } from "@/hooks/queries/useInventory";
 
 // Sample product data
 
@@ -128,6 +129,9 @@ export function ModernPOS() {
     setReceiptData,
   } = usePOSStore();
 
+  // Fetch products for QR code scanning
+  const { data: allProducts = [] } = useProducts();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -157,10 +161,11 @@ export function ModernPOS() {
   ]);
   const [showUpsellModal, setShowUpsellModal] = useState(false);
   const [upsellProducts, setUpsellProducts] = useState<Product[]>([]);
-  const [barcodeMode, setBarcodeMode] = useState(false);
+  const [barcodeMode, setBarcodeMode] = useState(true); // Always in barcode mode for POS
   const barcodeInputRef = useRef<HTMLInputElement>(null);
   const [showProductHistory, setShowProductHistory] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isProcessingScan, setIsProcessingScan] = useState(false);
   const [cartDiscount, setCartDiscount] = useState<{
     type: "percentage" | "fixed";
     value: number;
@@ -354,12 +359,206 @@ export function ModernPOS() {
 
   // Handle removing item from cart
 
-  // Focus barcode input when barcode mode is activated
+  // Always keep barcode input focused for continuous scanning
   useEffect(() => {
+    // Focus immediately and keep it focused
+    const focusInput = () => {
+      if (barcodeInputRef.current && document.activeElement !== barcodeInputRef.current) {
+        barcodeInputRef.current.focus();
+      }
+    };
+
+    // Focus on mount
+    focusInput();
+
+    // Focus when barcode mode changes
     if (barcodeMode) {
-      barcodeInputRef.current?.focus();
+      focusInput();
     }
+
+    // Refocus after a short delay to ensure it stays focused
+    const focusInterval = setInterval(focusInput, 500);
+
+    // Refocus when clicking anywhere (but not on inputs)
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      // Don't steal focus if user clicks on input fields or buttons
+      if (
+        target.tagName === 'INPUT' || 
+        target.tagName === 'TEXTAREA' || 
+        target.tagName === 'BUTTON' ||
+        target.closest('input') || 
+        target.closest('textarea') ||
+        target.closest('button')
+      ) {
+        return;
+      }
+      
+      // Small delay to refocus scanner input
+      setTimeout(focusInput, 100);
+    };
+
+    window.addEventListener('click', handleClick);
+
+    return () => {
+      clearInterval(focusInterval);
+      window.removeEventListener('click', handleClick);
+    };
   }, [barcodeMode]);
+
+  // Decode QR code data
+  const decodeQRCodeData = (scannedValue: string): { productId: string; color: string; size: string } | null => {
+    try {
+      // Validate input
+      if (!scannedValue || typeof scannedValue !== 'string' || scannedValue.trim().length === 0) {
+        return null;
+      }
+
+      // Try to decode base64
+      let decodedString: string;
+      try {
+        decodedString = atob(scannedValue.trim());
+      } catch (decodeError) {
+        // Not valid base64, probably a regular barcode
+        return null;
+      }
+
+      // Validate decoded string is valid JSON
+      if (!decodedString || decodedString.length === 0) {
+        return null;
+      }
+
+      // Try to parse as JSON
+      let cartData: any;
+      try {
+        cartData = JSON.parse(decodedString);
+      } catch (parseError) {
+        // Not valid JSON, probably a regular barcode
+        return null;
+      }
+      
+      // Check if it's our QR code format
+      if (cartData && typeof cartData === 'object' && cartData.items && Array.isArray(cartData.items) && cartData.items.length > 0) {
+        const item = cartData.items[0];
+        if (item && typeof item === 'object' && item.productId && item.variations) {
+          return {
+            productId: String(item.productId),
+            color: item.variations.color || "",
+            size: item.variations.size || "",
+          };
+        }
+      }
+      return null;
+    } catch (error) {
+      // Not a valid QR code format, might be regular barcode
+      console.error("Error decoding QR code:", error);
+      return null;
+    }
+  };
+
+  // Handle barcode/QR code scanning - optimized for fast response
+  const handleBarcodeScan = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const scannedValue = searchQuery.trim();
+      if (!scannedValue) return;
+
+      // Set processing flag and clear input immediately for next scan
+      setIsProcessingScan(true);
+      setSearchQuery("");
+
+      // Process scan immediately (no delay needed since we already cleared input)
+      try {
+        // Try to decode as QR code first
+        const qrData = decodeQRCodeData(scannedValue);
+        
+        if (qrData) {
+          // It's a QR code - find product and add to cart
+          const productId = parseInt(qrData.productId);
+          if (isNaN(productId)) {
+            toast({
+              title: "Invalid QR Code",
+              description: "QR code contains invalid product ID",
+              variant: "destructive",
+            });
+            setIsProcessingScan(false);
+            return;
+          }
+
+          // Fast lookup using find
+          const product = allProducts.find((p: Product) => p.id === productId);
+          
+          if (product) {
+            // Verify variation exists
+            const variation = product.variations?.find(
+              (v: ProductVariation) =>
+                v.is_active &&
+                v.size === qrData.size &&
+                v.color === qrData.color
+            );
+
+            if (variation && variation.stock > 0) {
+              handleAddToCart(product, qrData.size, qrData.color);
+              toast({
+                title: "Added",
+                description: `${product.name}`,
+              });
+            } else {
+              toast({
+                title: "Out of Stock",
+                description: `Variant unavailable`,
+                variant: "destructive",
+              });
+            }
+          } else {
+            toast({
+              title: "Not Found",
+              description: `Product ID ${qrData.productId}`,
+              variant: "destructive",
+            });
+          }
+          setIsProcessingScan(false);
+        } else {
+          // Try to find product by SKU or barcode
+          const productBySku = allProducts.find(
+            (p: Product) => p.sku === scannedValue || p.barcode === scannedValue
+          );
+          
+          if (productBySku) {
+            // Get first available variation
+            const firstVariation = productBySku.variations?.find((v: ProductVariation) => v.is_active && v.stock > 0);
+            
+            if (firstVariation) {
+              handleAddToCart(productBySku, firstVariation.size, firstVariation.color);
+              toast({
+                title: "Added",
+                description: `${productBySku.name}`,
+              });
+            } else {
+              toast({
+                title: "Out of Stock",
+                description: `${productBySku.name}`,
+                variant: "destructive",
+              });
+            }
+            setIsProcessingScan(false);
+          } else {
+            // Not found - set it back as search query for text search
+            setIsProcessingScan(false);
+            setSearchQuery(scannedValue);
+          }
+        }
+      } catch (error) {
+        console.error("Error processing barcode scan:", error);
+        toast({
+          title: "Scan Error",
+          description: "Failed to process code",
+          variant: "destructive",
+        });
+        setIsProcessingScan(false);
+      }
+    }
+  };
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
@@ -374,14 +573,20 @@ export function ModernPOS() {
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    ref={barcodeMode ? barcodeInputRef : null}
-                    placeholder={
-                      barcodeMode
-                        ? "Scan barcode..."
-                        : "Search by name, code, or scan barcode"
-                    }
+                    ref={barcodeInputRef}
+                    placeholder="Scan barcode or QR code (Always Ready)"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={handleBarcodeScan}
+                    onBlur={(e) => {
+                      // Auto-refocus on blur for continuous scanning (unless user clicked another input)
+                      setTimeout(() => {
+                        if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+                          barcodeInputRef.current?.focus();
+                        }
+                      }, 100);
+                    }}
+                    autoFocus
                     className="pl-10"
                   />
                 </div>
@@ -476,10 +681,9 @@ export function ModernPOS() {
 
             {/* Product Grid */}
             <ProductGrid
-              searchQuery={searchQuery}
+              searchQuery={isProcessingScan ? "" : searchQuery}
               selectedCategory={selectedCategory}
               priceRange={priceRange}
-              onAddToCart={handleAddToCart}
             />
           </div>
         </div>

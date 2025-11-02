@@ -103,6 +103,26 @@ export default function HomePageSettingsPage() {
     }
   };
 
+  const handleDeleteImage = async (field: 'logo_image' | 'hero_primary_image' | 'hero_secondary_image') => {
+    setSaving(true);
+    try {
+      const formData = new FormData();
+      const flagMap: Record<string, string> = {
+        logo_image: 'remove_logo_image',
+        hero_primary_image: 'remove_hero_primary_image',
+        hero_secondary_image: 'remove_hero_secondary_image',
+      };
+      formData.append(flagMap[field], 'true');
+      await updateSettingsMutation.mutateAsync(formData);
+      showToast({ title: 'Image removed', description: 'The image has been deleted.' });
+    } catch (error) {
+      console.error('Failed to delete image:', error);
+      showToast({ title: 'Error', description: 'Failed to delete image.', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleChange = (field: keyof HomePageSettings, value: string) => {
     setSettings(prev => ({ ...prev, [field]: value }));
   };
@@ -186,18 +206,23 @@ export default function HomePageSettingsPage() {
                       className="w-32 h-32 object-contain mb-2 border rounded"
                     />
                   )}
-                  <input
-                    id="logo_image"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleImageChange('logo_image', e.target.files?.[0] || null)}
-                    className="block w-full text-sm text-gray-500
-                    file:mr-4 file:py-2 file:px-4
-                    file:rounded-full file:border-0
-                    file:text-sm file:font-semibold
-                    file:bg-blue-50 file:text-blue-700
-                    hover:file:bg-blue-100"
-                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="logo_image"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImageChange('logo_image', e.target.files?.[0] || null)}
+                      className="block w-full text-sm text-gray-500
+                      file:mr-4 file:py-2 file:px-4
+                      file:rounded-full file:border-0
+                      file:text-sm file:font-semibold
+                      file:bg-blue-50 file:text-blue-700
+                      hover:file:bg-blue-100"
+                    />
+                    {settings.logo_image_url && (
+                      <Button variant="outline" onClick={() => handleDeleteImage('logo_image')}>Delete</Button>
+                    )}
+                  </div>
                 </div>
               </TabsContent>
 
@@ -250,18 +275,23 @@ export default function HomePageSettingsPage() {
                           className="w-full h-48 object-cover mb-2 border rounded"
                         />
                       )}
-                      <input
-                        id="hero_primary_image"
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleImageChange('hero_primary_image', e.target.files?.[0] || null)}
-                        className="block w-full text-sm text-gray-500
-                        file:mr-4 file:py-2 file:px-4
-                        file:rounded-full file:border-0
-                        file:text-sm file:font-semibold
-                        file:bg-blue-50 file:text-blue-700
-                        hover:file:bg-blue-100"
-                      />
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="hero_primary_image"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleImageChange('hero_primary_image', e.target.files?.[0] || null)}
+                          className="block w-full text-sm text-gray-500
+                          file:mr-4 file:py-2 file:px-4
+                          file:rounded-full file:border-0
+                          file:text-sm file:font-semibold
+                          file:bg-blue-50 file:text-blue-700
+                          hover:file:bg-blue-100"
+                        />
+                        {settings.hero_primary_image_url && (
+                          <Button variant="outline" onClick={() => handleDeleteImage('hero_primary_image')}>Delete</Button>
+                        )}
+                      </div>
                     </div>
 
                     <div>
@@ -273,18 +303,23 @@ export default function HomePageSettingsPage() {
                           className="w-full h-48 object-cover mb-2 border rounded"
                         />
                       )}
-                      <input
-                        id="hero_secondary_image"
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleImageChange('hero_secondary_image', e.target.files?.[0] || null)}
-                        className="block w-full text-sm text-gray-500
-                        file:mr-4 file:py-2 file:px-4
-                        file:rounded-full file:border-0
-                        file:text-sm file:font-semibold
-                        file:bg-blue-50 file:text-blue-700
-                        hover:file:bg-blue-100"
-                      />
+                      <div className="flex items-center gap-2">
+                        <input
+                          id="hero_secondary_image"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleImageChange('hero_secondary_image', e.target.files?.[0] || null)}
+                          className="block w-full text-sm text-gray-500
+                          file:mr-4 file:py-2 file:px-4
+                          file:rounded-full file:border-0
+                          file:text-sm file:font-semibold
+                          file:bg-blue-50 file:text-blue-700
+                          hover:file:bg-blue-100"
+                        />
+                        {settings.hero_secondary_image_url && (
+                          <Button variant="outline" onClick={() => handleDeleteImage('hero_secondary_image')}>Delete</Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

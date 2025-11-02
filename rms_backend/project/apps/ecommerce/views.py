@@ -6,8 +6,11 @@ from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.utils import timezone
 from django.db.models import Q
-from .models import Discount, Brand, HomePageSettings
-from .serializers import DiscountSerializer, DiscountListSerializer, BrandSerializer, HomePageSettingsSerializer
+from .models import Discount, Brand, HomePageSettings, DeliverySettings
+from .serializers import DiscountSerializer, DiscountListSerializer, BrandSerializer, HomePageSettingsSerializer, DeliverySettingsSerializer
+from django.utils.text import slugify
+from apps.inventory.models import Product, ProductVariation, Gallery, Image
+from django.db.models import Sum
 
 
 class DiscountViewSet(viewsets.ModelViewSet):
@@ -220,3 +223,282 @@ class PublicBrandsView(APIView):
         serializer = BrandSerializer(brands, many=True, context={'request': request})
         return Response(serializer.data)
 
+
+class PublicProductsByColorView(APIView):
+    """Public API: list products grouped by color as separate entries."""
+    permission_classes = [AllowAny]
+
+    def get_cover_image_url(self, request, product: Product, color: str):
+        try:
+            gallery = Gallery.objects.get(product=product, color__iexact=color)
+            primary = gallery.images.filter(imageType='PRIMARY').first()
+            image_obj = primary or gallery.images.first()
+            if image_obj and image_obj.image:
+                return request.build_absolute_uri(image_obj.image.url)
+        except Gallery.DoesNotExist:
+            pass
+        # Fallback to product.image
+        if product.image:
+            return request.build_absolute_uri(product.image.url)
+        return None
+
+    def get(self, request):
+        """
+        Returns a flat list where each color of a product is its own card.
+        Optional query params:
+        - search: filter by product name contains
+        - category: filter by category slug
+        - online_category: filter by online category slug
+        - only_in_stock: true|false
+        """
+        search = request.query_params.get('search')
+        category_slug = request.query_params.get('category')
+        online_category_slug = request.query_params.get('online_category')
+        only_in_stock = str(request.query_params.get('only_in_stock', 'false')).lower() == 'true'
+        product_id = request.query_params.get('product_id')
+        product_ids_csv = request.query_params.get('product_ids')
+
+        # Only return products explicitly assigned to online and active
+        products = Product.objects.filter(is_active=True, assign_to_online=True)
+        if search:
+            products = products.filter(name__icontains=search)
+        if category_slug:
+            products = products.filter(category__slug=category_slug)
+        if online_category_slug:
+            products = products.filter(online_category__slug=online_category_slug)
+        if product_id:
+            products = products.filter(id=product_id)
+        elif product_ids_csv:
+            try:
+                ids = [int(x) for x in product_ids_csv.split(',') if x.strip().isdigit()]
+                if ids:
+                    products = products.filter(id__in=ids)
+            except Exception:
+                pass
+
+        result = []
+        # Prefetch variations to reduce queries
+        for product in products:
+            # Consider all active variations, regardless of assign_to_online
+            variations = ProductVariation.objects.filter(
+                product=product,
+                is_active=True,
+            )
+            # group by color
+            color_to_stock = {}
+            for v in variations:
+                key = v.color.strip()
+                color_to_stock.setdefault(key, 0)
+                color_to_stock[key] += max(0, v.stock)
+            # If no variations captured any color, fall back to galleries as color sources
+            if not color_to_stock:
+                for g in Gallery.objects.filter(product=product):
+                    color_name = g.color.strip()
+                    # Sum stock for this color if any variations exist; else 0
+                    total_stock = variations.filter(color__iexact=color_name).aggregate(total=Sum('stock'))['total'] or 0
+                    color_to_stock[color_name] = max(0, total_stock)
+            for color_name, total_stock in color_to_stock.items():
+                if only_in_stock and total_stock <= 0:
+                    continue
+                item = {
+                    'product_id': product.id,
+                    'product_name': product.name,
+                    'product_price': str(product.selling_price),
+                    'color_name': color_name,
+                    'color_slug': slugify(color_name),
+                    'total_stock': total_stock,
+                    'cover_image_url': self.get_cover_image_url(request, product, color_name),
+                }
+                result.append(item)
+
+        return Response(result)
+
+
+class PublicProductDetailByColorView(APIView):
+    """Public API: product detail for a given product and color, with sizes/stock/images."""
+    permission_classes = [AllowAny]
+
+    def get(self, request, product_id: int, color_slug: str):
+        try:
+            # Only return products explicitly assigned to online and active
+            product = Product.objects.get(id=product_id, is_active=True, assign_to_online=True)
+        except Product.DoesNotExist:
+            return Response({'detail': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Resolve actual color name by matching slug against variations
+        variations_qs = ProductVariation.objects.filter(
+            product=product,
+            is_active=True,
+        )
+        # Build available colors with stock + hex
+        color_meta = {}
+        for v in variations_qs:
+            color_name = v.color.strip()
+            color_key = slugify(color_name)
+            meta = color_meta.setdefault(color_key, {
+                'color_name': color_name,
+                'color_slug': color_key,
+                'total_stock': 0,
+                'color_hex': v.color_hax or None,
+            })
+            meta['total_stock'] += max(0, v.stock)
+
+        # Find requested color
+        if color_slug not in color_meta:
+            return Response({'detail': 'Color not found for this product'}, status=status.HTTP_404_NOT_FOUND)
+        current_color_name = color_meta[color_slug]['color_name']
+        current_color_hex = color_meta[color_slug].get('color_hex')
+
+        # Images for current color
+        images = []
+        try:
+            gallery = Gallery.objects.get(product=product, color__iexact=current_color_name)
+            images_qs = gallery.images.order_by('imageType')
+            for img in images_qs:
+                if img.image:
+                    images.append({
+                        'type': img.imageType,
+                        'url': request.build_absolute_uri(img.image.url)
+                    })
+        except Gallery.DoesNotExist:
+            # Fallback to product default image
+            if product.image:
+                images.append({'type': 'PRIMARY', 'url': request.build_absolute_uri(product.image.url)})
+
+        # Sizes and stock for current color
+        size_entries = []
+        current_variations = variations_qs.filter(color__iexact=current_color_name)
+        for v in current_variations.order_by('size'):
+            size_entries.append({
+                'size': v.size,
+                'stock_qty': max(0, v.stock),
+                'in_stock': v.stock > 0,
+            })
+
+        data = {
+            'product': {
+                'id': product.id,
+                'name': product.name,
+                'price': str(product.selling_price),
+                'category': product.category.name if product.category else None,
+            },
+            'color': {
+                'name': current_color_name,
+                'slug': color_slug,
+                'hex': current_color_hex,
+            },
+            'images': images,
+            'sizes': size_entries,
+            'available_colors': list(color_meta.values()),
+            'total_stock_for_color': sum(e['stock_qty'] for e in size_entries),
+        }
+        return Response(data)
+
+
+class PublicDeliverySettingsView(APIView):
+    """Public API: get delivery charges (inside/outside Dhaka)."""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        settings = DeliverySettings.load()
+        serializer = DeliverySettingsSerializer(settings)
+        return Response(serializer.data)
+
+
+class DeliverySettingsView(APIView):
+    """Authenticated API: update delivery charges."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        settings = DeliverySettings.load()
+        serializer = DeliverySettingsSerializer(settings)
+        return Response(serializer.data)
+
+    def patch(self, request):
+        settings = DeliverySettings.load()
+        serializer = DeliverySettingsSerializer(settings, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+
+class PublicCartPriceView(APIView):
+    """
+    Public API: Accepts cart items and returns authoritative pricing.
+    Body: { items: [{ productId: string|number, quantity: number }] }
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        items = request.data.get('items') or []
+        if not isinstance(items, list):
+            return Response({'detail': 'Invalid items'}, status=status.HTTP_400_BAD_REQUEST)
+
+        product_ids = []
+        normalized = []
+        for line in items:
+            try:
+                pid = int(line.get('productId'))
+                qty = int(line.get('quantity'))
+                if qty <= 0:
+                    continue
+                variations = line.get('variations') or {}
+                color = (variations.get('color') or '').strip() if isinstance(variations, dict) else ''
+                size = (variations.get('size') or '').strip() if isinstance(variations, dict) else ''
+                product_ids.append(pid)
+                normalized.append({'product_id': pid, 'quantity': qty, 'color': color, 'size': size})
+            except Exception:
+                continue
+
+        products = Product.objects.filter(id__in=product_ids, is_active=True, assign_to_online=True)
+        prod_map = {p.id: p for p in products}
+
+        result_items = []
+        subtotal = 0
+        for line in normalized:
+            p = prod_map.get(line['product_id'])
+            if not p:
+                continue
+            unit_price = float(p.selling_price)
+
+            # Determine available stock based on requested variant
+            max_stock = 0
+            variant_color = line.get('color') or None
+            variant_size = line.get('size') or None
+            try:
+                q = ProductVariation.objects.filter(product=p, is_active=True)
+                if variant_color:
+                    q = q.filter(color__iexact=variant_color)
+                if variant_size:
+                    q = q.filter(size__iexact=variant_size)
+                max_stock = max(0, q.aggregate(total=Sum('stock'))['total'] or 0)
+            except Exception:
+                max_stock = max(0, getattr(p, 'stock_quantity', 0))
+
+            # Cap effective quantity by stock for pricing summary
+            effective_qty = min(line['quantity'], max_stock) if max_stock > 0 else line['quantity']
+            line_total = unit_price * effective_qty
+            subtotal += line_total
+            image_url = None
+            if p.image:
+                image_url = request.build_absolute_uri(p.image.url)
+            result_items.append({
+                'productId': p.id,
+                'name': p.name,
+                'image_url': image_url,
+                'unit_price': unit_price,
+                'quantity': line['quantity'],
+                'max_stock': max_stock,
+                'variant': {
+                    'color': variant_color,
+                    'size': variant_size,
+                },
+                'line_total': line_total,
+            })
+
+        delivery = DeliverySettings.load()
+        return Response({
+            'items': result_items,
+            'subtotal': subtotal,
+            'delivery': DeliverySettingsSerializer(delivery).data,
+        })
