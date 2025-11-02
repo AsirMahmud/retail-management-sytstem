@@ -23,6 +23,7 @@ import {
   Footprints,
   History,
   Percent,
+  ScanLine,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -161,7 +162,7 @@ export function ModernPOS() {
   ]);
   const [showUpsellModal, setShowUpsellModal] = useState(false);
   const [upsellProducts, setUpsellProducts] = useState<Product[]>([]);
-  const [barcodeMode, setBarcodeMode] = useState(true); // Always in barcode mode for POS
+  const [barcodeMode, setBarcodeMode] = useState(false); // Toggle barcode mode on/off
   const barcodeInputRef = useRef<HTMLInputElement>(null);
   const [showProductHistory, setShowProductHistory] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -359,50 +360,249 @@ export function ModernPOS() {
 
   // Handle removing item from cart
 
-  // Always keep barcode input focused for continuous scanning
+  // Keep barcode input focused for continuous scanning when barcode mode is enabled
+  // Only runs when barcodeMode is true, allowing normal input behavior when disabled
   useEffect(() => {
-    // Focus immediately and keep it focused
-    const focusInput = () => {
-      if (barcodeInputRef.current && document.activeElement !== barcodeInputRef.current) {
-        barcodeInputRef.current.focus();
+    if (!barcodeMode) return;
+
+    const barcodeInput = barcodeInputRef.current;
+    if (!barcodeInput) return;
+
+    // Track if user is actively interacting with other inputs
+    let shouldRefocus = true;
+    let refocusTimeout: NodeJS.Timeout | null = null;
+
+    // Check if element is an interactive input element or inside one
+    const isInteractiveElement = (element: Element | null): boolean => {
+      if (!element) return false;
+      
+      // Check if element itself is an input/textarea/select
+      const tagName = element.tagName;
+      if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT') {
+        return true;
+      }
+      
+      // Check if element is contentEditable
+      const htmlElement = element as HTMLElement;
+      if (htmlElement.isContentEditable || htmlElement.contentEditable === 'true') {
+        return true;
+      }
+      
+      // Check if element is inside a dialog/modal (all inputs in modals should work)
+      if (element.closest('[role="dialog"]') || 
+          element.closest('[data-radix-portal]') ||
+          element.closest('[data-state="open"]')) {
+        return true;
+      }
+      
+      // Check if element is inside an input/textarea/select (for labels, icons, etc.)
+      const inputParent = element.closest('input, textarea, select');
+      if (inputParent) {
+        return true;
+      }
+      
+      // Check if element is a button or inside a button
+      const buttonParent = element.closest('button, [role="button"]');
+      if (buttonParent && buttonParent !== barcodeInput) {
+        return true;
+      }
+      
+      // Check if it's inside a form field wrapper
+      if (element.closest('[data-radix-select-trigger]') ||
+          element.closest('[data-radix-dropdown-trigger]')) {
+        return true;
+      }
+      
+      return false;
+    };
+
+    // Clear any pending refocus timeout
+    const clearRefocusTimeout = () => {
+      if (refocusTimeout) {
+        clearTimeout(refocusTimeout);
+        refocusTimeout = null;
       }
     };
 
-    // Focus on mount
-    focusInput();
+    // Check if any input/textarea/select is currently focused
+    const isAnyInputFocused = (): boolean => {
+      const activeElement = document.activeElement;
+      if (!activeElement) return false;
+      
+      // Check if active element is an input, textarea, or select
+      const tagName = activeElement.tagName;
+      if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT') {
+        return activeElement !== barcodeInput;
+      }
+      
+      // Check if it's inside any input field
+      const htmlElement = activeElement as HTMLElement;
+      if (htmlElement.isContentEditable || htmlElement.contentEditable === 'true') {
+        return true;
+      }
+      
+      // Check if it's inside a dialog/modal
+      if (activeElement.closest('[role="dialog"]') || 
+          activeElement.closest('[data-radix-portal]') ||
+          activeElement.closest('[data-state="open"]')) {
+        return true;
+      }
+      
+      return false;
+    };
 
-    // Focus when barcode mode changes
-    if (barcodeMode) {
-      focusInput();
-    }
-
-    // Refocus after a short delay to ensure it stays focused
-    const focusInterval = setInterval(focusInput, 500);
-
-    // Refocus when clicking anywhere (but not on inputs)
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      // Don't steal focus if user clicks on input fields or buttons
-      if (
-        target.tagName === 'INPUT' || 
-        target.tagName === 'TEXTAREA' || 
-        target.tagName === 'BUTTON' ||
-        target.closest('input') || 
-        target.closest('textarea') ||
-        target.closest('button')
-      ) {
+    // Focus function that respects other inputs
+    const attemptRefocus = () => {
+      clearRefocusTimeout();
+      
+      // Only refocus if flag is set
+      if (!shouldRefocus) return;
+      
+      // Double-check that no input is currently focused
+      if (isAnyInputFocused()) {
+        shouldRefocus = false;
         return;
       }
       
-      // Small delay to refocus scanner input
-      setTimeout(focusInput, 100);
+      const activeElement = document.activeElement;
+      
+      // Don't refocus if user is interacting with another input/textarea/select
+      if (isInteractiveElement(activeElement) && activeElement !== barcodeInput) {
+        shouldRefocus = false;
+        return;
+      }
+      
+      // Only refocus if no interactive element is focused or body/document is focused
+      if (barcodeInput && activeElement !== barcodeInput) {
+        if (!activeElement || 
+            activeElement === document.body || 
+            activeElement === document.documentElement ||
+            activeElement.tagName === 'HTML') {
+          // Final check before focusing
+          if (!isAnyInputFocused()) {
+            barcodeInput.focus();
+          }
+        }
+      }
     };
 
-    window.addEventListener('click', handleClick);
+    // Focus on mount only if nothing else is focused
+    if (!document.activeElement || 
+        document.activeElement === document.body || 
+        document.activeElement === document.documentElement) {
+      attemptRefocus();
+    }
+
+    // Handle focus events - disable refocus when other inputs are focused
+    const handleFocus = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && target !== barcodeInput) {
+        // Disable refocus immediately when any other element gets focus
+        shouldRefocus = false;
+        clearRefocusTimeout();
+        
+        // Check if it's an interactive element
+        if (isInteractiveElement(target)) {
+          // Definitely don't refocus while this input is focused
+          return;
+        }
+      }
+    };
+
+    // Handle blur events - enable refocus when user leaves other inputs
+    const handleBlur = (e: FocusEvent) => {
+      const relatedTarget = e.relatedTarget as HTMLElement;
+      
+      // If user moved to another interactive element, don't refocus
+      if (relatedTarget && 
+          relatedTarget !== barcodeInput && 
+          isInteractiveElement(relatedTarget)) {
+        shouldRefocus = false;
+        return;
+      }
+      
+      // Wait a bit to check what actually got focus
+      clearRefocusTimeout();
+      refocusTimeout = setTimeout(() => {
+        // Double-check that no input is focused
+        if (!isAnyInputFocused()) {
+          shouldRefocus = true;
+          attemptRefocus();
+        } else {
+          shouldRefocus = false;
+        }
+      }, 150);
+    };
+
+    // Handle clicks - disable refocus if clicking on interactive elements
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      
+      // Clear any pending refocus
+      clearRefocusTimeout();
+      
+      // If clicking on or inside an interactive element, disable refocus
+      if (isInteractiveElement(target)) {
+        shouldRefocus = false;
+        // Don't try to refocus while user is interacting
+        return;
+      }
+      
+      // Check if click is on an input (might not be caught by isInteractiveElement)
+      const clickedInput = target.closest('input, textarea, select');
+      if (clickedInput && clickedInput !== barcodeInput) {
+        shouldRefocus = false;
+        return;
+      }
+      
+      // If clicking outside interactive areas, wait and then maybe refocus
+      refocusTimeout = setTimeout(() => {
+        // Only refocus if no input is currently focused
+        if (!isAnyInputFocused()) {
+          shouldRefocus = true;
+          attemptRefocus();
+        } else {
+          shouldRefocus = false;
+        }
+      }, 250);
+    };
+
+    // Handle keyboard events - if typing in another input, disable refocus
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeElement = document.activeElement;
+      
+      // If typing in any element that's not the barcode input, disable refocus
+      if (activeElement && activeElement !== barcodeInput) {
+        // Check if it's an input/textarea/select
+        const tagName = activeElement.tagName;
+        if (tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT') {
+          shouldRefocus = false;
+          clearRefocusTimeout();
+          return;
+        }
+        
+        // Check if it's contentEditable
+        const htmlElement = activeElement as HTMLElement;
+        if (htmlElement.isContentEditable || htmlElement.contentEditable === 'true') {
+          shouldRefocus = false;
+          clearRefocusTimeout();
+          return;
+        }
+      }
+    };
+
+    // Add event listeners
+    document.addEventListener('focus', handleFocus, true);
+    document.addEventListener('blur', handleBlur, true);
+    document.addEventListener('click', handleClick, true);
+    document.addEventListener('keydown', handleKeyDown, true);
 
     return () => {
-      clearInterval(focusInterval);
-      window.removeEventListener('click', handleClick);
+      clearRefocusTimeout();
+      document.removeEventListener('focus', handleFocus, true);
+      document.removeEventListener('blur', handleBlur, true);
+      document.removeEventListener('click', handleClick, true);
+      document.removeEventListener('keydown', handleKeyDown, true);
     };
   }, [barcodeMode]);
 
@@ -458,6 +658,12 @@ export function ModernPOS() {
 
   // Handle barcode/QR code scanning - optimized for fast response
   const handleBarcodeScan = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    // Only process barcode scan if barcode mode is enabled
+    if (!barcodeMode && event.key === "Enter") {
+      // Normal search behavior - let it work as regular search
+      return;
+    }
+
     if (event.key === "Enter") {
       event.preventDefault();
       const scannedValue = searchQuery.trim();
@@ -574,22 +780,41 @@ export function ModernPOS() {
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     ref={barcodeInputRef}
-                    placeholder="Scan barcode or QR code (Always Ready)"
+                    placeholder={
+                      barcodeMode
+                        ? "Scan barcode or QR code (Barcode Mode Active)"
+                        : "Search products by name, SKU, or description"
+                    }
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={handleBarcodeScan}
-                    onBlur={(e) => {
-                      // Auto-refocus on blur for continuous scanning (unless user clicked another input)
-                      setTimeout(() => {
-                        if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
-                          barcodeInputRef.current?.focus();
-                        }
-                      }, 100);
-                    }}
-                    autoFocus
-                    className="pl-10"
+                    className={`pl-10 ${barcodeMode ? "pr-24" : ""}`}
                   />
+                  {barcodeMode && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                      <Badge variant="default" className="bg-green-600 text-white text-xs px-2 py-0.5">
+                        <ScanLine className="h-3 w-3 mr-1" />
+                        Scan Mode
+                      </Badge>
+                    </div>
+                  )}
                 </div>
+                <Button
+                  variant={barcodeMode ? "default" : "outline"}
+                  onClick={() => {
+                    setBarcodeMode(!barcodeMode);
+                    // Focus input when enabling barcode mode
+                    if (!barcodeMode) {
+                      setTimeout(() => {
+                        barcodeInputRef.current?.focus();
+                      }, 100);
+                    }
+                  }}
+                  className={barcodeMode ? "bg-green-600 hover:bg-green-700" : ""}
+                >
+                  <ScanLine className="h-4 w-4 mr-2" />
+                  {barcodeMode ? "Barcode Mode ON" : "Barcode Mode"}
+                </Button>
                 <Button
                   variant="outline"
                   onClick={() => setIsFilterOpen(!isFilterOpen)}

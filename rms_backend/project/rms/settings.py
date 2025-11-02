@@ -197,20 +197,10 @@ else:
     MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # File upload settings
-FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
-DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
-FILE_UPLOAD_PERMISSIONS = 0o644
+
 
 # Ensure media directory exists in production
-if os.getenv('DEBUG', 'True') == 'False':
-    import os
-    if not os.path.exists(MEDIA_ROOT):
-        try:
-            os.makedirs(MEDIA_ROOT, exist_ok=True)
-        except PermissionError:
-            # If we can't create the directory, log the error but continue
-            print(f"Warning: Could not create media directory {MEDIA_ROOT}")
-            print("Please ensure the directory exists and has proper permissions")
+
 
 # Static files configuration
 STATIC_URL = '/static/'
@@ -232,7 +222,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3001",
     "http://127.0.0.1:3000",
     "https://rawstitch.info",
-    "https://rawstitch.vercel.app"
+    "https://rawstitch.vercel.app",
+    "https://retail-management-sytstem-omega.vercel.app"
 
 ]
 
