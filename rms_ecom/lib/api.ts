@@ -298,6 +298,7 @@ export const ecommerceApi = {
   },
 
   // Create Online Preorder (COD-only). Backend enforces COD and online type.
+  // This endpoint creates customer and preorder in one request.
   createOnlinePreorder: async (payload: {
     customer_name: string;
     customer_phone: string;
@@ -312,14 +313,24 @@ export const ecommerceApi = {
       unit_price: number;
       discount?: number;
     }>;
+    delivery_charge?: number;
+    delivery_method?: string;
     expected_delivery_date?: string; // ISO date
   }): Promise<{ id: number } & Record<string, unknown>> => {
-    const response = await fetch(`${API_BASE_URL}/preorder/orders/online/`, {
+    const response = await fetch(`${API_BASE_URL}/ecommerce/orders/create/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     })
-    if (!response.ok) throw new Error('Failed to create online preorder')
+    if (!response.ok) {
+      // Try to get error message from response
+      try {
+        const errorData = await response.json()
+        throw new Error(errorData.error || errorData.detail || 'Failed to create online preorder')
+      } catch {
+        throw new Error(`Failed to create online preorder (${response.status})`)
+      }
+    }
     return response.json()
   },
 };

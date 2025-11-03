@@ -11,6 +11,7 @@ from .views import (
     PublicDeliverySettingsView,
     DeliverySettingsView,
     PublicCartPriceView,
+    CreateOnlinePreorderView,
 )
 
 router = DefaultRouter()
@@ -27,5 +28,6 @@ urlpatterns = [
     path('public/delivery-settings/', PublicDeliverySettingsView.as_view(), name='public-delivery-settings'),
     path('delivery-settings/', DeliverySettingsView.as_view(), name='delivery-settings'),
     path('public/cart/price/', PublicCartPriceView.as_view(), name='public-cart-price'),
+    path('orders/create/', CreateOnlinePreorderView.as_view(), name='create-online-preorder'),
 ]
 

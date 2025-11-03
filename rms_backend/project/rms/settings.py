@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'apps.reports',
     'apps.preorder',
     'apps.ecommerce',
+    'apps.online_preorder',
 ]
 
 REST_FRAMEWORK = {

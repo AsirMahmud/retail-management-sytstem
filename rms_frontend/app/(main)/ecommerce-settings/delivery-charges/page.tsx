@@ -1,70 +1,179 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Truck, Save } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import axiosInstance from "@/lib/api/axios-config";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"
+interface DeliverySettings {
+  inside_dhaka_charge: number;
+  outside_dhaka_charge: number;
+  updated_at?: string;
+}
 
 export default function DeliveryChargesSettingsPage() {
-    const [inside, setInside] = useState<string>("")
-    const [outside, setOutside] = useState<string>("")
-    const [saving, setSaving] = useState(false)
-    const [message, setMessage] = useState<string>("")
+  const [inside, setInside] = useState<string>("");
+  const [outside, setOutside] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-    useEffect(() => {
-        (async () => {
-            try {
-                const res = await fetch(`${API_BASE_URL}/ecommerce/delivery-settings/`, { credentials: "include" })
-                if (res.ok) {
-                    const data = await res.json()
-                    setInside(String(data.inside_dhaka_charge ?? "0"))
-                    setOutside(String(data.outside_dhaka_charge ?? "0"))
-                }
-            } catch {}
-        })()
-    }, [])
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        setLoading(true);
+        const response = await axiosInstance.get("/ecommerce/delivery-settings/");
+        const data: DeliverySettings = response.data;
+        setInside(String(data.inside_dhaka_charge ?? "0"));
+        setOutside(String(data.outside_dhaka_charge ?? "0"));
+      } catch (error) {
+        console.error("Failed to fetch delivery settings:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load delivery settings. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    const save = async () => {
-        setSaving(true)
-        setMessage("")
-        try {
-            const res = await fetch(`${API_BASE_URL}/ecommerce/delivery-settings/`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({
-                    inside_dhaka_charge: inside,
-                    outside_dhaka_charge: outside,
-                }),
-            })
-            if (!res.ok) throw new Error("Failed to save")
-            setMessage("Saved")
-        } catch (e) {
-            setMessage("Failed to save")
-        } finally {
-            setSaving(false)
-        }
+    fetchSettings();
+  }, [toast]);
+
+  const handleSave = async () => {
+    if (!inside || !outside) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter both delivery charges.",
+        variant: "destructive",
+      });
+      return;
     }
 
+    const insideNum = parseFloat(inside);
+    const outsideNum = parseFloat(outside);
+
+    if (isNaN(insideNum) || isNaN(outsideNum) || insideNum < 0 || outsideNum < 0) {
+      toast({
+        title: "Validation Error",
+        description: "Please enter valid positive numbers for delivery charges.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await axiosInstance.patch("/ecommerce/delivery-settings/", {
+        inside_dhaka_charge: insideNum,
+        outside_dhaka_charge: outsideNum,
+      });
+
+      toast({
+        title: "Success",
+        description: "Delivery charges saved successfully!",
+      });
+    } catch (error: any) {
+      console.error("Failed to save delivery settings:", error);
+      toast({
+        title: "Error",
+        description: error?.response?.data?.detail || "Failed to save delivery charges. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
     return (
-        <div className="p-6 space-y-6">
-            <h1 className="text-2xl font-bold">Delivery Charges</h1>
-            <div className="grid gap-4 max-w-md">
-                <div className="space-y-2">
-                    <Label htmlFor="inside">Inside Dhaka (৳)</Label>
-                    <Input id="inside" type="number" value={inside} onChange={(e) => setInside(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="outside">Outside Dhaka (৳)</Label>
-                    <Input id="outside" type="number" value={outside} onChange={(e) => setOutside(e.target.value)} />
-                </div>
-                <div className="flex items-center gap-3">
-                    <Button onClick={save} disabled={saving}>{saving ? "Saving..." : "Save"}</Button>
-                    {message && <span className="text-sm text-muted-foreground">{message}</span>}
-                </div>
-            </div>
+      <div className="p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <p className="text-muted-foreground">Loading delivery settings...</p>
         </div>
-    )
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center gap-2">
+        <Truck className="h-6 w-6" />
+        <h1 className="text-3xl font-bold tracking-tight">Delivery Charges</h1>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Configure Delivery Charges</CardTitle>
+          <CardDescription>
+            Set the delivery charges for inside and outside Dhaka. These charges will be applied during checkout.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2 max-w-2xl">
+            <div className="space-y-2">
+              <Label htmlFor="inside" className="text-base font-semibold">
+                Inside Dhaka Charge (৳)
+              </Label>
+              <Input
+                id="inside"
+                type="number"
+                min="0"
+                step="0.01"
+                value={inside}
+                onChange={(e) => setInside(e.target.value)}
+                placeholder="Enter delivery charge"
+                className="text-base"
+              />
+              <p className="text-sm text-muted-foreground">
+                Delivery charge for orders within Dhaka city
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="outside" className="text-base font-semibold">
+                Outside Dhaka Charge (৳)
+              </Label>
+              <Input
+                id="outside"
+                type="number"
+                min="0"
+                step="0.01"
+                value={outside}
+                onChange={(e) => setOutside(e.target.value)}
+                placeholder="Enter delivery charge"
+                className="text-base"
+              />
+              <p className="text-sm text-muted-foreground">
+                Delivery charge for orders outside Dhaka city
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 pt-4">
+            <Button
+              onClick={handleSave}
+              disabled={saving || loading}
+              size="lg"
+              className="min-w-[120px]"
+            >
+              <Save className="mr-2 h-4 w-4" />
+              {saving ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
