@@ -103,6 +103,7 @@ const mainNavItems = [
       { title: "Home Page Settings", href: "/ecommerce-settings/home-page" },
       { title: "Discount Management", href: "/ecommerce-settings/discounts" },
       { title: "Product Status", href: "/ecommerce-settings/product-status" },
+      { title: "Delivery Charges", href: "/ecommerce-settings/delivery-charges" },
     ],
   },
 ];

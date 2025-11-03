@@ -1,0 +1,777 @@
+{
+  "city": "Dhaka",
+  "source": [
+    "Dhaka Metropolitan Police (dmp.gov.bd)",
+    "Wikipedia — Thanas of Dhaka"
+  ],
+  "city_corporations": [
+    {
+      "name": "Dhaka North City Corporation",
+      "abbreviation": "DNCC",
+      "thanas": [
+        {
+          "name": "Uttara East",
+          "places": [
+            "Uttara Sector 1",
+            "Uttara Sector 2",
+            "Uttara Sector 3",
+            "Uttara Sector 4",
+            "Uttara Sector 5",
+            "Uttara Sector 6",
+            "Uttara Sector 7",
+            "Uttara Sector 8",
+            "Uttara Sector 9",
+            "Uttara Sector 10",
+            "Uttara Sector 11",
+            "Uttara Sector 12",
+            "Uttara Sector 13",
+            "Uttara Sector 14",
+            "Uttara Sector 15",
+            "Rajlakhshmi",
+            "Diabari"
+          ]
+        },
+        {
+          "name": "Uttara West",
+          "places": [
+            "Uttara Sector 16",
+            "Uttara Sector 17",
+            "Uttara Sector 18",
+            "Mohakhali",
+            "Banani",
+            "Gulshan",
+            "Niketon",
+            "Badda",
+            "Baridhara",
+            "Banani DOHS",
+            "Uttara Model Town",
+            "Airport Road",
+            "Jahurul Islam Avenue"
+          ]
+        },
+        {
+          "name": "Badda",
+          "places": [
+            "Badda",
+            "Merul Badda",
+            "Rampura",
+            "Madani Avenue",
+            "Satarkul",
+            "Vatara",
+            "Banasree",
+            "Rampura Bridge",
+            "Shahjadpur",
+            "Nikunja",
+            "Khilkhet"
+          ]
+        },
+        {
+          "name": "Banani",
+          "places": [
+            "Banani",
+            "Banani Model Town",
+            "Kemal Ataturk Avenue",
+            "Banani DOHS",
+            "Gulshan 1",
+            "Gulshan 2",
+            "Niketon",
+            "Banani Road 11",
+            "Banani Road 27"
+          ]
+        },
+        {
+          "name": "Gulshan",
+          "places": [
+            "Gulshan 1",
+            "Gulshan 2",
+            "Gulshan Avenue",
+            "Kemal Ataturk Avenue",
+            "Gulshan Circle 1",
+            "Gulshan Circle 2",
+            "Baridhara",
+            "Baridhara DOHS",
+            "Gulshan Lake"
+          ]
+        },
+        {
+          "name": "Khilkhet",
+          "places": [
+            "Khilkhet",
+            "Nikunja",
+            "Vatara",
+            "Kuril Bishwa Road",
+            "Khilkhet Airport Road",
+            "Diabari",
+            "Tejgaon Industrial Area",
+            "Banani"
+          ]
+        },
+        {
+          "name": "Vatara",
+          "places": [
+            "Vatara",
+            "Baridhara",
+            "Banasree",
+            "Rampura",
+            "Merul Badda",
+            "Aftabnagar",
+            "Kuril",
+            "Khilkhet"
+          ]
+        },
+        {
+          "name": "Tejgaon Industrial",
+          "places": [
+            "Tejgaon Industrial Area",
+            "Kakrail",
+            "Tejgaon",
+            "Gulshan",
+            "Banani",
+            "Karwan Bazar",
+            "Farmgate",
+            "Mohakhali"
+          ]
+        },
+        {
+          "name": "Tejgaon",
+          "places": [
+            "Tejgaon",
+            "Farmgate",
+            "Karwan Bazar",
+            "Shahbagh",
+            "Rampura",
+            "Malibagh",
+            "Kakrail",
+            "Ramna",
+            "Dhanmondi"
+          ]
+        },
+        {
+          "name": "Kafrul",
+          "places": [
+            "Kafrul",
+            "Agargaon",
+            "Shyamoli",
+            "Sher-e-Bangla Nagar",
+            "Mirpur",
+            "Gabtoli",
+            "Asad Gate"
+          ]
+        },
+        {
+          "name": "Mohammadpur",
+          "places": [
+            "Mohammadpur",
+            "Asad Gate",
+            "Shyamoli",
+            "Dhanmondi",
+            "Gabtoli",
+            "Kallyanpur",
+            "Shahbagh",
+            "Agargaon"
+          ]
+        },
+        {
+          "name": "Sher-e-Bangla Nagar",
+          "places": [
+            "Sher-e-Bangla Nagar",
+            "Agargaon",
+            "Mirpur",
+            "Kafrul",
+            "Asad Gate",
+            "Mohammadpur",
+            "Gabtoli"
+          ]
+        },
+        {
+          "name": "Cantonment",
+          "places": [
+            "Dhaka Cantonment",
+            "Banani",
+            "Gulshan",
+            "Tejgaon",
+            "Mohakhali",
+            "Airport",
+            "Kurmitola"
+          ]
+        },
+        {
+          "name": "Airport (Bimanbandar)",
+          "places": [
+            "Hazrat Shahjalal International Airport",
+            "Kurmitola",
+            "Uttara",
+            "Nikunja",
+            "Diabari",
+            "Tejgaon",
+            "Cantonment"
+          ]
+        },
+        {
+          "name": "Pallabi",
+          "places": [
+            "Pallabi",
+            "Mirpur",
+            "Kazipara",
+            "Shewrapara",
+            "Kallyanpur",
+            "Mohammadpur",
+            "Gabtoli"
+          ]
+        },
+        {
+          "name": "Mirpur Model",
+          "places": [
+            "Mirpur",
+            "Mirpur 1",
+            "Mirpur 2",
+            "Mirpur 6",
+            "Mirpur 10",
+            "Mirpur 11",
+            "Mirpur 12",
+            "Mirpur 13",
+            "Mirpur 14",
+            "Kazipara",
+            "Shewrapara",
+            "Kallyanpur",
+            "Pallabi",
+            "Kochukhet"
+          ]
+        },
+        {
+          "name": "Rupnagar",
+          "places": [
+            "Rupnagar",
+            "Mirpur",
+            "Pallabi",
+            "Kazipara",
+            "Gabtoli",
+            "Mohammadpur"
+          ]
+        },
+        {
+          "name": "Turag",
+          "places": [
+            "Turag",
+            "Ashulia",
+            "Savar",
+            "Uttara",
+            "Mirpur",
+            "Gabtoli"
+          ]
+        },
+        {
+          "name": "Uttar Khan",
+          "places": [
+            "Uttar Khan",
+            "Dakshin Khan",
+            "Uttara",
+            "Diabari",
+            "Airport"
+          ]
+        },
+        {
+          "name": "Dakshin Khan",
+          "places": [
+            "Dakshin Khan",
+            "Uttar Khan",
+            "Uttara",
+            "Airport",
+            "Diabari"
+          ]
+        },
+        {
+          "name": "Bhashantek",
+          "places": [
+            "Bhashantek",
+            "Mirpur",
+            "Kochukhet",
+            "Cantonment",
+            "Uttara"
+          ]
+        },
+        {
+          "name": "Shah Ali",
+          "places": [
+            "Shah Ali",
+            "Mirpur",
+            "Pallabi",
+            "Gabtoli",
+            "Mohammadpur"
+          ]
+        },
+        {
+          "name": "Sabujbagh",
+          "places": [
+            "Sabujbagh",
+            "Meradia",
+            "Badda",
+            "Malibagh",
+            "Rampura",
+            "Khilgaon",
+            "East Rampura"
+          ]
+        },
+        {
+          "name": "Hatirjheel",
+          "places": [
+            "Hatirjheel",
+            "Tejgaon",
+            "Rampura",
+            "Banasree",
+            "Badda",
+            "Banani",
+            "Gulshan"
+          ]
+        },
+        {
+          "name": "Shahbag",
+          "places": [
+            "Shahbagh",
+            "Dhanmondi",
+            "Ramna",
+            "New Market",
+            "TSC",
+            "Dhaka University",
+            "Motijheel",
+            "Tejgaon",
+            "Farmgate"
+          ]
+        },
+        {
+          "name": "Ramna Model",
+          "places": [
+            "Ramna",
+            "Shahbagh",
+            "Dhaka University",
+            "TSC",
+            "New Market",
+            "Kakrail",
+            "Motijheel",
+            "Paltan"
+          ]
+        },
+        {
+          "name": "Paltan Model",
+          "places": [
+            "Paltan",
+            "Motijheel",
+            "Gulistan",
+            "Ramna",
+            "Kakrail",
+            "Motijheel Commercial Area",
+            "Dhaka New Market Area"
+          ]
+        },
+        {
+          "name": "Motijheel",
+          "places": [
+            "Motijheel",
+            "Motijheel Commercial Area",
+            "Dilkusha",
+            "Purana Paltan",
+            "Gulistan",
+            "Ramna",
+            "Kakrail",
+            "Fakirapool"
+          ]
+        },
+        {
+          "name": "New Market",
+          "places": [
+            "New Market",
+            "Azimpur",
+            "Nilkhet",
+            "Shahbagh",
+            "Dhanmondi",
+            "Ramna",
+            "Dhaka University"
+          ]
+        },
+        {
+          "name": "Kalabagan",
+          "places": [
+            "Kalabagan",
+            "Dhanmondi",
+            "Shyamoli",
+            "Asad Gate",
+            "Mohammadpur",
+            "New Market",
+            "Shahbagh"
+          ]
+        },
+        {
+          "name": "Dhanmondi",
+          "places": [
+            "Dhanmondi",
+            "Dhanmondi 27",
+            "Dhanmondi 32",
+            "Kalabagan",
+            "Shahbagh",
+            "New Market",
+            "Shyamoli",
+            "Asad Gate",
+            "Mohammadpur"
+          ]
+        },
+        {
+          "name": "Shyamoli",
+          "places": [
+            "Shyamoli",
+            "Asad Gate",
+            "Mohammadpur",
+            "Dhanmondi",
+            "Agargaon",
+            "Gabtoli",
+            "Kallyanpur"
+          ]
+        },
+        {
+          "name": "Asad Gate",
+          "places": [
+            "Asad Gate",
+            "Shyamoli",
+            "Mohammadpur",
+            "Kallyanpur",
+            "Dhanmondi",
+            "Gabtoli",
+            "Agargaon"
+          ]
+        },
+        {
+          "name": "Kadamtoli",
+          "places": [
+            "Kadamtoli",
+            "Shyampur",
+            "Kamrangirchar",
+            "Lalbagh",
+            "Chawkbazar",
+            "Old Dhaka"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Dhaka South City Corporation",
+      "abbreviation": "DSCC",
+      "thanas": [
+        {
+          "name": "Kotwali",
+          "places": [
+            "Kotwali",
+            "Lalbagh",
+            "Chawkbazar",
+            "Sadarghat",
+            "Shankhari Bazar",
+            "Tanti Bazar",
+            "Islampur",
+            "Wari",
+            "Gulistan",
+            "Paltan"
+          ]
+        },
+        {
+          "name": "Lalbagh",
+          "places": [
+            "Lalbagh",
+            "Lalbagh Fort",
+            "Chawkbazar",
+            "Wari",
+            "Old Dhaka",
+            "Bangshal",
+            "Kotwali",
+            "Shyampur"
+          ]
+        },
+        {
+          "name": "Chowkbazar",
+          "places": [
+            "Chawkbazar",
+            "Shankhari Bazar",
+            "Tanti Bazar",
+            "Islampur",
+            "Lalbagh",
+            "Kotwali",
+            "Old Dhaka",
+            "Wari"
+          ]
+        },
+        {
+          "name": "Bangshal",
+          "places": [
+            "Bangshal",
+            "Lalbagh",
+            "Chawkbazar",
+            "Wari",
+            "Gulistan",
+            "Old Dhaka",
+            "Kotwali"
+          ]
+        },
+        {
+          "name": "Sutrapur",
+          "places": [
+            "Sutrapur",
+            "Wari",
+            "Gulistan",
+            "Bangshal",
+            "Lalbagh",
+            "Chawkbazar",
+            "Old Dhaka"
+          ]
+        },
+        {
+          "name": "Wari",
+          "places": [
+            "Wari",
+            "Gulistan",
+            "Paltan",
+            "Motijheel",
+            "Lalbagh",
+            "Bangshal",
+            "Sutrapur",
+            "Chawkbazar",
+            "Dhanmondi"
+          ]
+        },
+        {
+          "name": "Gandaria",
+          "places": [
+            "Gandaria",
+            "Shyampur",
+            "Kamrangirchar",
+            "Lalbagh",
+            "Jatrabari",
+            "Demra",
+            "Kadamtoli"
+          ]
+        },
+        {
+          "name": "Hazaribagh",
+          "places": [
+            "Hazaribagh",
+            "Kamrangirchar",
+            "Shyampur",
+            "Lalbagh",
+            "Kadamtoli",
+            "Gandaria"
+          ]
+        },
+        {
+          "name": "Shyampur",
+          "places": [
+            "Shyampur",
+            "Kamrangirchar",
+            "Lalbagh",
+            "Hazaribagh",
+            "Gandaria",
+            "Jatrabari",
+            "Kadamtoli"
+          ]
+        },
+        {
+          "name": "Kamrangirchar",
+          "places": [
+            "Kamrangirchar",
+            "Shyampur",
+            "Hazaribagh",
+            "Lalbagh",
+            "Kadamtoli",
+            "Gandaria"
+          ]
+        },
+        {
+          "name": "Jatrabari",
+          "places": [
+            "Jatrabari",
+            "Demra",
+            "Kadamtoli",
+            "Gandaria",
+            "Shyampur",
+            "Sabujbagh",
+            "Meradia",
+            "Malibagh"
+          ]
+        },
+        {
+          "name": "Demra",
+          "places": [
+            "Demra",
+            "Jatrabari",
+            "Shyampur",
+            "Sabujbagh",
+            "Meradia",
+            "Badda",
+            "Malibagh"
+          ]
+        },
+        {
+          "name": "Sabujbagh",
+          "places": [
+            "Sabujbagh",
+            "Meradia",
+            "Badda",
+            "Malibagh",
+            "Rampura",
+            "Khilgaon",
+            "East Rampura",
+            "Demra",
+            "Jatrabari"
+          ]
+        },
+        {
+          "name": "Khilgaon",
+          "places": [
+            "Khilgaon",
+            "East Rampura",
+            "Rampura",
+            "Malibagh",
+            "Banasree",
+            "Sabujbagh",
+            "Meradia",
+            "Badda"
+          ]
+        },
+        {
+          "name": "Rampura",
+          "places": [
+            "Rampura",
+            "East Rampura",
+            "Malibagh",
+            "Khilgaon",
+            "Banasree",
+            "Badda",
+            "Merul Badda",
+            "Tejgaon",
+            "Hatirjheel"
+          ]
+        },
+        {
+          "name": "Mugda",
+          "places": [
+            "Mugda",
+            "Meradia",
+            "Badda",
+            "Sabujbagh",
+            "Khilgaon",
+            "Rampura",
+            "Malibagh"
+          ]
+        },
+        {
+          "name": "Kalabagan",
+          "places": [
+            "Kalabagan",
+            "Dhanmondi",
+            "Shyamoli",
+            "Asad Gate",
+            "Mohammadpur",
+            "New Market",
+            "Shahbagh"
+          ]
+        },
+        {
+          "name": "Dhanmondi",
+          "places": [
+            "Dhanmondi",
+            "Dhanmondi 27",
+            "Dhanmondi 32",
+            "Kalabagan",
+            "Shahbagh",
+            "New Market",
+            "Shyamoli",
+            "Asad Gate",
+            "Mohammadpur"
+          ]
+        },
+        {
+          "name": "Shahbag",
+          "places": [
+            "Shahbagh",
+            "Dhanmondi",
+            "Ramna",
+            "New Market",
+            "TSC",
+            "Dhaka University",
+            "Motijheel",
+            "Tejgaon",
+            "Farmgate"
+          ]
+        },
+        {
+          "name": "Ramna Model",
+          "places": [
+            "Ramna",
+            "Shahbagh",
+            "Dhaka University",
+            "TSC",
+            "New Market",
+            "Kakrail",
+            "Motijheel",
+            "Paltan"
+          ]
+        },
+        {
+          "name": "Paltan Model",
+          "places": [
+            "Paltan",
+            "Motijheel",
+            "Gulistan",
+            "Ramna",
+            "Kakrail",
+            "Motijheel Commercial Area",
+            "Dhaka New Market Area"
+          ]
+        },
+        {
+          "name": "Motijheel",
+          "places": [
+            "Motijheel",
+            "Motijheel Commercial Area",
+            "Dilkusha",
+            "Purana Paltan",
+            "Gulistan",
+            "Ramna",
+            "Kakrail",
+            "Fakirapool"
+          ]
+        },
+        {
+          "name": "New Market",
+          "places": [
+            "New Market",
+            "Azimpur",
+            "Nilkhet",
+            "Shahbagh",
+            "Dhanmondi",
+            "Ramna",
+            "Dhaka University"
+          ]
+        },
+        {
+          "name": "Darus-Salam",
+          "places": [
+            "Darus-Salam",
+            "Shyamoli",
+            "Mohammadpur",
+            "Kallyanpur",
+            "Gabtoli",
+            "Agargaon"
+          ]
+        },
+        {
+          "name": "Adabor",
+          "places": [
+            "Adabor",
+            "Shyamoli",
+            "Mohammadpur",
+            "Dhanmondi",
+            "Kalabagan",
+            "Asad Gate"
+          ]
+        }
+      ]
+    }
+  ]
+}
+

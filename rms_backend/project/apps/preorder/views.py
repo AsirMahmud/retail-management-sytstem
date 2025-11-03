@@ -71,6 +71,12 @@ class PreorderViewSet(viewsets.ModelViewSet):
     queryset = Preorder.objects.all().order_by('-created_at')
     permission_classes = [IsAuthenticated]
     
+    def get_permissions(self):
+        """Override to allow AllowAny for online action"""
+        if self.action == 'online':
+            return [AllowAny()]
+        return super().get_permissions()
+    
     def get_serializer_class(self):
         if self.action == 'create' or self.action == 'update':
             return PreorderCreateSerializer
@@ -170,7 +176,8 @@ class PreorderViewSet(viewsets.ModelViewSet):
         payload['payment_method'] = 'COD'
         payload['preorder_type'] = 'online'
         serializer = PreorderCreateSerializer(data=payload)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         preorder = serializer.save()
         return Response(PreorderSerializer(preorder).data, status=status.HTTP_201_CREATED)
     

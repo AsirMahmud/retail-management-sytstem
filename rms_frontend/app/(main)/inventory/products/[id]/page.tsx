@@ -1223,17 +1223,17 @@ async function handlePrintLabel(product: Product, variation: any, count: number)
       }
       .label {
         width: 58mm;
-        height: 25mm;
+        height: 68mm;
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        justify-content: space-between;
         align-items: center;
         font-family: 'Courier New', monospace;
         font-size: 15px;
         border: 2px solid #000;
         background: #fff;
         font-weight: 700;
-        padding: 2mm;
+        padding: 3mm;
         margin-bottom: 5px;
         box-sizing: border-box;
       }
@@ -1271,20 +1271,26 @@ async function handlePrintLabel(product: Product, variation: any, count: number)
         width: 100%;
         height: 100%;
         justify-content: space-between;
+        gap: 2mm;
       }
       .label-text {
         display: flex;
         flex-direction: column;
         align-items: center;
-        flex: 1;
-        justify-content: center;
+        justify-content: flex-start;
+        flex-shrink: 0;
       }
       .qr-code {
-        width: 100px;
-        height: 100px;
-        margin-top: 2mm;
+        width: 35mm;
+        height: 35mm;
+        max-width: 35mm;
+        max-height: 35mm;
         image-rendering: -webkit-optimize-contrast;
         image-rendering: crisp-edges;
+        display: block;
+        border: 1px solid #000;
+        background: #fff;
+        flex-shrink: 0;
       }
       @media print {
         body {

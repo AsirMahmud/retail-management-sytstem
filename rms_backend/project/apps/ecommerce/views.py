@@ -6,11 +6,17 @@ from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.utils import timezone
 from django.db.models import Q
+from django.db import IntegrityError
+from datetime import datetime
 from .models import Discount, Brand, HomePageSettings, DeliverySettings
 from .serializers import DiscountSerializer, DiscountListSerializer, BrandSerializer, HomePageSettingsSerializer, DeliverySettingsSerializer
 from django.utils.text import slugify
 from apps.inventory.models import Product, ProductVariation, Gallery, Image
+from apps.customer.models import Customer
+from apps.preorder.models import Preorder
+from apps.preorder.serializers import PreorderSerializer
 from django.db.models import Sum
+from decimal import Decimal
 
 
 class DiscountViewSet(viewsets.ModelViewSet):
@@ -502,3 +508,204 @@ class PublicCartPriceView(APIView):
             'subtotal': subtotal,
             'delivery': DeliverySettingsSerializer(delivery).data,
         })
+
+
+class CreateOnlinePreorderView(APIView):
+    """
+    Public API endpoint to create a customer and online preorder in one request.
+    Accepts the full checkout payload and creates customer if needed, then creates preorder.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        """
+        Create customer (if needed) and online preorder.
+        Expected payload:
+        {
+            "customer_name": "John Doe",
+            "customer_phone": "01712345678",
+            "customer_email": "john@example.com",
+            "shipping_address": {
+                "city_corporation": "Dhaka North City Corporation",
+                "thana": "Mohammadpur",
+                "place": "Shahbagh",
+                "address": "Full address"
+            },
+            "notes": "Optional notes",
+            "items": [
+                {
+                    "product_id": 96,
+                    "size": "28",
+                    "color": "Purple",
+                    "quantity": 1,
+                    "unit_price": 12000,
+                    "discount": 0
+                }
+            ],
+            "delivery_charge": 0,
+            "delivery_method": "Inside Dhaka",
+            "expected_delivery_date": "2025-12-31"  # Optional
+        }
+        """
+        # Extract and normalize customer data
+        customer_name = str(request.data.get('customer_name') or '').strip()
+        customer_phone = str(request.data.get('customer_phone') or '').strip()
+        customer_email = str(request.data.get('customer_email') or '').strip()
+
+        # Validate required fields
+        if not customer_phone:
+            return Response(
+                {'error': 'customer_phone is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not customer_name:
+            return Response(
+                {'error': 'customer_name is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validate and normalize items
+        raw_items = request.data.get('items', [])
+        if not raw_items or not isinstance(raw_items, list):
+            return Response(
+                {'error': 'items is required and must be a non-empty list'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        items = []
+        for idx, item in enumerate(raw_items):
+            try:
+                product_id = int(item.get('product_id'))
+                size = str(item.get('size') or '').strip()
+                color = str(item.get('color') or '').strip()
+                quantity = int(item.get('quantity') or 0)
+                unit_price = float(item.get('unit_price') or 0)
+                discount = float(item.get('discount') or 0)
+                if quantity <= 0:
+                    return Response({'error': f'items[{idx}].quantity must be > 0'}, status=status.HTTP_400_BAD_REQUEST)
+                if not size or not color:
+                    return Response({'error': f'items[{idx}] must include non-empty size and color'}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception:
+                return Response({'error': f'items[{idx}] has invalid types'}, status=status.HTTP_400_BAD_REQUEST)
+            items.append({
+                'product_id': product_id,
+                'size': size,
+                'color': color,
+                'quantity': quantity,
+                'unit_price': unit_price,
+                'discount': discount,
+            })
+
+        # Create or get customer
+        try:
+            customer = Customer.objects.get(phone=customer_phone)
+            # Update customer info if provided
+            if customer_name:
+                name_parts = customer_name.split(maxsplit=1)
+                customer.first_name = name_parts[0] if len(name_parts) > 0 else ''
+                customer.last_name = name_parts[1] if len(name_parts) > 1 else ''
+            if customer_email:
+                # Only update email if it's not already set or if it's different
+                # Handle email uniqueness - if email exists for another customer, skip updating
+                try:
+                    existing_customer_with_email = Customer.objects.exclude(id=customer.id).get(email=customer_email)
+                    # Email already belongs to another customer, skip updating
+                    pass
+                except Customer.DoesNotExist:
+                    # Email is available, update it
+                    customer.email = customer_email
+            customer.save()
+        except Customer.DoesNotExist:
+            # Create new customer
+            name_parts = customer_name.split(maxsplit=1)
+            first_name = name_parts[0] if len(name_parts) > 0 else ''
+            last_name = name_parts[1] if len(name_parts) > 1 else ''
+            
+            # Build address from shipping_address if provided
+            shipping_address = request.data.get('shipping_address', {})
+            address_parts = []
+            if shipping_address.get('address'):
+                address_parts.append(shipping_address['address'])
+            if shipping_address.get('place'):
+                address_parts.append(shipping_address['place'])
+            if shipping_address.get('thana'):
+                address_parts.append(shipping_address['thana'])
+            if shipping_address.get('city_corporation'):
+                address_parts.append(shipping_address['city_corporation'])
+            address_text = ', '.join(address_parts) if address_parts else ''
+
+            # Handle email uniqueness
+            email_to_use = customer_email if customer_email else f"{customer_phone}@temp.com"
+            if customer_email:
+                try:
+                    # Check if email already exists
+                    Customer.objects.get(email=customer_email)
+                    # Email exists, use a different one
+                    email_to_use = f"{customer_phone}@temp.com"
+                except Customer.DoesNotExist:
+                    # Email is available
+                    pass
+
+            try:
+                customer = Customer.objects.create(
+                    first_name=first_name,
+                    last_name=last_name,
+                    phone=customer_phone,
+                    email=email_to_use,
+                    address=address_text,
+                    gender='O'  # Default to Other
+                )
+            except IntegrityError:
+                # Handle case where phone might have been created between check and create
+                customer = Customer.objects.get(phone=customer_phone)
+
+        # Build shipping address JSON
+        shipping_address_data = request.data.get('shipping_address') or {}
+        
+        # Calculate total amount
+        items_subtotal = sum(
+            float(item.get('quantity', 0)) * float(item.get('unit_price', 0)) - float(item.get('discount', 0) or 0)
+            for item in items
+        )
+        delivery_charge = float(request.data.get('delivery_charge', 0) or 0)
+        total_amount = Decimal(str(items_subtotal + delivery_charge))
+
+        # Create preorder
+        preorder_data = {
+            'customer_name': customer_name,
+            'customer_phone': customer_phone,
+            'customer_email': customer_email if customer_email else '',
+            'source': 'ONLINE',
+            'payment_method': 'COD',
+            'preorder_type': 'online',
+            'items': items,
+            'shipping_address': shipping_address_data if shipping_address_data else None,
+            'delivery_charge': Decimal(str(delivery_charge)),
+            'delivery_method': str(request.data.get('delivery_method') or ''),
+            'total_amount': total_amount,
+            'notes': request.data.get('notes', '') or '',
+            'status': 'PENDING',
+        }
+
+        # Handle expected_delivery_date if provided
+        expected_delivery_date = request.data.get('expected_delivery_date')
+        if expected_delivery_date:
+            try:
+                # Parse date string if it's a string
+                if isinstance(expected_delivery_date, str):
+                    preorder_data['expected_delivery_date'] = datetime.strptime(expected_delivery_date, '%Y-%m-%d').date()
+                else:
+                    preorder_data['expected_delivery_date'] = expected_delivery_date
+            except (ValueError, TypeError):
+                # Invalid date format, skip it
+                pass
+
+        try:
+            preorder = Preorder.objects.create(**preorder_data)
+            serializer = PreorderSerializer(preorder)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response(
+                {'error': f'Failed to create preorder: {str(e)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )

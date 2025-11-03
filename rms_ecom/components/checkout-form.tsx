@@ -7,16 +7,77 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { useState } from "react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { getCart, clearCart } from "@/lib/cart"
 import { ecommerceApi } from "@/lib/api"
+import { useCheckoutStore } from "@/hooks/useCheckoutStore"
+import { useBdAddress } from "@/hooks/useBdAddress"
+import dhakaThanasData from "../dhaka_thanas_structure.json"
+
+interface Place {
+  name: string
+  bn_name: string
+}
+
+interface Thana {
+  name: string
+  bn_name: string
+  places: Place[]
+}
+
+interface CityCorporation {
+  name: string
+  name_bn?: string
+  abbreviation: string
+  thanas: Thana[]
+}
 
 export function CheckoutForm() {
   const router = useRouter()
   const [paymentMethod] = useState("cod")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { deliveryMethod, setDeliveryMethod } = useCheckoutStore()
+  const {
+    divisions,
+    districts,
+    upazillas,
+    unions,
+    loading: bdLoading,
+    loadingDistricts,
+    loadingUpazillas,
+    loadingUnions,
+    error: bdError,
+    unionError,
+    selectedDivision,
+    selectedDistrict,
+    selectedUpazilla,
+    setSelectedDivision,
+    setSelectedDistrict,
+    setSelectedUpazilla,
+  } = useBdAddress()
+  const [selectedUnion, setSelectedUnion] = useState<string>("")
+  
+  // Dhaka address states
+  const [selectedCityCorp, setSelectedCityCorp] = useState<string>("")
+  const [selectedThana, setSelectedThana] = useState<string>("")
+  const [selectedPlace, setSelectedPlace] = useState<string>("")
+  
+  const cityCorporations: CityCorporation[] = dhakaThanasData.city_corporations || []
+  
+  // Get available thanas based on selected city corporation
+  const availableThanas = cityCorporations.find(cc => cc.name === selectedCityCorp)?.thanas || []
+  
+  // Get available places based on selected thana
+  const availablePlaces: Place[] = availableThanas.find(t => t.name === selectedThana)?.places || []
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -30,25 +91,56 @@ export function CheckoutForm() {
       const customer_name = `${firstName} ${lastName}`.trim()
       const customer_phone = String(formData.get("phone") || "").trim()
       const customer_email = String(formData.get("email") || "").trim()
-      const shipping_address = {
-        address: String(formData.get("address") || ""),
-        city: String(formData.get("city") || ""),
-        state: String(formData.get("state") || ""),
-        zip: String(formData.get("zip") || ""),
-        country: String(formData.get("country") || ""),
+      
+      // Validate required fields
+      if (!customer_name || customer_name.length === 0) {
+        throw new Error("Customer name is required. Please fill in first name and last name.")
+      }
+      
+      if (!customer_phone || customer_phone.length === 0) {
+        throw new Error("Phone number is required.")
+      }
+      
+      // Validate phone number format (basic validation)
+      if (customer_phone.length < 10) {
+        throw new Error("Please enter a valid phone number.")
+      }
+      // Build shipping address based on delivery method
+      let shipping_address: any = {}
+      
+      if (deliveryMethod === 'inside') {
+        // Inside Dhaka address structure
+        shipping_address = {
+          city_corporation: String(formData.get("cityCorp") || ""),
+          thana: String(formData.get("thana") || ""),
+          place: String(formData.get("place") || ""),
+          address: String(formData.get("address") || ""),
+        }
+      } else {
+        // Outside Dhaka address structure
+        shipping_address = {
+          division: String(formData.get("division") || ""),
+          district: String(formData.get("district") || ""),
+          upazila: String(formData.get("upazila") || ""),
+          union: String(formData.get("union") || ""),
+          address: String(formData.get("address") || ""),
+        }
       }
       const notes = String(formData.get("notes") || "")
 
       const cartItems = getCart()
       if (!cartItems.length) throw new Error("Your cart is empty.")
 
+      // Fetch authoritative prices and delivery charges
+      const pricingResponse = await ecommerceApi.priceCart(cartItems)
+      
       // Fetch authoritative prices for each product
       const uniqueIds = Array.from(new Set(cartItems.map((i) => Number(i.productId))))
       const idToPrice = new Map<number, number>()
       await Promise.all(
         uniqueIds.map(async (id) => {
           const detail = await ecommerceApi.getProductDetail(id)
-          idToPrice.set(id, Number(detail.product.selling_price ?? detail.product.price))
+          idToPrice.set(id, Number(detail.product.selling_price))
         })
       )
 
@@ -67,14 +159,34 @@ export function CheckoutForm() {
         }
       })
 
+      // Get delivery charge based on selected method
+      const deliveryCharge = deliveryMethod === 'inside' 
+        ? Number(pricingResponse.delivery.inside_dhaka_charge) 
+        : Number(pricingResponse.delivery.outside_dhaka_charge)
+      
+      const deliveryMethodName = deliveryMethod === 'inside' ? 'Inside Dhaka' : 'Outside Dhaka'
+
+      // Final validation before sending
+      if (!customer_name || customer_name.length === 0) {
+        throw new Error("Customer name is required. Please fill in first name and last name.")
+      }
+      
+      if (!customer_phone || customer_phone.length === 0) {
+        throw new Error("Phone number is required.")
+      }
+
       const payload = {
         customer_name,
         customer_phone,
-        customer_email,
+        customer_email: customer_email || undefined, // Send undefined if empty, not empty string
         shipping_address,
-        notes,
+        notes: notes || undefined,
         items,
+        delivery_charge: deliveryCharge,
+        delivery_method: deliveryMethodName,
       }
+      
+      console.log('Submitting payload:', { ...payload, items: items.length }) // Debug log
       const created = await ecommerceApi.createOnlinePreorder(payload)
       clearCart()
       router.push(`/order-complete?preorder_id=${created.id}`)
@@ -92,60 +204,310 @@ export function CheckoutForm() {
         <h2 className="text-2xl font-bold">Contact Information</h2>
         <div className="grid md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="firstName">First Name</Label>
-            <Input id="firstName" placeholder="John" required />
+            <Label htmlFor="firstName">First Name *</Label>
+            <Input id="firstName" name="firstName" placeholder="John" required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="lastName">Last Name</Label>
-            <Input id="lastName" placeholder="Doe" required />
+            <Label htmlFor="lastName">Last Name *</Label>
+            <Input id="lastName" name="lastName" placeholder="Doe" required />
           </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" placeholder="john.doe@example.com" required />
+          <Input id="email" name="email" type="email" placeholder="john.doe@example.com" />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="phone">Phone Number</Label>
-          <Input id="phone" type="tel" placeholder="+1 (555) 000-0000" required />
+          <Label htmlFor="phone">Phone Number *</Label>
+          <Input id="phone" name="phone" type="tel" placeholder="01712345678" required />
         </div>
       </div>
 
       {/* Shipping Address */}
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">Shipping Address</h2>
+           {/* Delivery Location Toggle - Bottom Right */}
+           <div className="flex justify-end pt-4">
+          <div className="inline-flex rounded-lg border border-input bg-background p-1">
+            <button
+              type="button"
+              onClick={() => {
+                setDeliveryMethod('inside')
+                // Reset Dhaka address fields
+                setSelectedCityCorp("")
+                setSelectedThana("")
+                setSelectedPlace("")
+              }}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                deliveryMethod === 'inside'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Inside Dhaka
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDeliveryMethod('outside')
+                // Reset outside Dhaka address fields
+                setSelectedDivision("", "")
+                setSelectedDistrict("", "")
+                setSelectedUpazilla("", "")
+                setSelectedUnion("")
+              }}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                deliveryMethod === 'outside'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Outside Dhaka
+            </button>
+          </div>
+        </div>
+        
+        {/* Hidden inputs for form submission */}
+        {deliveryMethod === 'inside' ? (
+          <>
+            <input type="hidden" name="cityCorp" value={selectedCityCorp} />
+            <input type="hidden" name="thana" value={selectedThana} />
+            <input type="hidden" name="place" value={selectedPlace} />
+          </>
+        ) : (
+          <>
+            <input type="hidden" name="division" value={selectedDivision} />
+            <input type="hidden" name="district" value={selectedDistrict} />
+            <input type="hidden" name="upazila" value={selectedUpazilla} />
+            <input type="hidden" name="union" value={selectedUnion} />
+          </>
+        )}
+        
+        {deliveryMethod === 'inside' ? (
+          /* Inside Dhaka Address Fields */
+          <>
+            {/* City Corporation */}
+            <div className="space-y-2">
+              <Label htmlFor="cityCorp">City Corporation *</Label>
+              <Select
+                value={selectedCityCorp}
+                onValueChange={(value) => {
+                  setSelectedCityCorp(value)
+                  setSelectedThana("")
+                  setSelectedPlace("")
+                }}
+                required
+              >
+                <SelectTrigger id="cityCorp">
+                  <SelectValue placeholder="Select City Corporation" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cityCorporations.map((cc) => (
+                    <SelectItem key={cc.name} value={cc.name}>
+                      {cc.name} ({cc.abbreviation})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Thana */}
+            <div className="space-y-2">
+              <Label htmlFor="thana">Thana *</Label>
+              <Select
+                value={selectedThana}
+                onValueChange={(value) => {
+                  setSelectedThana(value)
+                  setSelectedPlace("")
+                }}
+                disabled={!selectedCityCorp || availableThanas.length === 0}
+                required
+              >
+                <SelectTrigger id="thana">
+                  <SelectValue placeholder="Select Thana" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableThanas.map((thana) => (
+                    <SelectItem key={thana.name} value={thana.name}>
+                      {thana.name} {thana.bn_name ? `(${thana.bn_name})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Place */}
+            <div className="space-y-2">
+              <Label htmlFor="place">Place *</Label>
+              <Select
+                value={selectedPlace}
+                onValueChange={setSelectedPlace}
+                disabled={!selectedThana || availablePlaces.length === 0}
+                required
+              >
+                <SelectTrigger id="place">
+                  <SelectValue placeholder="Select Place" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availablePlaces.map((place) => {
+                    const placeName = typeof place === 'string' ? place : place.name
+                    const placeBnName = typeof place === 'object' ? place.bn_name : undefined
+                    return (
+                      <SelectItem key={placeName} value={placeName}>
+                        {placeName} {placeBnName ? `(${placeBnName})` : ""}
+                      </SelectItem>
+                    )
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        ) : (
+          /* Outside Dhaka Address Fields */
+          <>
+            {/* Division */}
+            <div className="space-y-2">
+              <Label htmlFor="division">Division *</Label>
+              <Select
+                value={selectedDivision}
+                onValueChange={(value) => {
+                  const division = divisions.find((d) => d.name === value || d.id.toString() === value)
+                  if (division) {
+                    setSelectedDivision(division.name, division.id)
+                  }
+                }}
+                required
+              >
+                <SelectTrigger id="division" disabled={bdLoading}>
+                  <SelectValue placeholder="Select Division" />
+                </SelectTrigger>
+                <SelectContent>
+                  {divisions.map((div) => (
+                    <SelectItem key={div.id} value={div.name}>
+                      {div.name} ({div.bn_name})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {bdError && !selectedDivision && (
+                <p className="text-sm text-red-600">{bdError}</p>
+              )}
+            </div>
+
+            {/* District */}
+            <div className="space-y-2">
+              <Label htmlFor="district">District *</Label>
+              <Select
+                value={selectedDistrict}
+                onValueChange={(value) => {
+                  const district = districts.find((d) => d.name === value || d.id.toString() === value)
+                  if (district) {
+                    setSelectedDistrict(district.name, district.id)
+                  }
+                }}
+                disabled={!selectedDivision || loadingDistricts || districts.length === 0}
+                required
+              >
+                <SelectTrigger id="district">
+                  <SelectValue placeholder="Select District" />
+                </SelectTrigger>
+                <SelectContent>
+                  {districts.map((dist) => (
+                    <SelectItem key={dist.id} value={dist.name}>
+                      {dist.name} {dist.bn_name ? `(${dist.bn_name})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {loadingDistricts && (
+                <p className="text-sm text-muted-foreground">Loading districts...</p>
+              )}
+            </div>
+
+            {/* Upazila/Thana */}
+            <div className="space-y-2">
+              <Label htmlFor="upazila">Upazila / Thana *</Label>
+              <Select
+                value={selectedUpazilla}
+                onValueChange={(value) => {
+                  const upazilla = upazillas.find((u) => u.name === value || u.id.toString() === value)
+                  if (upazilla) {
+                    setSelectedUpazilla(upazilla.name, upazilla.id)
+                  }
+                }}
+                disabled={!selectedDistrict || loadingUpazillas || upazillas.length === 0}
+                required
+              >
+                <SelectTrigger id="upazila">
+                  <SelectValue placeholder="Select Upazila / Thana" />
+                </SelectTrigger>
+                <SelectContent>
+                  {upazillas.map((upazilla) => (
+                    <SelectItem key={upazilla.id} value={upazilla.name}>
+                      {upazilla.name} {upazilla.bn_name ? `(${upazilla.bn_name})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {loadingUpazillas && (
+                <p className="text-sm text-muted-foreground">Loading upazillas...</p>
+              )}
+            </div>
+
+            {/* Union */}
+            <div className="space-y-2">
+              <Label htmlFor="union">Union *</Label>
+              <Select
+                value={selectedUnion}
+                onValueChange={setSelectedUnion}
+                disabled={!selectedUpazilla || loadingUnions || unions.length === 0}
+                required
+              >
+                <SelectTrigger id="union">
+                  <SelectValue placeholder="Select Union" />
+                </SelectTrigger>
+                <SelectContent>
+                  {unions.map((union) => (
+                    <SelectItem key={union.id} value={union.name}>
+                      {union.name} {union.bn_name ? `(${union.bn_name})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {loadingUnions && (
+                <p className="text-sm text-muted-foreground">Loading unions...</p>
+              )}
+              {unionError && !loadingUnions && (
+                <p className="text-sm text-red-600">{unionError}</p>
+              )}
+              {!loadingUnions && unions.length === 0 && selectedUpazilla && !unionError && (
+                <p className="text-sm text-muted-foreground">No unions available for this upazilla</p>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Actual Address */}
         <div className="space-y-2">
-          <Label htmlFor="address">Street Address</Label>
-          <Input id="address" placeholder="123 Main Street" required />
+          <Label htmlFor="address">Street / House Address *</Label>
+          <Textarea
+            id="address"
+            name="address"
+            placeholder={deliveryMethod === 'inside' ? "House No, Road No, Block, Building, etc." : "House No, Road No, Area, etc."}
+            rows={3}
+            required
+          />
         </div>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="city">City</Label>
-            <Input id="city" placeholder="New York" required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="state">State / Province</Label>
-            <Input id="state" placeholder="NY" required />
-          </div>
-        </div>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="zip">ZIP / Postal Code</Label>
-            <Input id="zip" placeholder="10001" required />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="country">Country</Label>
-            <Input id="country" placeholder="United States" required />
-          </div>
-        </div>
+
+     
       </div>
 
       {/* Payment Method (COD-only) */}
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">Payment Method</h2>
         <div className="flex items-center space-x-3 border rounded-lg p-4 bg-muted/30">
-          <RadioGroup value="cod" className="space-y-3">
+          <RadioGroup value="cod" className="space-y-3" disabled>
             <div className="flex items-center space-x-3">
-              <RadioGroupItem value="cod" id="cod" checked readOnly />
+              <RadioGroupItem value="cod" id="cod" />
               <Label htmlFor="cod" className="cursor-pointer flex-1 font-medium">
                 Cash on Delivery (Pay at delivery)
               </Label>

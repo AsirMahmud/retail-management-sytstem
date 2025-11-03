@@ -90,32 +90,12 @@ class Preorder(models.Model):
         ('COMPLETED', 'Completed'),
         ('CANCELLED', 'Cancelled'),
     ]
-    SOURCE_CHOICES = [
-        ('MANUAL', 'Manual'),
-        ('ONLINE', 'Online'),
-    ]
-    PAYMENT_METHOD_CHOICES = [
-        ('COD', 'Cash on Delivery'),
-        ('CASH', 'Cash'),
-        ('CARD', 'Card'),
-        ('OTHER', 'Other'),
-    ]
-    PREORDER_TYPE_CHOICES = [
-        ('shop_preorder', 'Shop Preorder'),
-        ('online', 'Online'),
-    ]
 
     customer_name = models.CharField(max_length=200)
     customer_phone = models.CharField(max_length=20)
     customer_email = models.EmailField(blank=True)
-    # Origin and payment info
-    source = models.CharField(max_length=10, choices=SOURCE_CHOICES, default='MANUAL')
-    payment_method = models.CharField(max_length=10, choices=PAYMENT_METHOD_CHOICES, default='COD')
-    preorder_type = models.CharField(max_length=20, choices=PREORDER_TYPE_CHOICES, default='shop_preorder')
     
     items = models.JSONField(default=list, blank=True)  # Store all product/variant snapshots
-    # Order-level shipping address snapshot for online preorders (optional)
-    shipping_address = models.JSONField(null=True, blank=True)
     deposit_paid = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='PENDING')

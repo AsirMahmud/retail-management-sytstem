@@ -59,13 +59,25 @@ export function CartItems() {
   return (
     <div className="space-y-4">
       {items.map((it) => {
-        const pricedItem = pricedItems.find(
-          (pi) => pi.productId === Number(it.productId) &&
-          pi.variant?.color === it.variations?.color &&
-          pi.variant?.size === it.variations?.size
-        )
+        // Normalize variation values for comparison
+        const normalizeValue = (val: string | null | undefined) => {
+          if (!val) return null
+          return String(val).trim() || null
+        }
 
-        const productName = pricedItem?.name || `Product ${it.productId}`
+        const itemColor = normalizeValue(it.variations?.color)
+        const itemSize = normalizeValue(it.variations?.size)
+
+        const pricedItem = pricedItems.find((pi) => {
+          if (pi.productId !== Number(it.productId)) return false
+          
+          const piColor = normalizeValue(pi.variant?.color)
+          const piSize = normalizeValue(pi.variant?.size)
+          
+          return piColor === itemColor && piSize === itemSize
+        })
+
+        const productName = (pricedItem?.name && pricedItem.name.trim()) || `Product ${it.productId}`
         const productImage = pricedItem?.image_url || "/placeholder.svg"
         const color = pricedItem?.variant?.color || it.variations?.color
         const size = pricedItem?.variant?.size || it.variations?.size
@@ -137,7 +149,7 @@ export function CartItems() {
       })}
 
       {/* Coupon Code Section (placeholder) */}
-      <div className="pt-6">
+      {/* <div className="pt-6">
         <h3 className="text-lg font-semibold mb-2">Have a coupon?</h3>
         <p className="text-sm text-muted-foreground mb-4">Add your code for an instant cart discount</p>
         <div className="flex gap-2">
@@ -149,7 +161,7 @@ export function CartItems() {
             Apply
           </Button>
         </div>
-      </div>
+      </div> */}
     </div>
   )
 }

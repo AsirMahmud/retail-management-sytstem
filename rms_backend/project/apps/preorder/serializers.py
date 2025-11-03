@@ -67,14 +67,6 @@ class PreorderSerializer(serializers.ModelSerializer):
                     raise serializers.ValidationError(f"Each item must include '{field}' field.")
         return value
 
-    def validate(self, data):
-        # Enforce COD for online source
-        source = data.get('source') or getattr(self.instance, 'source', None)
-        payment_method = data.get('payment_method') or getattr(self.instance, 'payment_method', None)
-        if source == 'ONLINE' and payment_method and payment_method != 'COD':
-            raise serializers.ValidationError({'payment_method': 'Online preorders must use COD payment method.'})
-        return data
-
 
 class PreorderCreateSerializer(serializers.ModelSerializer):
     items = serializers.JSONField()
@@ -94,14 +86,6 @@ class PreorderCreateSerializer(serializers.ModelSerializer):
                 if field not in item:
                     raise serializers.ValidationError(f"Each item must include '{field}' field.")
         return value
-
-    def validate(self, data):
-        # Enforce COD for online source
-        source = data.get('source') or getattr(self.instance, 'source', None)
-        payment_method = data.get('payment_method') or getattr(self.instance, 'payment_method', None)
-        if source == 'ONLINE' and payment_method and payment_method != 'COD':
-            raise serializers.ValidationError({'payment_method': 'Online preorders must use COD payment method.'})
-        return data
 
 
 class PreorderDashboardSerializer(serializers.ModelSerializer):
