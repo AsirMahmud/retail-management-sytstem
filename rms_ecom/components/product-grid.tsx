@@ -96,19 +96,25 @@ interface Product {
 interface ProductGridProps {
   category: string;
   products?: Product[];
+  totalCount?: number; // when provided, enables server-driven pagination
+  page?: number;
+  pageSize?: number;
+  onPageChange?: (page: number) => void;
 }
 
-export function ProductGrid({ category, products: propProducts }: ProductGridProps) {
+export function ProductGrid({ category, products: propProducts, totalCount, page, pageSize, onPageChange }: ProductGridProps) {
+  const isServerPaginated = typeof totalCount === 'number' && typeof page === 'number' && typeof pageSize === 'number' && typeof onPageChange === 'function'
   const [currentPage, setCurrentPage] = useState(1)
+  const effectivePage = isServerPaginated ? (page as number) : currentPage
   const productsToUse = propProducts || products
-  const totalProducts = productsToUse.length
-  const productsPerPage = 9
+  const totalProducts = isServerPaginated ? (totalCount as number) : productsToUse.length
+  const productsPerPage = isServerPaginated ? (pageSize as number) : 9
 
-  const totalPages = Math.ceil(totalProducts / productsPerPage)
+  const totalPages = Math.ceil(Math.max(1, totalProducts) / Math.max(1, productsPerPage))
 
-  const startIndex = (currentPage - 1) * productsPerPage
-  const endIndex = Math.min(startIndex + productsPerPage, totalProducts)
-  const paginatedProducts = productsToUse.slice(startIndex, endIndex)
+  const startIndex = (effectivePage - 1) * productsPerPage
+  const endIndex = Math.min(startIndex + productsPerPage, isServerPaginated ? startIndex + productsToUse.length : totalProducts)
+  const paginatedProducts = isServerPaginated ? productsToUse : productsToUse.slice(startIndex, endIndex)
 
   // Clamp current page if total pages shrink (e.g., after filtering)
   useEffect(() => {
@@ -171,7 +177,7 @@ export function ProductGrid({ category, products: propProducts }: ProductGridPro
         <div className="flex items-center gap-3">
           <h1 className="text-2xl md:text-3xl font-bold">{category}</h1>
           <span className="hidden md:inline text-sm text-muted-foreground">
-            Showing {(currentPage - 1) * productsPerPage + 1}-{Math.min(currentPage * productsPerPage, totalProducts)}{" "}
+            Showing {(effectivePage - 1) * productsPerPage + 1}-{Math.min(effectivePage * productsPerPage, totalProducts)}{" "}
             of {totalProducts} Products
           </span>
         </div>
@@ -202,8 +208,7 @@ export function ProductGrid({ category, products: propProducts }: ProductGridPro
       </div>
 
       <div className="md:hidden text-sm text-muted-foreground">
-        Showing {(currentPage - 1) * productsPerPage + 1}-{Math.min(currentPage * productsPerPage, totalProducts)} of{" "}
-        {totalProducts} Products
+        Showing {(effectivePage - 1) * productsPerPage + 1}-{Math.min(effectivePage * productsPerPage, totalProducts)} of {totalProducts} Products
       </div>
 
       {/* Product Grid */}
@@ -218,31 +223,31 @@ export function ProductGrid({ category, products: propProducts }: ProductGridPro
         <Button
           variant="outline"
           size="icon"
-          onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-          disabled={currentPage === 1}
+          onClick={() => (isServerPaginated ? onPageChange!(Math.max(1, effectivePage - 1)) : setCurrentPage((prev) => Math.max(1, prev - 1)))}
+          disabled={effectivePage === 1}
           className="rounded-lg"
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
 
-        {renderPageNumbers().map((page, index) => (
+        {renderPageNumbers().map((pageNum, index) => (
           <Button
             key={index}
-            variant={page === currentPage ? "default" : "outline"}
+            variant={pageNum === effectivePage ? "default" : "outline"}
             size="icon"
-            onClick={() => typeof page === "number" && setCurrentPage(page)}
-            disabled={page === "..."}
+            onClick={() => typeof pageNum === "number" && (isServerPaginated ? onPageChange!(pageNum) : setCurrentPage(pageNum))}
+            disabled={pageNum === "..."}
             className="rounded-lg"
           >
-            {page}
+            {pageNum}
           </Button>
         ))}
 
         <Button
           variant="outline"
           size="icon"
-          onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-          disabled={currentPage === totalPages}
+          onClick={() => (isServerPaginated ? onPageChange!(Math.min(totalPages, effectivePage + 1)) : setCurrentPage((prev) => Math.min(totalPages, prev + 1)))}
+          disabled={effectivePage === totalPages}
           className="rounded-lg"
         >
           <ChevronRight className="h-4 w-4" />

@@ -70,6 +70,7 @@ const mainNavItems = [
       { title: "Products", href: "/inventory/products" },
       { title: "Add Product", href: "/inventory/add-product" },
       { title: "Categories", href: "/inventory/categories" },
+          { title: "Online Categories", href: "/inventory/online-category" },
       { title: "Suppliers", href: "/inventory/suppliers" },
     ],
   },
@@ -104,6 +105,7 @@ const mainNavItems = [
       { title: "Discount Management", href: "/ecommerce-settings/discounts" },
       { title: "Product Status", href: "/ecommerce-settings/product-status" },
       { title: "Delivery Charges", href: "/ecommerce-settings/delivery-charges" },
+      { title: "Open Ecommerce Site", href: "https://retail-management-sytstem-omega.vercel.app/" },
     ],
   },
 ];
@@ -233,21 +235,36 @@ export function SideNav() {
                       </CollapsibleTrigger>
                       <CollapsibleContent>
                         <div className="ml-8 mt-1 space-y-1">
-                          {item.subItems.map((subItem) => (
-                            <Link
-                              key={subItem.title}
-                              href={subItem.href}
-                              onClick={() => setOpen(false)}
-                              className={cn(
-                                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
-                                isSubItemActive(subItem.href)
-                                  ? "bg-blue-50 text-blue-900"
-                                  : "text-gray-600 hover:bg-blue-50/50 hover:text-blue-900"
-                              )}
-                            >
-                              {subItem.title}
-                            </Link>
-                          ))}
+                          {item.subItems.map((subItem) => {
+                            const isExternal = subItem.href.startsWith("http")
+                            const commonClass = cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
+                              isSubItemActive(subItem.href)
+                                ? "bg-blue-50 text-blue-900"
+                                : "text-gray-600 hover:bg-blue-50/50 hover:text-blue-900"
+                            )
+                            return isExternal ? (
+                              <a
+                                key={subItem.title}
+                                href={subItem.href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={commonClass}
+                                onClick={() => setOpen(false)}
+                              >
+                                {subItem.title}
+                              </a>
+                            ) : (
+                              <Link
+                                key={subItem.title}
+                                href={subItem.href}
+                                onClick={() => setOpen(false)}
+                                className={commonClass}
+                              >
+                                {subItem.title}
+                              </Link>
+                            )
+                          })}
                         </div>
                       </CollapsibleContent>
                     </Collapsible>
@@ -377,20 +394,34 @@ export function SideNav() {
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <div className="ml-8 mt-1 space-y-1">
-                      {item.subItems.map((subItem) => (
-                        <Link
-                          key={subItem.title}
-                          href={subItem.href}
-                          className={cn(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
-                            isSubItemActive(subItem.href)
-                              ? "bg-blue-50 text-blue-900"
-                              : "text-gray-600 hover:bg-blue-50/50 hover:text-blue-900"
-                          )}
-                        >
-                          {subItem.title}
-                        </Link>
-                      ))}
+                      {item.subItems.map((subItem) => {
+                        const isExternal = subItem.href.startsWith("http")
+                        const commonClass = cn(
+                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200",
+                          isSubItemActive(subItem.href)
+                            ? "bg-blue-50 text-blue-900"
+                            : "text-gray-600 hover:bg-blue-50/50 hover:text-blue-900"
+                        )
+                        return isExternal ? (
+                          <a
+                            key={subItem.title}
+                            href={subItem.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={commonClass}
+                          >
+                            {subItem.title}
+                          </a>
+                        ) : (
+                          <Link
+                            key={subItem.title}
+                            href={subItem.href}
+                            className={commonClass}
+                          >
+                            {subItem.title}
+                          </Link>
+                        )
+                      })}
                     </div>
                   </CollapsibleContent>
                 </Collapsible>

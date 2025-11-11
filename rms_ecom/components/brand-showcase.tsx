@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { ecommerceApi } from "@/lib/api"
+import Image from "next/image"
 
 interface Brand {
   id: number
@@ -64,17 +65,12 @@ export function BrandShowcase() {
           {brands.map((brand) => (
             <div key={brand.id} className="text-2xl md:text-3xl font-bold text-primary-foreground tracking-wider">
               {brand.logo_image_url ? (
-                <img 
+                <Image 
                   src={brand.logo_image_url} 
                   alt={brand.name}
+                  width={160}
+                  height={48}
                   className="h-8 md:h-12 w-auto object-contain"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none'
-                    const textDiv = document.createElement('div')
-                    textDiv.className = 'text-2xl md:text-3xl font-bold text-primary-foreground tracking-wider'
-                    textDiv.textContent = brand.logo_text || brand.name
-                    e.currentTarget.parentElement?.appendChild(textDiv)
-                  }}
                 />
               ) : (
                 brand.logo_text || brand.name

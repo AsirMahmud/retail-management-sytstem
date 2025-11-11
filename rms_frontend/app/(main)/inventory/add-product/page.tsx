@@ -43,6 +43,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HydrationWrapper } from "@/components/hydration-wrapper";
 import { globalSizes, COLORS } from "./constants";
+import { HierarchicalCategorySelect } from "@/components/inventory/hierarchical-category-select";
 
 // Define the form schema using Zod
 const productFormSchema = z.object({
@@ -821,10 +822,12 @@ export default function AddProductPage() {
             formData.append('color_hax', gallery.color_hax || gallery.colorHex);
             formData.append('alt_text', gallery.color);
             
-            // Add all images for this color
+            // Add all images for this color with their imageTypes
             imagesToUpload.forEach((img) => {
               if (img.file) {
                 formData.append('images', img.file);
+                // Send the imageType for each image so backend knows which type to assign
+                formData.append('image_types', img.imageType);
               }
             });
             
@@ -1073,24 +1076,12 @@ export default function AddProductPage() {
                             </div>
                           ) : (
                             <div className="space-y-2">
-                              <Select
+                              <HierarchicalCategorySelect
+                                categories={onlineCategories}
                                 value={field.value}
                                 onValueChange={field.onChange}
-                              >
-                                <SelectTrigger className="h-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors">
-                                  <SelectValue placeholder="Select online category" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {onlineCategories.map((cat) => (
-                                    <SelectItem
-                                      key={cat.id}
-                                      value={cat.id.toString()}
-                                    >
-                                      {cat.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                                placeholder="Select online category"
+                              />
                               <Button
                                 type="button"
                                 variant="outline"

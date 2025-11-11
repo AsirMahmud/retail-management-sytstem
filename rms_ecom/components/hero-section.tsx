@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { ArrowRight } from "lucide-react"
 import { ecommerceApi } from "@/lib/api"
+import Image from "next/image"
 
 interface HomePageSettings {
   logo_image_url?: string
@@ -103,25 +104,23 @@ export function HeroSection() {
             <div className="lg:col-span-5 relative h-[400px] sm:h-[500px] lg:h-[600px]">
               {/* Main Image */}
               <div className="absolute top-0 right-0 w-[70%] h-[75%] rounded-3xl overflow-hidden shadow-2xl border-4 border-background">
-                <img
+                <Image
                   src={settings.hero_primary_image_url || "/fashion-models-wearing-modern-streetwear.jpg"}
                   alt="Fashion model"
+                  fill
+                  sizes="(max-width: 768px) 70vw, 40vw"
                   className="object-cover w-full h-full"
-                  onError={(e) => {
-                    e.currentTarget.src = "/fashion-models-wearing-modern-streetwear.jpg"
-                  }}
                 />
               </div>
 
               {/* Secondary Image - Overlapping */}
               <div className="absolute bottom-0 left-0 w-[60%] h-[50%] rounded-3xl overflow-hidden shadow-2xl border-4 border-background">
-                <img 
+                <Image 
                   src={settings.hero_secondary_image_url || "/product-model.jpg"} 
                   alt="Fashion style" 
+                  fill
+                  sizes="(max-width: 768px) 60vw, 30vw"
                   className="object-cover w-full h-full"
-                  onError={(e) => {
-                    e.currentTarget.src = "/product-model.jpg"
-                  }}
                 />
               </div>
 

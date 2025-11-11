@@ -205,6 +205,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 
         color = serializer.validated_data['color']
         images = serializer.validated_data['images']
+        image_types = serializer.validated_data.get('image_types', [])
         color_hax = serializer.validated_data['color_hax']
         alt_text = serializer.validated_data.get('alt_text', '')
 
@@ -223,17 +224,30 @@ class ProductViewSet(viewsets.ModelViewSet):
             gallery.color_hax = color_hax
             gallery.save()
 
-        # Enforce max 4 images per color
-        existing_count = gallery.images.count()
-        remaining = max(0, 4 - existing_count)
-        to_save = images[:remaining]
-        if not to_save:
-            return Response({'detail': 'Maximum of 4 images per color reached.'}, status=status.HTTP_400_BAD_REQUEST)
-
+        # Use provided image_types if available, otherwise fall back to calculating based on existing count
         created_images = []
-        image_types = ['PRIMARY', 'SECONDARY', 'THIRD', 'FOURTH']
-        for i, image in enumerate(to_save):
-            image_type = image_types[existing_count + i]
+        default_image_types = ['PRIMARY', 'SECONDARY', 'THIRD', 'FOURTH']
+        
+        for i, image in enumerate(images):
+            # Use provided imageType if available, otherwise calculate based on existing images
+            if image_types and i < len(image_types):
+                image_type = image_types[i]
+            else:
+                # Fallback: find next available image type
+                existing_types = set(gallery.images.values_list('imageType', flat=True))
+                for default_type in default_image_types:
+                    if default_type not in existing_types:
+                        image_type = default_type
+                        break
+                else:
+                    # All types are taken, skip this image
+                    continue
+            
+            # Check if this imageType already exists - if so, delete it first (replacing)
+            existing_image = gallery.images.filter(imageType=image_type).first()
+            if existing_image:
+                existing_image.delete()
+            
             created_images.append(Image.objects.create(
                 gallery=gallery, 
                 image=image, 

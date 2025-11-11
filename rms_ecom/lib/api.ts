@@ -58,6 +58,13 @@ export interface ProductByColorEntry {
   cover_image_url?: string | null;
 }
 
+export interface Paginated<T> {
+  count: number
+  page: number
+  page_size: number
+  results: T[]
+}
+
 // Public per-color detail response
 export interface ProductDetailByColorResponse {
   product: {
@@ -160,6 +167,46 @@ export const ecommerceApi = {
     if (params?.product_ids && params.product_ids.length > 0) searchParams.set('product_ids', params.product_ids.join(','))
     const response = await fetch(`${API_BASE_URL}/ecommerce/public/products-by-color/?${searchParams}`)
     if (!response.ok) throw new Error('Failed to fetch products by color')
+    const data = await response.json()
+    // Backend may return an array or a paginated object; normalize to array
+    if (Array.isArray(data)) return data
+    return data?.results || []
+  },
+
+  // Public: Get flat products by color (paginated)
+  getProductsByColorPaginated: async (params?: {
+    search?: string;
+    category?: string;
+    online_category?: string;
+    product_types?: string[]; // alias for multiple online_category slugs
+    only_in_stock?: boolean;
+    product_id?: number;
+    product_ids?: number[];
+    page?: number;
+    page_size?: number;
+    price_min?: number;
+    price_max?: number;
+    sort?: 'name' | 'price_asc' | 'price_desc';
+    colors?: string[]; // color names
+    sizes?: string[]; // size values
+  }): Promise<Paginated<ProductByColorEntry>> => {
+    const searchParams = new URLSearchParams()
+    if (params?.search) searchParams.set('search', params.search)
+    if (params?.category) searchParams.set('category', params.category)
+    if (params?.online_category) searchParams.set('online_category', params.online_category)
+    if (params?.product_types && params.product_types.length > 0) searchParams.set('product_types', params.product_types.join(','))
+    if (typeof params?.only_in_stock !== 'undefined') searchParams.set('only_in_stock', String(params.only_in_stock))
+    if (params?.product_id) searchParams.set('product_id', String(params.product_id))
+    if (params?.product_ids && params.product_ids.length > 0) searchParams.set('product_ids', params.product_ids.join(','))
+    if (params?.page) searchParams.set('page', String(params.page))
+    if (params?.page_size) searchParams.set('page_size', String(params.page_size))
+    if (typeof params?.price_min !== 'undefined') searchParams.set('price_min', String(params.price_min))
+    if (typeof params?.price_max !== 'undefined') searchParams.set('price_max', String(params.price_max))
+    if (params?.sort) searchParams.set('sort', params.sort)
+    if (params?.colors && params.colors.length > 0) searchParams.set('colors', params.colors.join(','))
+    if (params?.sizes && params.sizes.length > 0) searchParams.set('sizes', params.sizes.join(','))
+    const response = await fetch(`${API_BASE_URL}/ecommerce/public/products-by-color/?${searchParams}`)
+    if (!response.ok) throw new Error('Failed to fetch products by color')
     return response.json()
   },
 
@@ -226,7 +273,7 @@ export const ecommerceApi = {
   },
 
   // Get online categories
-  getOnlineCategories: async (): Promise<Array<{ id: number; name: string; slug: string }>> => {
+  getOnlineCategories: async (): Promise<Array<{ id: number; name: string; slug: string; parent: number | null; parent_name?: string; children_count?: number }>> => {
     const response = await fetch(`${API_BASE_URL}/inventory/online-categories/`);
     if (!response.ok) throw new Error('Failed to fetch online categories');
     return response.json();

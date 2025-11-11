@@ -10,6 +10,7 @@ import { ProductInfo } from "@/components/product-info"
 import { Breadcrumb } from "@/components/breadcrumb"
 import { ecommerceApi, ProductDetailByColorResponse, EcommerceProduct, ProductByColorEntry } from "@/lib/api"
 import { ProductRecommendations } from "@/components/product-recommendations"
+import { ProductTabs } from "@/components/product-tabs"
 
 export default function ProductByColorPage() {
   const params = useParams()
@@ -19,6 +20,12 @@ export default function ProductByColorPage() {
 
   const [data, setData] = useState<ProductDetailByColorResponse | null>(null)
   const [suggested, setSuggested] = useState<ProductByColorEntry[]>([])
+  const [detailExtras, setDetailExtras] = useState<null | {
+    size_chart?: { size: string; chest: string; waist: string; height: string }[]
+    material_composition?: { name: string; percentage: string }[]
+    who_is_this_for?: { title: string; description: string }[]
+    features?: { title: string; description: string }[]
+  }>(null)
   const [loading, setLoading] = useState(true)
   const productId = Number(productIdParam)
 
@@ -31,6 +38,12 @@ export default function ProductByColorPage() {
         // Fetch related/suggested products and get color-wise entries
         const showcase = await ecommerceApi.getProductDetail(productId)
         const relatedProducts = showcase.related_products || []
+        setDetailExtras({
+          size_chart: showcase.product.size_chart,
+          material_composition: showcase.product.material_composition,
+          who_is_this_for: showcase.product.who_is_this_for,
+          features: showcase.product.features,
+        })
         
         if (relatedProducts.length > 0) {
           // Get product IDs from related products
@@ -134,6 +147,16 @@ export default function ProductByColorPage() {
               />
             </div>
           </div>
+        </div>
+
+        {/* Product details tabs (size chart, materials, audience, features) */}
+        <div className="container px-4 pb-12 lg:pb-16">
+          <ProductTabs
+            sizeChart={detailExtras?.size_chart || []}
+            materials={detailExtras?.material_composition || []}
+            whoIsThisFor={detailExtras?.who_is_this_for || []}
+            features={detailExtras?.features || []}
+          />
         </div>
 
         {/* Suggested products */}

@@ -96,6 +96,27 @@ export const useCreateOnlineCategory = () => {
     });
 };
 
+export const useUpdateOnlineCategory = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: onlineCategoriesApi.update,
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ['online-categories'] });
+            queryClient.invalidateQueries({ queryKey: ['online-categories', data.id] });
+        },
+    });
+};
+
+export const useDeleteOnlineCategory = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: onlineCategoriesApi.delete,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['online-categories'] });
+        },
+    });
+};
+
 export const useCategory = (id: number) => {
     return useQuery({
         queryKey: inventoryKeys.categories.detail(id),
