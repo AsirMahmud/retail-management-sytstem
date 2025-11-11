@@ -5,13 +5,33 @@ import { cn } from "@/lib/utils"
 import { Ruler, Package, Users, Shirt } from "lucide-react"
 
 interface ProductDetailsSectionProps {
-  sizeChart: Array<{ size: string; chest: string; waist: string; height: string }>
-  materials: Array<{ name: string; percentage: string }>
-  whoIsThisFor: Array<{ title: string; description: string }>
-  features: Array<{ title: string; description: string }>
+  sizeChart?: Array<{ size: string; chest: string; waist: string; height: string }>
+  materials?: Array<{ name: string; percentage: string }>
+  whoIsThisFor?: Array<{ title: string; description: string }>
+  features?: Array<{ title: string; description: string }>
 }
 
 export function ProductDetailsSection({ sizeChart, materials, whoIsThisFor, features }: ProductDetailsSectionProps) {
+  const sizeChartData = (sizeChart && sizeChart.length > 0) ? sizeChart : [
+    { size: "S", chest: "34-36\"", waist: "28-30\"", height: "5'4\" - 5'7\"" },
+    { size: "M", chest: "38-40\"", waist: "32-34\"", height: "5'7\" - 5'10\"" },
+    { size: "L", chest: "42-44\"", waist: "36-38\"", height: "5'10\" - 6'1\"" },
+    { size: "XL", chest: "46-48\"", waist: "40-42\"", height: "6'1\" - 6'3\"" },
+  ]
+  const materialsData = (materials && materials.length > 0) ? materials : [
+    { name: "Cotton", percentage: "60%" },
+    { name: "Polyester", percentage: "35%" },
+    { name: "Elastane", percentage: "5%" },
+  ]
+  const whoIsThisForData = (whoIsThisFor && whoIsThisFor.length > 0) ? whoIsThisFor : [
+    { title: "Everyday Wear", description: "Ideal for daily comfort and casual outings with a relaxed fit." },
+    { title: "Active Lifestyle", description: "Breathable fabric suitable for light workouts and travel." },
+  ]
+  const featuresData = (features && features.length > 0) ? features : [
+    { title: "Soft & Breathable", description: "Premium combed cotton blend for all‑day comfort." },
+    { title: "Durable Stitching", description: "Reinforced seams for long‑lasting wear." },
+    { title: "Easy Care", description: "Machine washable with minimal shrinkage." },
+  ]
   return (
     <div className="grid gap-8 lg:gap-12">
       {/* Size Chart Section */}
@@ -34,7 +54,7 @@ export function ProductDetailsSection({ sizeChart, materials, whoIsThisFor, feat
               </tr>
             </thead>
             <tbody>
-              {sizeChart.map((row, index) => (
+              {sizeChartData.map((row, index) => (
                 <tr key={row.size} className={cn("border-b border-border", index % 2 === 0 && "bg-muted/30")}>
                   <td className="py-4 px-4 font-medium text-sm lg:text-base">{row.size}</td>
                   <td className="py-4 px-4 text-muted-foreground text-sm lg:text-base">{row.chest}</td>
@@ -62,7 +82,7 @@ export function ProductDetailsSection({ sizeChart, materials, whoIsThisFor, feat
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          {materials.map((material) => (
+          {materialsData.map((material) => (
             <div key={material.name} className="rounded-2xl border border-border p-6">
               <div className="text-3xl font-bold mb-2">{material.percentage}</div>
               <div className="text-muted-foreground">{material.name}</div>
@@ -92,7 +112,7 @@ export function ProductDetailsSection({ sizeChart, materials, whoIsThisFor, feat
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2">
-          {whoIsThisFor.map((item, idx) => (
+          {whoIsThisForData.map((item, idx) => (
             <div key={idx} className="rounded-2xl border border-border p-6">
               <h3 className="font-semibold mb-3 text-base lg:text-lg">{item.title}</h3>
               <p className="text-muted-foreground text-sm lg:text-base leading-relaxed">
@@ -113,7 +133,7 @@ export function ProductDetailsSection({ sizeChart, materials, whoIsThisFor, feat
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {features.map((feature, idx) => (
+          {featuresData.map((feature, idx) => (
             <div key={idx} className="rounded-2xl bg-muted p-6">
               <h3 className="font-semibold mb-2 text-sm lg:text-base">{feature.title}</h3>
               <p className="text-sm text-muted-foreground">{feature.description}</p>

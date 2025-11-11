@@ -16,22 +16,27 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 export default function AllProductsPage() {
   const [products, setProducts] = useState<ProductByColorEntry[]>([])
-  const [filteredProducts, setFilteredProducts] = useState<ProductByColorEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("popular")
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
-  const [activeFilters, setActiveFilters] = useState<{
-    colors?: string[]
-  }>({})
+  const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(null)
+  const [page, setPage] = useState(1)
+  const [pageSize] = useState(24)
+  const [totalCount, setTotalCount] = useState(0)
 
   useEffect(() => {
     const fetchProducts = async () => {
+      setLoading(true)
       try {
-        // Use public per-color endpoint
-        const data = await ecommerceApi.getProductsByColor({})
-        setProducts(data)
-        setFilteredProducts(data)
+        const res = await ecommerceApi.getProductsByColorPaginated({
+          page,
+          page_size: pageSize,
+          search: searchTerm || undefined,
+          sort: sortBy === 'price-low' ? 'price_asc' : sortBy === 'price-high' ? 'price_desc' : sortBy === 'name' ? 'name' : undefined,
+          online_category: selectedCategorySlug || undefined,
+        })
+        setProducts(res.results)
+        setTotalCount(res.count)
       } catch (e) {
         console.error('Failed to fetch products', e)
       } finally {
@@ -39,57 +44,15 @@ export default function AllProductsPage() {
       }
     }
     fetchProducts()
-  }, [selectedCategory])
+  }, [page, pageSize, searchTerm, sortBy, selectedCategorySlug])
 
-  // Apply search + active filters + sort
+  // Reset to first page on key changes
   useEffect(() => {
-    let filtered = products
+    setPage(1)
+  }, [searchTerm, sortBy, selectedCategorySlug])
 
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(item =>
-        item.product_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.color_name.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    }
-
-    // Category filter (defensive; backend may already filter by category)
-    // Not applicable directly for public endpoint; skipping online_category filter client-side
-
-    // Price range
-    // Price filtering is not directly available; skipping here (could be added server-side)
-
-    // Colors
-    if (activeFilters.colors && activeFilters.colors.length > 0) {
-      const wanted = new Set(activeFilters.colors.map(c => c.toLowerCase()))
-      filtered = filtered.filter(p => wanted.has(p.color_name.toLowerCase()))
-    }
-
-    // Size filtering skipped for per-color list
-
-    // Sort products
-    switch (sortBy) {
-      case "newest":
-        // No created_at in flat list; keep order
-        break
-      case "price-low":
-        filtered = [...filtered].sort((a, b) => Number(a.product_price) - Number(b.product_price))
-        break
-      case "price-high":
-        filtered = [...filtered].sort((a, b) => Number(b.product_price) - Number(a.product_price))
-        break
-      case "name":
-        filtered = [...filtered].sort((a, b) => a.product_name.localeCompare(b.product_name))
-        break
-      default: // popular - keep original order
-        break
-    }
-
-    setFilteredProducts(filtered)
-  }, [products, searchTerm, sortBy, activeFilters])
-
-  const handleCategoryChange = (categoryId: number | null) => {
-    setSelectedCategory(categoryId)
+  const handleCategoryChange = (categorySlug: string | null) => {
+    setSelectedCategorySlug(categorySlug)
   }
 
   // Filters UI is local-only in CategoryFilters; we only honor category here
@@ -169,7 +132,7 @@ export default function AllProductsPage() {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
                   <p className="text-muted-foreground">Loading products...</p>
                 </div>
-              ) : filteredProducts.length === 0 ? (
+              ) : products.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground text-lg">
                     {searchTerm ? "No products found matching your search." : "No products available."}
@@ -186,14 +149,18 @@ export default function AllProductsPage() {
                 </div>
               ) : (
                 <ProductGrid
-                  category={`${filteredProducts.length} Products`}
-                  products={filteredProducts.map(item => ({
+                  category={`All Products`}
+                  products={products.map(item => ({
                     id: `${item.product_id}/${item.color_slug}`,
                     name: `${item.product_name} - ${item.color_name}`,
                     price: Number(item.product_price),
                     rating: 4.5,
                     image: item.cover_image_url || "/placeholder.jpg",
                   }))}
+                  totalCount={totalCount}
+                  page={page}
+                  pageSize={pageSize}
+                  onPageChange={setPage}
                 />
               )}
             </div>

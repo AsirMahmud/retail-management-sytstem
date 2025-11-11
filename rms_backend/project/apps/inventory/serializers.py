@@ -80,6 +80,7 @@ class ColorImagesUploadSerializer(serializers.Serializer):
     color = serializers.CharField(max_length=50)
     color_hax = serializers.CharField(max_length=50, required=False, allow_blank=True)
     images = serializers.ListField(child=serializers.ImageField(), min_length=1, max_length=4)
+    image_types = serializers.ListField(child=serializers.CharField(max_length=50), required=False, allow_empty=True)
     alt_text = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
 class MeterialCompositionSerializer(serializers.ModelSerializer):

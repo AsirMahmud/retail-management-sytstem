@@ -43,14 +43,11 @@ export function SiteHeader() {
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Link href="/on-sale" className="text-sm font-medium hover:underline underline-offset-4">
-            On Sale
+          <Link href="/women" className="text-sm font-medium hover:underline underline-offset-4">
+            Women
           </Link>
-          <Link href="/category/casual" className="text-sm font-medium hover:underline underline-offset-4">
-            New Arrivals
-          </Link>
-          <Link href="/category/formal" className="text-sm font-medium hover:underline underline-offset-4">
-            Brands
+          <Link href="/men" className="text-sm font-medium hover:underline underline-offset-4">
+            Men
           </Link>
         </nav>
 
@@ -97,6 +94,8 @@ export function SiteHeader() {
                 <Link href="/products" className="text-lg font-medium">
                   All Products
                 </Link>
+                <Link href="/women" className="text-lg font-medium">Women</Link>
+                <Link href="/men" className="text-lg font-medium">Men</Link>
                 <div className="text-sm font-semibold text-muted-foreground mb-2">Categories</div>
                 {categories.map((category) => (
                   <Link key={category.slug} href={`/category/${category.slug}`} className="text-lg font-medium">

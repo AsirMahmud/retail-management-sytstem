@@ -1,6 +1,7 @@
 "use client"
 
 import { Card, CardContent } from "@/components/ui/card"
+import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useCartStore } from "@/hooks/useCartStore"
@@ -42,9 +43,11 @@ export function ProductCard({ id, name, price, originalPrice, image, discount }:
                 </span>
               </div>
             )}
-            <img
+            <Image
               src={image || "/placeholder.svg"}
               alt={name}
+              fill
+              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
               className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
             />
           </div>

@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 import { ecommerceApi } from "@/lib/api"
 
 interface CategoryFiltersProps {
-  onCategoryChange?: (categoryId: number | null) => void;
+  onCategoryChange?: (categorySlug: string | null) => void;
 }
 
 const colors = [
@@ -29,12 +29,22 @@ const sizes = ["XX-Small", "X-Small", "Small", "Medium", "Large", "X-Large", "XX
 
 const dressStyles = ["Casual", "Formal", "Party", "Gym"]
 
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+  parent: number | null;
+  parent_name?: string;
+  children_count?: number;
+}
+
 export function CategoryFilters({ onCategoryChange }: CategoryFiltersProps) {
   const [priceRange, setPriceRange] = useState([50, 200])
   const [selectedColor, setSelectedColor] = useState("Blue")
   const [selectedSize, setSelectedSize] = useState("Large")
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
-  const [categories, setCategories] = useState<Array<{ id: number; name: string; slug: string }>>([])
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set())
   const [loading, setLoading] = useState(true)
   const [expandedSections, setExpandedSections] = useState({
     categories: true,
@@ -58,9 +68,33 @@ export function CategoryFilters({ onCategoryChange }: CategoryFiltersProps) {
     fetchCategories()
   }, [])
 
-  const handleCategorySelect = (categoryId: number | null) => {
-    setSelectedCategory(categoryId)
-    onCategoryChange?.(categoryId)
+  // Organize categories into hierarchical structure
+  const organizedCategories = categories.reduce((acc, category) => {
+    if (!category.parent) {
+      // Root category
+      acc.push({
+        ...category,
+        children: categories.filter(c => c.parent === category.id)
+      })
+    }
+    return acc
+  }, [] as Array<Category & { children: Category[] }>)
+
+  const handleCategorySelect = (categorySlug: string | null) => {
+    setSelectedCategory(categorySlug)
+    onCategoryChange?.(categorySlug)
+  }
+
+  const toggleCategoryExpand = (categoryId: number) => {
+    setExpandedCategories(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(categoryId)) {
+        newSet.delete(categoryId)
+      } else {
+        newSet.add(categoryId)
+      }
+      return newSet
+    })
   }
 
   const toggleSection = (section: keyof typeof expandedSections) => {
@@ -79,7 +113,7 @@ export function CategoryFilters({ onCategoryChange }: CategoryFiltersProps) {
 
       <Separator />
 
-      {/* Categories */}
+      {/* Categories - Hierarchical */}
       <div className="space-y-4">
         <button
           onClick={() => toggleSection("categories")}
@@ -89,36 +123,83 @@ export function CategoryFilters({ onCategoryChange }: CategoryFiltersProps) {
           <ChevronUp className={cn("h-4 w-4 transition-transform", !expandedSections.categories && "rotate-180")} />
         </button>
         {expandedSections.categories && (
-          <div className="space-y-3">
+          <div className="space-y-2">
             <button
               onClick={() => handleCategorySelect(null)}
               className={cn(
-                "w-full flex items-center justify-between transition-colors",
+                "w-full flex items-center justify-between transition-colors py-2 px-2 rounded-md",
                 selectedCategory === null 
-                  ? "text-foreground font-medium" 
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "text-foreground font-medium bg-secondary" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
               )}
             >
               <span>All Categories</span>
             </button>
             {loading ? (
-              <div className="text-sm text-muted-foreground">Loading categories...</div>
+              <div className="text-sm text-muted-foreground px-2">Loading categories...</div>
             ) : (
-              categories.map((category) => (
-                <button
-                  key={category.id}
-                  onClick={() => handleCategorySelect(category.id)}
-                  className={cn(
-                    "w-full flex items-center justify-between transition-colors",
-                    selectedCategory === category.id 
-                      ? "text-foreground font-medium" 
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <span>{category.name}</span>
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              ))
+              organizedCategories.map((category) => {
+                const hasChildren = category.children && category.children.length > 0
+                const isExpanded = expandedCategories.has(category.id)
+                const isSelected = selectedCategory === category.slug
+                
+                return (
+                  <div key={category.id} className="space-y-0.5">
+                    {/* Parent Category */}
+                    <div className="flex items-center gap-2">
+                      {hasChildren && (
+                        <button
+                          onClick={() => toggleCategoryExpand(category.id)}
+                          className="p-1 hover:bg-secondary rounded transition-colors flex-shrink-0"
+                          aria-label={isExpanded ? "Collapse" : "Expand"}
+                        >
+                          <ChevronRight 
+                            className={cn(
+                              "h-4 w-4 transition-transform text-muted-foreground",
+                              isExpanded && "rotate-90"
+                            )} 
+                          />
+                        </button>
+                      )}
+                      {!hasChildren && <div className="w-6 flex-shrink-0" />}
+                      <button
+                        onClick={() => handleCategorySelect(category.slug)}
+                        className={cn(
+                          "flex-1 flex items-center transition-colors py-2 px-2 rounded-md text-left",
+                          isSelected
+                            ? "text-foreground font-medium bg-secondary" 
+                            : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                        )}
+                      >
+                        <span>{category.name}</span>
+                      </button>
+                    </div>
+                    
+                    {/* Subcategories */}
+                    {hasChildren && isExpanded && (
+                      <div className="ml-8 space-y-0.5 border-l-2 border-secondary/30 pl-4 py-1">
+                        {category.children.map((child) => {
+                          const isChildSelected = selectedCategory === child.slug
+                          return (
+                            <button
+                              key={child.id}
+                              onClick={() => handleCategorySelect(child.slug)}
+                              className={cn(
+                                "w-full flex items-center transition-colors py-2 px-2 rounded-md text-sm",
+                                isChildSelected
+                                  ? "text-foreground font-medium bg-secondary" 
+                                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                              )}
+                            >
+                              <span>{child.name}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })
             )}
           </div>
         )}

@@ -48,6 +48,7 @@ import type {
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HydrationWrapper } from "@/components/hydration-wrapper";
+import { HierarchicalCategorySelect } from "@/components/inventory/hierarchical-category-select";
 import { COLORS, globalSizes } from "../../add-product/constants";
 import { getImageUrl } from "@/lib/utils";
 
@@ -848,8 +849,32 @@ export default function EditProductPage() {
     const newGalleries = [...galleries];
     const gallery = newGalleries[galleryIndex];
     if (gallery && gallery.images[imageIndex]) {
-      gallery.images[imageIndex].file = file;
-      gallery.images[imageIndex].preview = URL.createObjectURL(file);
+      const image = gallery.images[imageIndex];
+      
+      // If replacing an existing image (has id and image_url), mark it for deletion first
+      if (image.id && image.image && !image.file) {
+        // This is an existing image being replaced, mark it for deletion
+        setImagesToDelete(prev => {
+          // Only add if not already in the list
+          if (!prev.includes(image.id)) {
+            return [...prev, image.id];
+          }
+          return prev;
+        });
+      }
+      
+      // Revoke old preview URL if exists
+      if (image.preview) {
+        URL.revokeObjectURL(image.preview);
+      }
+      
+      // Set the new file and preview
+      image.file = file;
+      image.preview = URL.createObjectURL(file);
+      // Clear the old image URL since we're replacing it
+      image.image = '';
+      image.image_url = '';
+      
       setGalleries(newGalleries);
     }
   };
@@ -990,7 +1015,7 @@ export default function EditProductPage() {
         ...productData,
       });
 
-      // Delete images that were marked for deletion
+      // Delete images that were marked for deletion FIRST (before uploading new ones)
       if (imagesToDelete.length > 0) {
         try {
           const { galleryImagesApi } = await import('@/lib/api/inventory');
@@ -1013,7 +1038,7 @@ export default function EditProductPage() {
         }
       }
 
-      // Upload images for galleries that have new images
+      // Upload images for galleries that have new images (after deletion is complete)
       const galleriesWithImages = galleries.filter((g) => 
         g.images.some((img) => img.file !== null)
       );
@@ -1031,6 +1056,8 @@ export default function EditProductPage() {
             imagesToUpload.forEach((img) => {
               if (img.file) {
                 formData.append('images', img.file);
+                // Send the imageType for each image so backend knows which type to assign
+                formData.append('image_types', img.imageType);
               }
             });
             
@@ -1212,38 +1239,23 @@ export default function EditProductPage() {
                       <FormLabel>Online Category</FormLabel>
                       <div className="space-y-2">
                         {!isCreatingOnlineCategory ? (
-                          <div className="flex gap-2">
-                            <Select
-                              onValueChange={field.onChange}
-                              value={field.value}
-                              defaultValue={product.online_category?.id.toString()}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select online category">
-                                    {product.online_category?.name}
-                                  </SelectValue>
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {onlineCategories.map((category) => (
-                                  <SelectItem
-                                    key={category.id}
-                                    value={category.id.toString()}
-                                  >
-                                    {category.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                          <div className="space-y-2">
+                            <FormControl>
+                              <HierarchicalCategorySelect
+                                categories={onlineCategories}
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                placeholder="Select online category"
+                              />
+                            </FormControl>
                             <Button
                               type="button"
                               variant="outline"
-                              size="sm"
                               onClick={() => setIsCreatingOnlineCategory(true)}
+                              className="w-full border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50"
                             >
                               <PlusCircle className="h-4 w-4 mr-2" />
-                              New
+                              Create New Online Category
                             </Button>
                           </div>
                         ) : (

@@ -13,8 +13,8 @@ from .serializers import DiscountSerializer, DiscountListSerializer, BrandSerial
 from django.utils.text import slugify
 from apps.inventory.models import Product, ProductVariation, Gallery, Image
 from apps.customer.models import Customer
-from apps.preorder.models import Preorder
-from apps.preorder.serializers import PreorderSerializer
+from apps.online_preorder.models import OnlinePreorder
+from apps.online_preorder.serializers import OnlinePreorderSerializer, OnlinePreorderCreateSerializer
 from django.db.models import Sum
 from decimal import Decimal
 
@@ -255,14 +255,27 @@ class PublicProductsByColorView(APIView):
         - search: filter by product name contains
         - category: filter by category slug
         - online_category: filter by online category slug
+        - product_type(s): alias for online category slug(s), comma-separated
         - only_in_stock: true|false
+        - price_min, price_max: numeric filters on product price
+        - color(s): comma-separated color names to include
+        - size(s): comma-separated sizes to include (must exist for the color)
+        - sort: one of [name, price_asc, price_desc]
+        - page: page number (default 1)
+        - page_size: items per page (default 24)
         """
         search = request.query_params.get('search')
         category_slug = request.query_params.get('category')
         online_category_slug = request.query_params.get('online_category')
+        product_types_csv = request.query_params.get('product_types') or request.query_params.get('product_type')
         only_in_stock = str(request.query_params.get('only_in_stock', 'false')).lower() == 'true'
         product_id = request.query_params.get('product_id')
         product_ids_csv = request.query_params.get('product_ids')
+        # Color and size filters (support both singular and plural names)
+        colors_csv = request.query_params.get('colors') or request.query_params.get('color') or ''
+        sizes_csv = request.query_params.get('sizes') or request.query_params.get('size') or ''
+        wanted_colors = {c.strip().lower() for c in colors_csv.split(',') if c.strip()} if colors_csv else None
+        wanted_sizes = {s.strip().lower() for s in sizes_csv.split(',') if s.strip()} if sizes_csv else None
 
         # Only return products explicitly assigned to online and active
         products = Product.objects.filter(is_active=True, assign_to_online=True)
@@ -272,6 +285,21 @@ class PublicProductsByColorView(APIView):
             products = products.filter(category__slug=category_slug)
         if online_category_slug:
             products = products.filter(online_category__slug=online_category_slug)
+        # Support multiple product types (maps to online_category slugs)
+        if product_types_csv:
+            type_slugs = [s.strip() for s in product_types_csv.split(',') if s.strip()]
+            if type_slugs:
+                products = products.filter(online_category__slug__in=type_slugs)
+        # Price range filter
+        try:
+            price_min = request.query_params.get('price_min')
+            price_max = request.query_params.get('price_max')
+            if price_min is not None:
+                products = products.filter(selling_price__gte=price_min)
+            if price_max is not None:
+                products = products.filter(selling_price__lte=price_max)
+        except Exception:
+            pass
         if product_id:
             products = products.filter(id=product_id)
         elif product_ids_csv:
@@ -304,8 +332,19 @@ class PublicProductsByColorView(APIView):
                     total_stock = variations.filter(color__iexact=color_name).aggregate(total=Sum('stock'))['total'] or 0
                     color_to_stock[color_name] = max(0, total_stock)
             for color_name, total_stock in color_to_stock.items():
+                # Color filter
+                if wanted_colors and color_name.strip().lower() not in wanted_colors:
+                    continue
                 if only_in_stock and total_stock <= 0:
                     continue
+                # Size filter: must have at least one variation with requested size for this color
+                if wanted_sizes:
+                    has_size = variations.filter(
+                        color__iexact=color_name,
+                        size__isnull=False,
+                    ).filter(size__in=list(wanted_sizes)).exists()
+                    if not has_size:
+                        continue
                 item = {
                     'product_id': product.id,
                     'product_name': product.name,
@@ -317,7 +356,32 @@ class PublicProductsByColorView(APIView):
                 }
                 result.append(item)
 
-        return Response(result)
+        # Sorting (on resulting flat list)
+        sort = request.query_params.get('sort') or ''
+        if sort == 'name':
+            result.sort(key=lambda x: x['product_name'])
+        elif sort == 'price_asc':
+            result.sort(key=lambda x: float(x['product_price']))
+        elif sort == 'price_desc':
+            result.sort(key=lambda x: float(x['product_price']), reverse=True)
+
+        # Pagination
+        try:
+            page = int(request.query_params.get('page', 1))
+            page_size = int(request.query_params.get('page_size', 24))
+        except ValueError:
+            page, page_size = 1, 24
+        total = len(result)
+        start = max(0, (page - 1) * page_size)
+        end = start + page_size
+        results_page = result[start:end]
+
+        return Response({
+            'count': total,
+            'page': page,
+            'page_size': page_size,
+            'results': results_page,
+        })
 
 
 class PublicProductDetailByColorView(APIView):
@@ -547,10 +611,10 @@ class CreateOnlinePreorderView(APIView):
             "expected_delivery_date": "2025-12-31"  # Optional
         }
         """
-        # Extract and normalize customer data
-        customer_name = str(request.data.get('customer_name') or '').strip()
-        customer_phone = str(request.data.get('customer_phone') or '').strip()
-        customer_email = str(request.data.get('customer_email') or '').strip()
+        # Extract customer data
+        customer_name = request.data.get('customer_name', '').strip()
+        customer_phone = request.data.get('customer_phone', '').strip()
+        customer_email = request.data.get('customer_email', '').strip()
 
         # Validate required fields
         if not customer_phone:
@@ -565,36 +629,23 @@ class CreateOnlinePreorderView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Validate and normalize items
-        raw_items = request.data.get('items', [])
-        if not raw_items or not isinstance(raw_items, list):
+        # Validate items
+        items = request.data.get('items', [])
+        if not items or not isinstance(items, list):
             return Response(
                 {'error': 'items is required and must be a non-empty list'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        items = []
-        for idx, item in enumerate(raw_items):
-            try:
-                product_id = int(item.get('product_id'))
-                size = str(item.get('size') or '').strip()
-                color = str(item.get('color') or '').strip()
-                quantity = int(item.get('quantity') or 0)
-                unit_price = float(item.get('unit_price') or 0)
-                discount = float(item.get('discount') or 0)
-                if quantity <= 0:
-                    return Response({'error': f'items[{idx}].quantity must be > 0'}, status=status.HTTP_400_BAD_REQUEST)
-                if not size or not color:
-                    return Response({'error': f'items[{idx}] must include non-empty size and color'}, status=status.HTTP_400_BAD_REQUEST)
-            except Exception:
-                return Response({'error': f'items[{idx}] has invalid types'}, status=status.HTTP_400_BAD_REQUEST)
-            items.append({
-                'product_id': product_id,
-                'size': size,
-                'color': color,
-                'quantity': quantity,
-                'unit_price': unit_price,
-                'discount': discount,
-            })
+
+        # Validate each item
+        for item in items:
+            required_fields = ['product_id', 'size', 'color', 'quantity', 'unit_price', 'discount']
+            for field in required_fields:
+                if field not in item:
+                    return Response(
+                        {'error': f'Each item must include {field} field'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
 
         # Create or get customer
         try:
@@ -660,7 +711,7 @@ class CreateOnlinePreorderView(APIView):
                 customer = Customer.objects.get(phone=customer_phone)
 
         # Build shipping address JSON
-        shipping_address_data = request.data.get('shipping_address') or {}
+        shipping_address_data = request.data.get('shipping_address', {})
         
         # Calculate total amount
         items_subtotal = sum(
@@ -670,18 +721,15 @@ class CreateOnlinePreorderView(APIView):
         delivery_charge = float(request.data.get('delivery_charge', 0) or 0)
         total_amount = Decimal(str(items_subtotal + delivery_charge))
 
-        # Create preorder
+        # Create online preorder (standalone model)
         preorder_data = {
             'customer_name': customer_name,
             'customer_phone': customer_phone,
             'customer_email': customer_email if customer_email else '',
-            'source': 'ONLINE',
-            'payment_method': 'COD',
-            'preorder_type': 'online',
             'items': items,
             'shipping_address': shipping_address_data if shipping_address_data else None,
             'delivery_charge': Decimal(str(delivery_charge)),
-            'delivery_method': str(request.data.get('delivery_method') or ''),
+            'delivery_method': request.data.get('delivery_method', ''),
             'total_amount': total_amount,
             'notes': request.data.get('notes', '') or '',
             'status': 'PENDING',
@@ -700,12 +748,8 @@ class CreateOnlinePreorderView(APIView):
                 # Invalid date format, skip it
                 pass
 
-        try:
-            preorder = Preorder.objects.create(**preorder_data)
-            serializer = PreorderSerializer(preorder)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response(
-                {'error': f'Failed to create preorder: {str(e)}'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        serializer = OnlinePreorderCreateSerializer(data=preorder_data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        online_preorder = serializer.save()
+        return Response(OnlinePreorderSerializer(online_preorder).data, status=status.HTTP_201_CREATED)
