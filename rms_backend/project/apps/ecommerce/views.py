@@ -11,7 +11,7 @@ from datetime import datetime
 from .models import Discount, Brand, HomePageSettings, DeliverySettings
 from .serializers import DiscountSerializer, DiscountListSerializer, BrandSerializer, HomePageSettingsSerializer, DeliverySettingsSerializer
 from django.utils.text import slugify
-from apps.inventory.models import Product, ProductVariation, Gallery, Image
+from apps.inventory.models import Product, ProductVariation, Gallery, Image, OnlineCategory
 from apps.customer.models import Customer
 from apps.online_preorder.models import OnlinePreorder
 from apps.online_preorder.serializers import OnlinePreorderSerializer, OnlinePreorderCreateSerializer
@@ -256,6 +256,7 @@ class PublicProductsByColorView(APIView):
         - category: filter by category slug
         - online_category: filter by online category slug
         - product_type(s): alias for online category slug(s), comma-separated
+        - gender: filter by product gender (MALE, FEMALE, UNISEX, or men/women for convenience)
         - only_in_stock: true|false
         - price_min, price_max: numeric filters on product price
         - color(s): comma-separated color names to include
@@ -268,6 +269,7 @@ class PublicProductsByColorView(APIView):
         category_slug = request.query_params.get('category')
         online_category_slug = request.query_params.get('online_category')
         product_types_csv = request.query_params.get('product_types') or request.query_params.get('product_type')
+        gender_param = request.query_params.get('gender')
         only_in_stock = str(request.query_params.get('only_in_stock', 'false')).lower() == 'true'
         product_id = request.query_params.get('product_id')
         product_ids_csv = request.query_params.get('product_ids')
@@ -284,12 +286,46 @@ class PublicProductsByColorView(APIView):
         if category_slug:
             products = products.filter(category__slug=category_slug)
         if online_category_slug:
-            products = products.filter(online_category__slug=online_category_slug)
+            # Handle parent/child category filtering
+            # If the category has children, include products from child categories
+            # If it's a child category, only show products in that category
+            try:
+                category = OnlineCategory.objects.get(slug=online_category_slug)
+                # Get all child category IDs (recursively if needed)
+                child_ids = [category.id]
+                # Get direct children
+                children = OnlineCategory.objects.filter(parent=category)
+                child_ids.extend([child.id for child in children])
+                # Filter products by category or any of its children
+                products = products.filter(online_category_id__in=child_ids)
+            except OnlineCategory.DoesNotExist:
+                # If category doesn't exist, return empty result
+                products = products.none()
         # Support multiple product types (maps to online_category slugs)
         if product_types_csv:
             type_slugs = [s.strip() for s in product_types_csv.split(',') if s.strip()]
             if type_slugs:
                 products = products.filter(online_category__slug__in=type_slugs)
+        # Gender filter: support both backend values (MALE, FEMALE, UNISEX) and convenience values (men, women)
+        if gender_param:
+            gender_lower = gender_param.strip().upper()
+            # Map convenience values to backend values
+            gender_mapping = {
+                'MEN': 'MALE',
+                'WOMEN': 'FEMALE',
+                'MAN': 'MALE',
+                'WOMAN': 'FEMALE',
+                'UNISEX': 'UNISEX',
+            }
+            # Use mapping if available, otherwise use the value directly (assuming it's already MALE/FEMALE/UNISEX)
+            gender_value = gender_mapping.get(gender_lower, gender_lower)
+            # Filter: include products with matching gender OR UNISEX (unisex products show for all genders)
+            if gender_value in ['MALE', 'FEMALE']:
+                products = products.filter(
+                    Q(gender=gender_value) | Q(gender='UNISEX')
+                )
+            elif gender_value == 'UNISEX':
+                products = products.filter(gender='UNISEX')
         # Price range filter
         try:
             price_min = request.query_params.get('price_min')
