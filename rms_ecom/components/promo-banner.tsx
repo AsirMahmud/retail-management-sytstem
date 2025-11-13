@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 
 export function PromoBanner() {
   return (
-    <div className="relative bg-black text-white">
+    <div className="hidden bg-black text-white">
       <div className="container flex items-center justify-center gap-2 px-4 py-3 text-center text-sm">
         <p className="flex-1 text-balance">
           Sign up and get 20% off to your first order.{" "}

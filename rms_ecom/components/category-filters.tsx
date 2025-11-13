@@ -4,30 +4,24 @@ import { useState, useEffect } from "react"
 import { ChevronRight, ChevronUp, SlidersHorizontal, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
 import { ecommerceApi } from "@/lib/api"
 
 interface CategoryFiltersProps {
   onCategoryChange?: (categorySlug: string | null) => void;
+  onColorChange?: (color: string | null) => void;
+  onSizeChange?: (size: string | null) => void;
+  onPriceChange?: (priceRange: [number, number]) => void;
+  onGenderChange?: (gender: string | null) => void;
+  onApplyFilters?: () => void;
+  selectedCategory?: string | null;
+  selectedColor?: string | null;
+  selectedSize?: string | null;
+  selectedGender?: string | null;
+  priceRange?: [number, number];
 }
 
-const colors = [
-  { name: "Green", value: "#00C12B" },
-  { name: "Red", value: "#F50606" },
-  { name: "Yellow", value: "#F5DD06" },
-  { name: "Orange", value: "#F57906" },
-  { name: "Cyan", value: "#06CAF5" },
-  { name: "Blue", value: "#063AF5" },
-  { name: "Purple", value: "#7D06F5" },
-  { name: "Pink", value: "#F506A4" },
-  { name: "White", value: "#FFFFFF" },
-  { name: "Black", value: "#000000" },
-]
 
-const sizes = ["XX-Small", "X-Small", "Small", "Medium", "Large", "X-Large", "XX-Large", "3X-Large", "4X-Large"]
-
-const dressStyles = ["Casual", "Formal", "Party", "Gym"]
 
 interface Category {
   id: number;
@@ -38,20 +32,36 @@ interface Category {
   children_count?: number;
 }
 
-export function CategoryFilters({ onCategoryChange }: CategoryFiltersProps) {
-  const [priceRange, setPriceRange] = useState([50, 200])
-  const [selectedColor, setSelectedColor] = useState("Blue")
-  const [selectedSize, setSelectedSize] = useState("Large")
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+const genders = [
+  { label: "Men", value: "men" },
+  { label: "Women", value: "women" },
+  { label: "Unisex", value: "unisex" },
+]
+
+export function CategoryFilters({ 
+  onCategoryChange,
+  onColorChange,
+  onSizeChange,
+  onPriceChange,
+  onGenderChange,
+  onApplyFilters,
+  selectedCategory: externalSelectedCategory,
+  selectedColor: externalSelectedColor,
+  selectedSize: externalSelectedSize,
+  selectedGender: externalSelectedGender,
+  priceRange: externalPriceRange,
+}: CategoryFiltersProps) {
+  const [priceRange, setPriceRange] = useState<[number, number]>(externalPriceRange || [50, 200])
+  const [selectedColor, setSelectedColor] = useState<string | null>(externalSelectedColor || null)
+  const [selectedSize, setSelectedSize] = useState<string | null>(externalSelectedSize || null)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(externalSelectedCategory || null)
+  const [selectedGender, setSelectedGender] = useState<string | null>(externalSelectedGender || null)
   const [categories, setCategories] = useState<Category[]>([])
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set())
   const [loading, setLoading] = useState(true)
   const [expandedSections, setExpandedSections] = useState({
     categories: true,
-    price: true,
-    colors: true,
-    size: true,
-    dressStyle: true,
+    gender: true,
   })
 
   useEffect(() => {
@@ -85,6 +95,30 @@ export function CategoryFilters({ onCategoryChange }: CategoryFiltersProps) {
     onCategoryChange?.(categorySlug)
   }
 
+  // Sync external selectedCategory prop with internal state
+  useEffect(() => {
+    if (externalSelectedCategory !== undefined) {
+      setSelectedCategory(externalSelectedCategory)
+    }
+  }, [externalSelectedCategory])
+
+  // Sync external selectedGender prop with internal state
+  useEffect(() => {
+    if (externalSelectedGender !== undefined) {
+      setSelectedGender(externalSelectedGender)
+    }
+  }, [externalSelectedGender])
+
+  const handleGenderSelect = (gender: string | null) => {
+    const newGender = selectedGender === gender ? null : gender
+    setSelectedGender(newGender)
+    onGenderChange?.(newGender)
+    // Apply filter immediately
+    if (onApplyFilters) {
+      setTimeout(() => onApplyFilters(), 100)
+    }
+  }
+
   const toggleCategoryExpand = (categoryId: number) => {
     setExpandedCategories(prev => {
       const newSet = new Set(prev)
@@ -101,6 +135,7 @@ export function CategoryFilters({ onCategoryChange }: CategoryFiltersProps) {
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }))
   }
 
+
   return (
     <div className="border rounded-lg p-5 space-y-6">
       <div className="flex items-center justify-between">
@@ -109,6 +144,51 @@ export function CategoryFilters({ onCategoryChange }: CategoryFiltersProps) {
           <X className="h-5 w-5 text-muted-foreground" />
         </div>
         <SlidersHorizontal className="h-5 w-5 text-muted-foreground lg:block hidden" />
+      </div>
+
+      <Separator />
+
+      {/* Gender */}
+      <div className="space-y-4">
+        <button
+          onClick={() => toggleSection("gender")}
+          className="w-full flex items-center justify-between font-semibold"
+        >
+          <span>Gender</span>
+          <ChevronUp className={cn("h-4 w-4 transition-transform", !expandedSections.gender && "rotate-180")} />
+        </button>
+        {expandedSections.gender && (
+          <div className="space-y-2">
+            <button
+              onClick={() => handleGenderSelect(null)}
+              className={cn(
+                "w-full flex items-center justify-between transition-colors py-2 px-2 rounded-md",
+                selectedGender === null 
+                  ? "text-foreground font-medium bg-secondary" 
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+              )}
+            >
+              <span>All</span>
+            </button>
+            {genders.map((gender) => {
+              const isSelected = selectedGender === gender.value
+              return (
+                <button
+                  key={gender.value}
+                  onClick={() => handleGenderSelect(gender.value)}
+                  className={cn(
+                    "w-full flex items-center justify-between transition-colors py-2 px-2 rounded-md text-left",
+                    isSelected
+                      ? "text-foreground font-medium bg-secondary" 
+                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                  )}
+                >
+                  <span>{gender.label}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       <Separator />
@@ -205,146 +285,10 @@ export function CategoryFilters({ onCategoryChange }: CategoryFiltersProps) {
         )}
       </div>
 
-      <Separator />
-
-      {/* Price */}
-      <div className="space-y-4">
-        <button
-          onClick={() => toggleSection("price")}
-          className="w-full flex items-center justify-between font-semibold"
-        >
-          <span>Price</span>
-          <ChevronUp className={cn("h-4 w-4 transition-transform", !expandedSections.price && "rotate-180")} />
-        </button>
-        {expandedSections.price && (
-          <div className="space-y-4">
-            <Slider value={priceRange} onValueChange={setPriceRange} min={0} max={300} step={10} className="w-full" />
-            <div className="flex items-center justify-between text-sm">
-              <span className="font-medium">${priceRange[0]}</span>
-              <span className="font-medium">${priceRange[1]}</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <Separator />
-
-      {/* Colors */}
-      <div className="space-y-4">
-        <button
-          onClick={() => toggleSection("colors")}
-          className="w-full flex items-center justify-between font-semibold"
-        >
-          <span>Colors</span>
-          <ChevronUp className={cn("h-4 w-4 transition-transform", !expandedSections.colors && "rotate-180")} />
-        </button>
-        {expandedSections.colors && (
-          <div className="flex flex-wrap gap-3">
-            {colors.map((color) => (
-              <button
-                key={color.name}
-                onClick={() => setSelectedColor(color.name)}
-                className={cn(
-                  "w-9 h-9 rounded-full border-2 transition-all relative",
-                  selectedColor === color.name ? "border-foreground scale-110" : "border-transparent hover:scale-105",
-                )}
-                style={{ backgroundColor: color.value }}
-                aria-label={color.name}
-              >
-                {selectedColor === color.name && color.name !== "White" && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <svg
-                      className="w-4 h-4 text-white"
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="3"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                )}
-                {selectedColor === color.name && color.name === "White" && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <svg
-                      className="w-4 h-4 text-foreground"
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="3"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <Separator />
-
-      {/* Size */}
-      <div className="space-y-4">
-        <button
-          onClick={() => toggleSection("size")}
-          className="w-full flex items-center justify-between font-semibold"
-        >
-          <span>Size</span>
-          <ChevronUp className={cn("h-4 w-4 transition-transform", !expandedSections.size && "rotate-180")} />
-        </button>
-        {expandedSections.size && (
-          <div className="flex flex-wrap gap-2">
-            {sizes.map((size) => (
-              <button
-                key={size}
-                onClick={() => setSelectedSize(size)}
-                className={cn(
-                  "px-4 py-2 rounded-full text-sm font-medium transition-colors",
-                  selectedSize === size
-                    ? "bg-foreground text-background"
-                    : "bg-secondary text-foreground hover:bg-secondary/80",
-                )}
-              >
-                {size}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <Separator />
-
-      {/* Dress Style */}
-      <div className="space-y-3">
-        <button
-          onClick={() => toggleSection("dressStyle")}
-          className="w-full flex items-center justify-between font-semibold"
-        >
-          <span>Dress Style</span>
-          <ChevronUp className={cn("h-4 w-4 transition-transform", !expandedSections.dressStyle && "rotate-180")} />
-        </button>
-        {expandedSections.dressStyle && (
-          <div className="space-y-3">
-            {dressStyles.map((style) => (
-              <button
-                key={style}
-                className="w-full flex items-center justify-between text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <span>{style}</span>
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <Button className="w-full bg-foreground text-background hover:bg-foreground/90 rounded-full h-12">
+      <Button 
+        onClick={() => onApplyFilters?.()}
+        className="w-full bg-foreground text-background hover:bg-foreground/90 rounded-full h-12"
+      >
         Apply Filter
       </Button>
     </div>

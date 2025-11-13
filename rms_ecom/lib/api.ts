@@ -179,6 +179,7 @@ export const ecommerceApi = {
     category?: string;
     online_category?: string;
     product_types?: string[]; // alias for multiple online_category slugs
+    gender?: 'MALE' | 'FEMALE' | 'UNISEX' | 'men' | 'women'; // filter by gender
     only_in_stock?: boolean;
     product_id?: number;
     product_ids?: number[];
@@ -195,6 +196,7 @@ export const ecommerceApi = {
     if (params?.category) searchParams.set('category', params.category)
     if (params?.online_category) searchParams.set('online_category', params.online_category)
     if (params?.product_types && params.product_types.length > 0) searchParams.set('product_types', params.product_types.join(','))
+    if (params?.gender) searchParams.set('gender', params.gender)
     if (typeof params?.only_in_stock !== 'undefined') searchParams.set('only_in_stock', String(params.only_in_stock))
     if (params?.product_id) searchParams.set('product_id', String(params.product_id))
     if (params?.product_ids && params.product_ids.length > 0) searchParams.set('product_ids', params.product_ids.join(','))

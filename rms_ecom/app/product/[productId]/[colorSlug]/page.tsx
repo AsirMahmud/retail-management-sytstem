@@ -35,9 +35,8 @@ export default function ProductByColorPage() {
         if (!productId || !colorSlug) return
         const response = await ecommerceApi.getProductDetailByColor(productId, colorSlug)
         setData(response)
-        // Fetch related/suggested products and get color-wise entries
+        // Fetch product details for size chart and other extras
         const showcase = await ecommerceApi.getProductDetail(productId)
-        const relatedProducts = showcase.related_products || []
         setDetailExtras({
           size_chart: showcase.product.size_chart,
           material_composition: showcase.product.material_composition,
@@ -45,17 +44,30 @@ export default function ProductByColorPage() {
           features: showcase.product.features,
         })
         
-        if (relatedProducts.length > 0) {
-          // Get product IDs from related products
-          const relatedProductIds = relatedProducts.map(p => p.id)
-          // Fetch color-wise entries for related products
-          const colorWiseEntries = await ecommerceApi.getProductsByColor({ 
-            product_ids: relatedProductIds 
-          })
-          setSuggested(colorWiseEntries)
-        } else {
-          setSuggested([])
+        // Fetch random products for "YOU MIGHT ALSO LIKE" section
+        // Fetch a sample pool of products to randomize from (more efficient than fetching all)
+        // Use pagination to get a good sample size (50-100 products)
+        const paginatedResponse = await ecommerceApi.getProductsByColorPaginated({ 
+          only_in_stock: true,
+          page_size: 100, // Fetch up to 100 products for randomization
+          page: 1
+        })
+        
+        // Filter out the current product and shuffle the rest
+        const filteredProducts = paginatedResponse.results.filter(
+          entry => entry.product_id !== productId
+        )
+        
+        // Shuffle array using Fisher-Yates algorithm for true randomization
+        const shuffled = [...filteredProducts]
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
         }
+        
+        // Take first 8 products (or less if not enough available)
+        const randomProducts = shuffled.slice(0, 8)
+        setSuggested(randomProducts)
       } catch (e) {
         console.error(e)
         // Redirect to Not Available page if the color/product is not found
@@ -159,7 +171,7 @@ export default function ProductByColorPage() {
           />
         </div>
 
-        {/* Suggested products */}
+        {/* Random products - YOU MIGHT ALSO LIKE */}
         {suggested.length > 0 && (
           <div className="container px-4 pb-12">
             <ProductRecommendations

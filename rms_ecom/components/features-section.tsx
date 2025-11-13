@@ -3,18 +3,14 @@ import { Package, Shield, CreditCard, Headphones } from "lucide-react"
 const features = [
   {
     icon: Package,
-    title: "Free Shipping",
-    description: "Free shipping on all orders over ৳100",
+    title: "Fast Shipping",
+    description: "2-3 days fast delivery",
   },
-  {
-    icon: Shield,
-    title: "Secure Payment",
-    description: "Your payment information is safe with us",
-  },
+ 
   {
     icon: CreditCard,
     title: "Money Back",
-    description: "30 days money back guarantee",
+    description: "3 days money back guarantee",
   },
   {
     icon: Headphones,
@@ -25,9 +21,9 @@ const features = [
 
 export function FeaturesSection() {
   return (
-    <section className="w-full py-16 bg-muted/30">
+    <section className="w-full py-16   bg-muted/30">
       <div className="container px-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="flex justify-between max-w-[700px] mx-auto items-center">
           {features.map((feature) => {
             const Icon = feature.icon
             return (

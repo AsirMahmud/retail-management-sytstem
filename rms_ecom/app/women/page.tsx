@@ -19,16 +19,14 @@ export default function WomenCollectionPage() {
     const run = async () => {
       setLoading(true)
       try {
-        // Try filtering by online_category slug 'women'; if not configured, fallback to all
-        const resp = await ecommerceApi.getProductsByColorPaginated({ online_category: "women", page, page_size: pageSize })
-        if (resp.count === 0) {
-          const fallback = await ecommerceApi.getProductsByColorPaginated({ page, page_size: pageSize })
-          setProducts(fallback.results)
-          setTotalCount(fallback.count)
-        } else {
-          setProducts(resp.results)
-          setTotalCount(resp.count)
-        }
+        // Filter by gender: 'women' or 'FEMALE' - shows FEMALE and UNISEX products
+        const resp = await ecommerceApi.getProductsByColorPaginated({ 
+          gender: 'women', 
+          page, 
+          page_size: pageSize 
+        })
+        setProducts(resp.results)
+        setTotalCount(resp.count)
       } finally {
         setLoading(false)
       }
