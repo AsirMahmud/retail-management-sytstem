@@ -110,7 +110,9 @@ export function CategoryFilters({
   }, [externalSelectedGender])
 
   const handleGenderSelect = (gender: string | null) => {
-    const newGender = selectedGender === gender ? null : gender
+    // If clicking "All" (null), always set to null
+    // If clicking a gender, set it (no toggle - always apply the selected gender)
+    const newGender = gender
     setSelectedGender(newGender)
     onGenderChange?.(newGender)
     // Apply filter immediately

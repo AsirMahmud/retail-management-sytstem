@@ -185,6 +185,7 @@ class HomePageSettings(models.Model):
 class DeliverySettings(models.Model):
     """Singleton model for delivery charges"""
     inside_dhaka_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    inside_gazipur_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     outside_dhaka_charge = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     updated_at = models.DateTimeField(auto_now=True)
 

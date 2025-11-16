@@ -6,6 +6,7 @@ export interface Category {
     parent?: number;
     product_count?: number;
     children?: Category[];
+    order?: number;
     created_at: string;
     updated_at: string;
 }

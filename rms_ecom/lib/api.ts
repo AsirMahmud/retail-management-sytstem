@@ -325,7 +325,7 @@ export const ecommerceApi = {
   },
 
   // Public: Get delivery settings
-  getDeliverySettings: async (): Promise<{ inside_dhaka_charge: number; outside_dhaka_charge: number; updated_at: string }> => {
+  getDeliverySettings: async (): Promise<{ inside_dhaka_charge: number; inside_gazipur_charge: number; outside_dhaka_charge: number; updated_at: string }> => {
     const response = await fetch(`${API_BASE_URL}/ecommerce/public/delivery-settings/`)
     if (!response.ok) throw new Error('Failed to fetch delivery settings')
     return response.json()
@@ -335,7 +335,7 @@ export const ecommerceApi = {
   priceCart: async (items: Array<{ productId: string | number; quantity: number; variations?: Record<string, string> }>): Promise<{
     items: Array<{ productId: number; name: string; image_url?: string | null; unit_price: number; quantity: number; line_total: number; max_stock?: number; variant?: { color?: string | null; size?: string | null } }>
     subtotal: number
-    delivery: { inside_dhaka_charge: number; outside_dhaka_charge: number; updated_at: string }
+    delivery: { inside_dhaka_charge: number; inside_gazipur_charge: number; outside_dhaka_charge: number; updated_at: string }
   }> => {
     const response = await fetch(`${API_BASE_URL}/ecommerce/public/cart/price/`, {
       method: 'POST',

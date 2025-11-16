@@ -20,6 +20,7 @@ export default function AllProductsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("popular")
   const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(null)
+  const [selectedGender, setSelectedGender] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [pageSize] = useState(24)
   const [totalCount, setTotalCount] = useState(0)
@@ -34,6 +35,7 @@ export default function AllProductsPage() {
           search: searchTerm || undefined,
           sort: sortBy === 'price-low' ? 'price_asc' : sortBy === 'price-high' ? 'price_desc' : sortBy === 'name' ? 'name' : undefined,
           online_category: selectedCategorySlug || undefined,
+          gender: selectedGender as 'men' | 'women' | 'unisex' | 'MALE' | 'FEMALE' | 'UNISEX' | undefined,
         })
         setProducts(res.results)
         setTotalCount(res.count)
@@ -44,18 +46,24 @@ export default function AllProductsPage() {
       }
     }
     fetchProducts()
-  }, [page, pageSize, searchTerm, sortBy, selectedCategorySlug])
+  }, [page, pageSize, searchTerm, sortBy, selectedCategorySlug, selectedGender])
 
   // Reset to first page on key changes
   useEffect(() => {
     setPage(1)
-  }, [searchTerm, sortBy, selectedCategorySlug])
+  }, [searchTerm, sortBy, selectedCategorySlug, selectedGender])
 
   const handleCategoryChange = (categorySlug: string | null) => {
     setSelectedCategorySlug(categorySlug)
   }
 
-  // Filters UI is local-only in CategoryFilters; we only honor category here
+  const handleGenderChange = (gender: string | null) => {
+    setSelectedGender(gender)
+  }
+
+  const handleApplyFilters = () => {
+    setPage(1)
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -114,7 +122,12 @@ export default function AllProductsPage() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-full sm:w-[400px] overflow-y-auto">
-                <CategoryFilters onCategoryChange={handleCategoryChange} />
+                <CategoryFilters 
+                  onCategoryChange={handleCategoryChange}
+                  onGenderChange={handleGenderChange}
+                  selectedGender={selectedGender}
+                  onApplyFilters={handleApplyFilters}
+                />
               </SheetContent>
             </Sheet>
           </div>
@@ -122,7 +135,12 @@ export default function AllProductsPage() {
           <div className="flex gap-6">
             {/* Desktop Sidebar */}
             <aside className="hidden lg:block w-64 flex-shrink-0">
-              <CategoryFilters onCategoryChange={handleCategoryChange} />
+              <CategoryFilters 
+                onCategoryChange={handleCategoryChange}
+                onGenderChange={handleGenderChange}
+                selectedGender={selectedGender}
+                onApplyFilters={handleApplyFilters}
+              />
             </aside>
 
             {/* Main Content */}

@@ -5,11 +5,14 @@ import { useEffect, useState } from "react"
 import { useCartStore } from "@/hooks/useCartStore"
 import { useCheckoutStore } from "@/hooks/useCheckoutStore"
 import { ecommerceApi } from "@/lib/api"
+import { getImageUrl } from "@/lib/utils"
+import { getCheckoutItems, type CartItem } from "@/lib/cart"
 
 interface CartPricing {
   subtotal: number
   delivery: {
     inside_dhaka_charge: number
+    inside_gazipur_charge: number
     outside_dhaka_charge: number
     updated_at: string
   }
@@ -26,11 +29,18 @@ interface PricedCartItem {
 }
 
 export function CheckoutSummary() {
-  const items = useCartStore((s) => s.items)
+  const cartStoreItems = useCartStore((s) => s.items)
   const { deliveryMethod, setDeliveryMethod } = useCheckoutStore()
   const [cartPricing, setCartPricing] = useState<CartPricing | null>(null)
   const [pricedItems, setPricedItems] = useState<PricedCartItem[]>([])
   const [loading, setLoading] = useState(false)
+  const [items, setItems] = useState<CartItem[]>([])
+
+  // Get checkout items (direct checkout or cart)
+  useEffect(() => {
+    const checkoutItems = getCheckoutItems()
+    setItems(checkoutItems)
+  }, [cartStoreItems]) // Re-check when cart store changes or component mounts
 
   useEffect(() => {
     const fetchCartPricing = async () => {
@@ -71,9 +81,14 @@ export function CheckoutSummary() {
   }
 
   const subtotal = Number(cartPricing?.subtotal) || 0
-  const deliveryCharge = deliveryMethod === 'inside' 
-    ? (Number(cartPricing?.delivery?.inside_dhaka_charge) || 0)
-    : (Number(cartPricing?.delivery?.outside_dhaka_charge) || 0)
+  let deliveryCharge = 0
+  if (deliveryMethod === 'inside') {
+    deliveryCharge = Number(cartPricing?.delivery?.inside_dhaka_charge) || 0
+  } else if (deliveryMethod === 'gazipur') {
+    deliveryCharge = Number(cartPricing?.delivery?.inside_gazipur_charge) || 0
+  } else {
+    deliveryCharge = Number(cartPricing?.delivery?.outside_dhaka_charge) || 0
+  }
   const total = subtotal + deliveryCharge
 
   if (items.length === 0) {
@@ -105,14 +120,24 @@ export function CheckoutSummary() {
           })
 
           const productName = (pricedItem?.name && pricedItem.name.trim()) || `Product ${it.productId}`
-          const productImage = pricedItem?.image_url || "/placeholder.svg"
+          const productImage = getImageUrl(pricedItem?.image_url)
           const color = pricedItem?.variant?.color || it.variations?.color
           const size = pricedItem?.variant?.size || it.variations?.size
 
           return (
             <div key={`${it.productId}-${JSON.stringify(it.variations||{})}`} className="flex gap-3">
               <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
-                <Image src={productImage} alt={productName} fill className="object-cover" />
+                <Image 
+                  src={productImage} 
+                  alt={productName} 
+                  fill 
+                  className="object-cover"
+                  sizes="64px"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = "/placeholder.svg";
+                  }}
+                />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-medium text-sm line-clamp-1">{productName}</h3>
@@ -140,7 +165,7 @@ export function CheckoutSummary() {
                 name="delivery-method"
                 value="inside"
                 checked={deliveryMethod === 'inside'}
-                onChange={(e) => setDeliveryMethod(e.target.value as 'inside' | 'outside')}
+                onChange={(e) => setDeliveryMethod(e.target.value as 'inside' | 'gazipur' | 'outside')}
                 className="h-4 w-4"
               />
               <span className="text-sm font-medium">Inside Dhaka</span>
@@ -156,9 +181,27 @@ export function CheckoutSummary() {
               <input
                 type="radio"
                 name="delivery-method"
+                value="gazipur"
+                checked={deliveryMethod === 'gazipur'}
+                onChange={(e) => setDeliveryMethod(e.target.value as 'inside' | 'gazipur' | 'outside')}
+                className="h-4 w-4"
+              />
+              <span className="text-sm font-medium">Inside Gazipur</span>
+            </div>
+            {loading ? (
+              <span className="text-sm font-semibold text-muted-foreground">—</span>
+            ) : (
+              <span className="text-sm font-semibold">৳{formatPrice(cartPricing?.delivery?.inside_gazipur_charge)}</span>
+            )}
+          </label>
+          <label className="flex items-center justify-between border rounded-lg p-3 cursor-pointer hover:bg-accent/50 transition-colors">
+            <div className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="delivery-method"
                 value="outside"
                 checked={deliveryMethod === 'outside'}
-                onChange={(e) => setDeliveryMethod(e.target.value as 'outside' | 'inside')}
+                onChange={(e) => setDeliveryMethod(e.target.value as 'inside' | 'gazipur' | 'outside')}
                 className="h-4 w-4"
               />
               <span className="text-sm font-medium">Outside Dhaka</span>

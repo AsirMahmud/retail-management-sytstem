@@ -7,6 +7,7 @@ import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { useCartStore } from "@/hooks/useCartStore"
 import { ecommerceApi } from "@/lib/api"
+import { getImageUrl } from "@/lib/utils"
 
 interface PricedCartItem {
   productId: number
@@ -78,7 +79,7 @@ export function CartItems() {
         })
 
         const productName = (pricedItem?.name && pricedItem.name.trim()) || `Product ${it.productId}`
-        const productImage = pricedItem?.image_url || "/placeholder.svg"
+        const productImage = getImageUrl(pricedItem?.image_url)
         const color = pricedItem?.variant?.color || it.variations?.color
         const size = pricedItem?.variant?.size || it.variations?.size
 
@@ -90,6 +91,7 @@ export function CartItems() {
                 alt={productName}
                 fill
                 className="object-cover"
+                sizes="96px"
               />
             </div>
             <div className="flex-1 min-w-0">

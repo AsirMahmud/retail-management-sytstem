@@ -117,6 +117,16 @@ export const useDeleteOnlineCategory = () => {
     });
 };
 
+export const useUpdateOnlineCategoryOrder = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: onlineCategoriesApi.updateOrder,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['online-categories'] });
+        },
+    });
+};
+
 export const useCategory = (id: number) => {
     return useQuery({
         queryKey: inventoryKeys.categories.detail(id),

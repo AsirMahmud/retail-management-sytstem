@@ -791,7 +791,7 @@ class OnlineCategorySerializer(serializers.ModelSerializer):
         model = OnlineCategory
         fields = [
             'id', 'name', 'slug', 'description', 'parent', 'parent_name',
-            'children_count', 'created_at', 'updated_at'
+            'children_count', 'order', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'slug', 'created_at', 'updated_at']
     

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { ProductCard } from "@/components/product-card"
+import Link from "next/link"
 
 interface Product {
   id: string
@@ -14,9 +15,10 @@ interface Product {
 interface ProductSectionProps {
   title: string
   products: Product[]
+  viewAllHref?: string
 }
 
-export function ProductSection({ title, products }: ProductSectionProps) {
+export function ProductSection({ title, products, viewAllHref = "/products" }: ProductSectionProps) {
   return (
     <section className="w-full py-16">
       <div className="container px-4">
@@ -27,9 +29,11 @@ export function ProductSection({ title, products }: ProductSectionProps) {
           ))}
         </div>
         <div className="flex justify-center mt-10">
-          <Button variant="outline" size="lg" className="rounded-full px-12 bg-transparent">
-            View All
-          </Button>
+          <Link href={viewAllHref}>
+            <Button variant="outline" size="lg" className="rounded-full px-12 bg-transparent">
+              View All
+            </Button>
+          </Link>
         </div>
       </div>
     </section>
