@@ -38,13 +38,14 @@ class OnlineCategory(models.Model):
     slug = models.SlugField(max_length=100, unique=True, blank=True)
     description = models.TextField(blank=True)
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
+    order = models.PositiveIntegerField(default=0, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         verbose_name = 'Category'
         verbose_name_plural = 'Categories'
-        ordering = ['name']
+        ordering = ['order', 'name']
 
     def save(self, *args, **kwargs):
         if not self.slug:

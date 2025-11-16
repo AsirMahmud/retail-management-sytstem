@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { getCart, clearCart } from "@/lib/cart"
+import { getCart, clearCart, getCheckoutItems, clearDirectCheckoutItems } from "@/lib/cart"
 import { ecommerceApi } from "@/lib/api"
 import { useCheckoutStore } from "@/hooks/useCheckoutStore"
 import { useBdAddress } from "@/hooks/useBdAddress"
@@ -58,8 +58,11 @@ export function CheckoutForm() {
     error: bdError,
     unionError,
     selectedDivision,
+    selectedDivisionId,
     selectedDistrict,
+    selectedDistrictId,
     selectedUpazilla,
+    selectedUpazillaId,
     setSelectedDivision,
     setSelectedDistrict,
     setSelectedUpazilla,
@@ -78,6 +81,29 @@ export function CheckoutForm() {
   
   // Get available places based on selected thana
   const availablePlaces: Place[] = availableThanas.find(t => t.name === selectedThana)?.places || []
+
+  // Auto-select Dhaka division when Gazipur is selected
+  useEffect(() => {
+    if (deliveryMethod === 'gazipur' && divisions.length > 0 && (!selectedDivisionId || (selectedDivisionId !== 6 && selectedDivisionId !== "6"))) {
+      const dhakaDivision = divisions.find(d => d.id === 6 || d.id === "6")
+      if (dhakaDivision) {
+        setSelectedDivision(dhakaDivision.name, dhakaDivision.id)
+      }
+    }
+  }, [deliveryMethod, divisions, selectedDivisionId, setSelectedDivision])
+
+  // Auto-select Gazipur district when delivery method is gazipur and division is Dhaka
+  useEffect(() => {
+    if (deliveryMethod === 'gazipur' && selectedDivisionId && (selectedDivisionId === 6 || selectedDivisionId === "6")) {
+      // Wait for districts to load, then auto-select Gazipur (ID 41)
+      if (districts.length > 0 && (!selectedDistrictId || (selectedDistrictId !== 41 && selectedDistrictId !== "41"))) {
+        const gazipurDistrict = districts.find(d => d.id === 41 || d.id === "41")
+        if (gazipurDistrict) {
+          setSelectedDistrict(gazipurDistrict.name, gazipurDistrict.id)
+        }
+      }
+    }
+  }, [deliveryMethod, selectedDivisionId, districts, selectedDistrictId, setSelectedDistrict])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -117,7 +143,7 @@ export function CheckoutForm() {
           address: String(formData.get("address") || ""),
         }
       } else {
-        // Outside Dhaka address structure
+        // Outside Dhaka or Inside Gazipur address structure (both use division/district/upazila/union)
         shipping_address = {
           division: String(formData.get("division") || ""),
           district: String(formData.get("district") || ""),
@@ -128,7 +154,7 @@ export function CheckoutForm() {
       }
       const notes = String(formData.get("notes") || "")
 
-      const cartItems = getCart()
+      const cartItems = getCheckoutItems()
       if (!cartItems.length) throw new Error("Your cart is empty.")
 
       // Fetch authoritative prices and delivery charges
@@ -160,11 +186,18 @@ export function CheckoutForm() {
       })
 
       // Get delivery charge based on selected method
-      const deliveryCharge = deliveryMethod === 'inside' 
-        ? Number(pricingResponse.delivery.inside_dhaka_charge) 
-        : Number(pricingResponse.delivery.outside_dhaka_charge)
-      
-      const deliveryMethodName = deliveryMethod === 'inside' ? 'Inside Dhaka' : 'Outside Dhaka'
+      let deliveryCharge = 0
+      let deliveryMethodName = ''
+      if (deliveryMethod === 'inside') {
+        deliveryCharge = Number(pricingResponse.delivery.inside_dhaka_charge)
+        deliveryMethodName = 'Inside Dhaka'
+      } else if (deliveryMethod === 'gazipur') {
+        deliveryCharge = Number(pricingResponse.delivery.inside_gazipur_charge)
+        deliveryMethodName = 'Inside Gazipur'
+      } else {
+        deliveryCharge = Number(pricingResponse.delivery.outside_dhaka_charge)
+        deliveryMethodName = 'Outside Dhaka'
+      }
 
       // Final validation before sending
       if (!customer_name || customer_name.length === 0) {
@@ -188,7 +221,8 @@ export function CheckoutForm() {
       
       console.log('Submitting payload:', { ...payload, items: items.length }) // Debug log
       const created = await ecommerceApi.createOnlinePreorder(payload)
-      clearCart()
+      clearDirectCheckoutItems() // Clear direct checkout items first
+      clearCart() // Also clear regular cart
       router.push(`/order-complete?preorder_id=${created.id}`)
     } catch (err: any) {
       setError(err?.message || "Failed to place order. Please try again.")
@@ -248,12 +282,36 @@ export function CheckoutForm() {
             <button
               type="button"
               onClick={() => {
+                setDeliveryMethod('gazipur')
+                // Reset Dhaka address fields
+                setSelectedCityCorp("")
+                setSelectedThana("")
+                setSelectedPlace("")
+                // Reset union selection
+                setSelectedUnion("")
+                // Division and district will be auto-selected via useEffect
+              }}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                deliveryMethod === 'gazipur'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Inside Gazipur
+            </button>
+            <button
+              type="button"
+              onClick={() => {
                 setDeliveryMethod('outside')
                 // Reset outside Dhaka address fields
                 setSelectedDivision("", "")
                 setSelectedDistrict("", "")
                 setSelectedUpazilla("", "")
                 setSelectedUnion("")
+                // Reset Gazipur auto-selection
+                setSelectedCityCorp("")
+                setSelectedThana("")
+                setSelectedPlace("")
               }}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 deliveryMethod === 'outside'
@@ -375,10 +433,11 @@ export function CheckoutForm() {
                     setSelectedDivision(division.name, division.id)
                   }
                 }}
+                disabled={bdLoading || deliveryMethod === 'gazipur'}
                 required
               >
-                <SelectTrigger id="division" disabled={bdLoading}>
-                  <SelectValue placeholder="Select Division" />
+                <SelectTrigger id="division" disabled={bdLoading || deliveryMethod === 'gazipur'}>
+                  <SelectValue placeholder={deliveryMethod === 'gazipur' ? "Dhaka (Auto-selected)" : "Select Division"} />
                 </SelectTrigger>
                 <SelectContent>
                   {divisions.map((div) => (
@@ -388,6 +447,9 @@ export function CheckoutForm() {
                   ))}
                 </SelectContent>
               </Select>
+              {deliveryMethod === 'gazipur' && (
+                <p className="text-sm text-muted-foreground">Division is automatically set to Dhaka for Gazipur</p>
+              )}
               {bdError && !selectedDivision && (
                 <p className="text-sm text-red-600">{bdError}</p>
               )}
@@ -404,11 +466,11 @@ export function CheckoutForm() {
                     setSelectedDistrict(district.name, district.id)
                   }
                 }}
-                disabled={!selectedDivision || loadingDistricts || districts.length === 0}
+                disabled={!selectedDivision || loadingDistricts || districts.length === 0 || deliveryMethod === 'gazipur'}
                 required
               >
-                <SelectTrigger id="district">
-                  <SelectValue placeholder="Select District" />
+                <SelectTrigger id="district" disabled={!selectedDivision || loadingDistricts || districts.length === 0 || deliveryMethod === 'gazipur'}>
+                  <SelectValue placeholder={deliveryMethod === 'gazipur' ? "Gazipur (Auto-selected)" : "Select District"} />
                 </SelectTrigger>
                 <SelectContent>
                   {districts.map((dist) => (
@@ -418,6 +480,9 @@ export function CheckoutForm() {
                   ))}
                 </SelectContent>
               </Select>
+              {deliveryMethod === 'gazipur' && (
+                <p className="text-sm text-muted-foreground">District is automatically set to Gazipur</p>
+              )}
               {loadingDistricts && (
                 <p className="text-sm text-muted-foreground">Loading districts...</p>
               )}

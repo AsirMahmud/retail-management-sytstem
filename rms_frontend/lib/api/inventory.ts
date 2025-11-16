@@ -182,6 +182,11 @@ export const onlineCategoriesApi = {
     delete: async (id: number): Promise<void> => {
         await axiosInstance.delete(`/inventory/online-categories/${id}/`);
     },
+
+    updateOrder: async (orderData: Array<{ id: number; order: number }>): Promise<{ message: string }> => {
+        const { data } = await axiosInstance.post('/inventory/online-categories/update_order/', orderData);
+        return data;
+    },
 };
 
 // Products API

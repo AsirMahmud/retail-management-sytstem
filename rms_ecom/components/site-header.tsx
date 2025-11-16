@@ -6,20 +6,56 @@ import { Search, ShoppingCart, User, Menu, ChevronRight, ChevronLeft } from "luc
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { useCartStore } from "@/hooks/useCartStore"
 import { ecommerceApi } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
 export function SiteHeader() {
-  const categories = [
-    { name: "Casual", slug: "casual" },
-    { name: "Formal", slug: "formal" },
-    { name: "Party", slug: "party" },
-    { name: "Gym", slug: "gym" },
-  ]
-
+  const [onlineCategories, setOnlineCategories] = useState<Array<{ id: number; name: string; slug: string; parent: number | null; parent_name?: string; children_count?: number }>>([])
+  const [loadingCategories, setLoadingCategories] = useState(false)
   const totalItems = useCartStore((s) => s.totalItems)
+
+  // Fetch online categories for desktop navigation
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setLoadingCategories(true)
+      try {
+        const allCategories = await ecommerceApi.getOnlineCategories()
+        setOnlineCategories(allCategories)
+      } catch (error) {
+        console.error('Failed to fetch categories:', error)
+        setOnlineCategories([])
+      } finally {
+        setLoadingCategories(false)
+      }
+    }
+
+    fetchCategories()
+  }, [])
+
+  // Organize categories into hierarchical structure
+  const organizedCategories = onlineCategories
+    .filter(cat => !cat.parent) // Get only root categories
+    .map(category => {
+      const children = onlineCategories.filter(c => c.parent === category.id)
+      return {
+        ...category,
+        children
+      }
+    })
+  
+  // Debug: Log categories structure
+  useEffect(() => {
+    if (organizedCategories.length > 0) {
+      console.log('Organized categories:', organizedCategories)
+      organizedCategories.forEach(cat => {
+        if (cat.children && cat.children.length > 0) {
+          console.log(`Category "${cat.name}" has ${cat.children.length} children:`, cat.children.map(c => c.name))
+        }
+      })
+    }
+  }, [organizedCategories])
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -38,12 +74,51 @@ export function SiteHeader() {
             <DropdownMenuTrigger className="text-sm font-medium hover:underline underline-offset-4">
               Categories
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              {categories.map((category) => (
-                <DropdownMenuItem key={category.slug} asChild>
-                  <Link href={`/category/${category.slug}`}>{category.name}</Link>
-                </DropdownMenuItem>
-              ))}
+            <DropdownMenuContent className="w-56">
+              {loadingCategories ? (
+                <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
+              ) : organizedCategories.length === 0 ? (
+                <DropdownMenuItem disabled>No categories available</DropdownMenuItem>
+              ) : (
+                organizedCategories.map((category) => {
+                  const hasChildren = category.children && category.children.length > 0
+                  
+                  if (hasChildren) {
+                    return (
+                      <DropdownMenuSub key={category.id}>
+                        <DropdownMenuSubTrigger>
+                          {category.name}
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent className="w-48">
+                          {/* Parent category link */}
+                          <DropdownMenuItem asChild>
+                            <Link href={`/category/${category.slug}`} className="font-medium">
+                              All {category.name}
+                            </Link>
+                          </DropdownMenuItem>
+                          {category.children.length > 0 && (
+                            <>
+                              <DropdownMenuSeparator />
+                              {/* Subcategories */}
+                              {category.children.map((child) => (
+                                <DropdownMenuItem key={child.id} asChild>
+                                  <Link href={`/category/${child.slug}`}>{child.name}</Link>
+                                </DropdownMenuItem>
+                              ))}
+                            </>
+                          )}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                    )
+                  } else {
+                    return (
+                      <DropdownMenuItem key={category.id} asChild>
+                        <Link href={`/category/${category.slug}`}>{category.name}</Link>
+                      </DropdownMenuItem>
+                    )
+                  }
+                })
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
           <Link href="/women" className="text-sm font-medium hover:underline underline-offset-4">

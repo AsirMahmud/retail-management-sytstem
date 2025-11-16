@@ -305,6 +305,7 @@ class DeliverySettingsSerializer(serializers.ModelSerializer):
         model = DeliverySettings
         fields = [
             'inside_dhaka_charge',
+            'inside_gazipur_charge',
             'outside_dhaka_charge',
             'updated_at',
         ]

@@ -8,6 +8,8 @@ import { ProductVariant } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
 import { useCartStore } from "@/hooks/useCartStore"
 import { useGlobalDiscount } from "@/lib/useGlobalDiscount"
+import { useRouter } from "next/navigation"
+import { setDirectCheckoutItems, type CartItem } from "@/lib/cart"
 
 interface ProductInfoProps {
   productId: string | number
@@ -30,6 +32,7 @@ export function ProductInfo({ productId, product, colorLinks }: ProductInfoProps
   const [selectedSize, setSelectedSize] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const addToCart = useCartStore((s) => s.addItem)
+  const router = useRouter()
 
   // Global or product discount
   const globalDiscountValue = useGlobalDiscount((state) => state.discount?.value || 0)
@@ -211,45 +214,72 @@ export function ProductInfo({ productId, product, colorLinks }: ProductInfoProps
 
       <div className="h-px bg-border" />
 
-      <div className="flex gap-4 pt-2">
-        <div className="flex items-center rounded-full bg-muted">
-          <button
-            onClick={() => setQuantity(Math.max(1, quantity - 1))}
-            className="p-4 hover:bg-muted/80 rounded-l-full transition-colors"
-            aria-label="Decrease quantity"
+      <div className="flex flex-col gap-3 pt-2">
+        <div className="flex gap-4">
+          <div className="flex items-center rounded-full bg-muted">
+            <button
+              onClick={() => setQuantity(Math.max(1, quantity - 1))}
+              className="p-4 hover:bg-muted/80 rounded-l-full transition-colors"
+              aria-label="Decrease quantity"
+            >
+              <Minus className="h-5 w-5" />
+            </button>
+            <span className="px-6 font-medium min-w-[3rem] text-center">{quantity}</span>
+            <button
+              onClick={() => setQuantity(Math.min(selectedSizeStock, quantity + 1))}
+              disabled={quantity >= selectedSizeStock}
+              className="p-4 hover:bg-muted/80 rounded-r-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="Increase quantity"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+          </div>
+
+          <Button 
+            size="lg" 
+            className="flex-1 rounded-full h-auto py-4 text-base font-medium"
+            disabled={selectedSizeStock === 0}
+            onClick={() => {
+              if (selectedSizeStock === 0) return
+              const sizeName = availableSizesWithStock[selectedSize]?.size
+              const colorName = product.colors[selectedColor]?.name
+              addToCart({
+                productId: String(productId),
+                quantity,
+                variations: {
+                  color: colorName,
+                  size: sizeName,
+                },
+              })
+            }}
           >
-            <Minus className="h-5 w-5" />
-          </button>
-          <span className="px-6 font-medium min-w-[3rem] text-center">{quantity}</span>
-          <button
-            onClick={() => setQuantity(Math.min(selectedSizeStock, quantity + 1))}
-            disabled={quantity >= selectedSizeStock}
-            className="p-4 hover:bg-muted/80 rounded-r-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Increase quantity"
-          >
-            <Plus className="h-5 w-5" />
-          </button>
+            {selectedSizeStock === 0 ? "Out of Stock" : "Add to Cart"}
+          </Button>
         </div>
 
         <Button 
           size="lg" 
-          className="flex-1 rounded-full h-auto py-4 text-base font-medium"
+          className="w-full rounded-full h-auto py-4 text-base font-medium bg-white text-black border-2 border-black hover:bg-black hover:text-white transition-colors"
           disabled={selectedSizeStock === 0}
           onClick={() => {
             if (selectedSizeStock === 0) return
             const sizeName = availableSizesWithStock[selectedSize]?.size
             const colorName = product.colors[selectedColor]?.name
-            addToCart({
+            // Use direct checkout instead of adding to cart
+            const directCheckoutItem: CartItem = {
               productId: String(productId),
               quantity,
               variations: {
                 color: colorName,
                 size: sizeName,
               },
-            })
+              addedAt: Date.now(),
+            }
+            setDirectCheckoutItems([directCheckoutItem])
+            router.push("/checkout")
           }}
         >
-          {selectedSizeStock === 0 ? "Out of Stock" : "Add to Cart"}
+          {selectedSizeStock === 0 ? "Out of Stock" : "Shop Now"}
         </Button>
       </div>
     </div>

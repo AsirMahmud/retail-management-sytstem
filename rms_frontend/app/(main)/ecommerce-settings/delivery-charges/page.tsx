@@ -17,12 +17,14 @@ import axiosInstance from "@/lib/api/axios-config";
 
 interface DeliverySettings {
   inside_dhaka_charge: number;
+  inside_gazipur_charge: number;
   outside_dhaka_charge: number;
   updated_at?: string;
 }
 
 export default function DeliveryChargesSettingsPage() {
   const [inside, setInside] = useState<string>("");
+  const [gazipur, setGazipur] = useState<string>("");
   const [outside, setOutside] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -35,6 +37,7 @@ export default function DeliveryChargesSettingsPage() {
         const response = await axiosInstance.get("/ecommerce/delivery-settings/");
         const data: DeliverySettings = response.data;
         setInside(String(data.inside_dhaka_charge ?? "0"));
+        setGazipur(String(data.inside_gazipur_charge ?? "0"));
         setOutside(String(data.outside_dhaka_charge ?? "0"));
       } catch (error) {
         console.error("Failed to fetch delivery settings:", error);
@@ -52,19 +55,20 @@ export default function DeliveryChargesSettingsPage() {
   }, [toast]);
 
   const handleSave = async () => {
-    if (!inside || !outside) {
+    if (!inside || !gazipur || !outside) {
       toast({
         title: "Validation Error",
-        description: "Please enter both delivery charges.",
+        description: "Please enter all delivery charges.",
         variant: "destructive",
       });
       return;
     }
 
     const insideNum = parseFloat(inside);
+    const gazipurNum = parseFloat(gazipur);
     const outsideNum = parseFloat(outside);
 
-    if (isNaN(insideNum) || isNaN(outsideNum) || insideNum < 0 || outsideNum < 0) {
+    if (isNaN(insideNum) || isNaN(gazipurNum) || isNaN(outsideNum) || insideNum < 0 || gazipurNum < 0 || outsideNum < 0) {
       toast({
         title: "Validation Error",
         description: "Please enter valid positive numbers for delivery charges.",
@@ -77,6 +81,7 @@ export default function DeliveryChargesSettingsPage() {
     try {
       await axiosInstance.patch("/ecommerce/delivery-settings/", {
         inside_dhaka_charge: insideNum,
+        inside_gazipur_charge: gazipurNum,
         outside_dhaka_charge: outsideNum,
       });
 
@@ -117,11 +122,11 @@ export default function DeliveryChargesSettingsPage() {
         <CardHeader>
           <CardTitle>Configure Delivery Charges</CardTitle>
           <CardDescription>
-            Set the delivery charges for inside and outside Dhaka. These charges will be applied during checkout.
+            Set the delivery charges for inside Dhaka, inside Gazipur, and outside Dhaka. These charges will be applied during checkout.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2 max-w-2xl">
+          <div className="grid gap-6 md:grid-cols-3 max-w-4xl">
             <div className="space-y-2">
               <Label htmlFor="inside" className="text-base font-semibold">
                 Inside Dhaka Charge (৳)
@@ -138,6 +143,25 @@ export default function DeliveryChargesSettingsPage() {
               />
               <p className="text-sm text-muted-foreground">
                 Delivery charge for orders within Dhaka city
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="gazipur" className="text-base font-semibold">
+                Inside Gazipur Charge (৳)
+              </Label>
+              <Input
+                id="gazipur"
+                type="number"
+                min="0"
+                step="0.01"
+                value={gazipur}
+                onChange={(e) => setGazipur(e.target.value)}
+                placeholder="Enter delivery charge"
+                className="text-base"
+              />
+              <p className="text-sm text-muted-foreground">
+                Delivery charge for orders within Gazipur
               </p>
             </div>
 

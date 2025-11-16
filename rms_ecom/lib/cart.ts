@@ -208,6 +208,72 @@ if (isBrowser()) {
     migrateCartIfNeeded();
 }
 
+/**
+ * Direct checkout utilities - for "buy now" functionality without adding to cart
+ * Uses sessionStorage instead of localStorage
+ */
+const DIRECT_CHECKOUT_KEY = "rms.directCheckout.v1";
+
+function isSessionStorageAvailable(): boolean {
+    return typeof window !== "undefined" && typeof sessionStorage !== "undefined";
+}
+
+/**
+ * Sets items for direct checkout (buy now flow)
+ */
+export function setDirectCheckoutItems(items: CartItem[]): void {
+    if (!isSessionStorageAvailable()) return;
+    try {
+        const data: CartData = { version: CART_VERSION, items: items.filter(isValidItem) };
+        window.sessionStorage.setItem(DIRECT_CHECKOUT_KEY, JSON.stringify(data));
+    } catch {
+        // Silently ignore storage errors
+    }
+}
+
+/**
+ * Gets items for direct checkout (buy now flow)
+ */
+export function getDirectCheckoutItems(): CartItem[] {
+    if (!isSessionStorageAvailable()) {
+        return [];
+    }
+    try {
+        const raw = window.sessionStorage.getItem(DIRECT_CHECKOUT_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw) as CartData;
+        if (!parsed || !Array.isArray(parsed.items)) {
+            return [];
+        }
+        return parsed.items.filter(isValidItem);
+    } catch {
+        return [];
+    }
+}
+
+/**
+ * Clears direct checkout items
+ */
+export function clearDirectCheckoutItems(): void {
+    if (!isSessionStorageAvailable()) return;
+    try {
+        window.sessionStorage.removeItem(DIRECT_CHECKOUT_KEY);
+    } catch {
+        // Silently ignore storage errors
+    }
+}
+
+/**
+ * Gets items for checkout - checks direct checkout first, then falls back to cart
+ */
+export function getCheckoutItems(): CartItem[] {
+    const directItems = getDirectCheckoutItems();
+    if (directItems.length > 0) {
+        return directItems;
+    }
+    return getCart();
+}
+
 
 
 

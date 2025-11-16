@@ -12,6 +12,7 @@ interface CartPricing {
   subtotal: number
   delivery: {
     inside_dhaka_charge: number
+    inside_gazipur_charge: number
     outside_dhaka_charge: number
     updated_at: string
   }
@@ -19,7 +20,7 @@ interface CartPricing {
 
 export function CartSummary() {
   const items = useCartStore((s) => s.items)
-  const [shippingMethod, setShippingMethod] = useState<'inside' | 'outside'>('inside')
+  const [shippingMethod, setShippingMethod] = useState<'inside' | 'gazipur' | 'outside'>('inside')
   const [cartPricing, setCartPricing] = useState<CartPricing | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -40,6 +41,7 @@ export function CartSummary() {
           subtotal: Number(response.subtotal) || 0,
           delivery: {
             inside_dhaka_charge: Number(response.delivery.inside_dhaka_charge) || 0,
+            inside_gazipur_charge: Number(response.delivery.inside_gazipur_charge) || 0,
             outside_dhaka_charge: Number(response.delivery.outside_dhaka_charge) || 0,
             updated_at: response.delivery.updated_at || ""
           }
@@ -62,9 +64,14 @@ export function CartSummary() {
   }
 
   const subtotal = Number(cartPricing?.subtotal) || 0
-  const deliveryCharge = shippingMethod === 'inside' 
-    ? (Number(cartPricing?.delivery?.inside_dhaka_charge) || 0)
-    : (Number(cartPricing?.delivery?.outside_dhaka_charge) || 0)
+  let deliveryCharge = 0
+  if (shippingMethod === 'inside') {
+    deliveryCharge = Number(cartPricing?.delivery?.inside_dhaka_charge) || 0
+  } else if (shippingMethod === 'gazipur') {
+    deliveryCharge = Number(cartPricing?.delivery?.inside_gazipur_charge) || 0
+  } else {
+    deliveryCharge = Number(cartPricing?.delivery?.outside_dhaka_charge) || 0
+  }
   const total = subtotal + deliveryCharge
 
   if (items.length === 0) {
@@ -83,7 +90,7 @@ export function CartSummary() {
       {/* Delivery Options */}
       <div className="mb-6">
         <Label className="text-base font-semibold mb-3 block">Delivery Method</Label>
-        <RadioGroup value={shippingMethod} onValueChange={(value) => setShippingMethod(value as 'inside' | 'outside')} className="space-y-3">
+        <RadioGroup value={shippingMethod} onValueChange={(value) => setShippingMethod(value as 'inside' | 'gazipur' | 'outside')} className="space-y-3">
           <div className="flex items-center justify-between border rounded-lg p-4 cursor-pointer hover:bg-accent/50 transition-colors">
             <div className="flex items-center gap-3">
               <RadioGroupItem value="inside" id="inside" />
@@ -95,6 +102,20 @@ export function CartSummary() {
               <span className="font-semibold text-muted-foreground">—</span>
             ) : (
               <span className="font-semibold">৳{formatPrice(cartPricing?.delivery?.inside_dhaka_charge)}</span>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between border rounded-lg p-4 cursor-pointer hover:bg-accent/50 transition-colors">
+            <div className="flex items-center gap-3">
+              <RadioGroupItem value="gazipur" id="gazipur" />
+              <Label htmlFor="gazipur" className="cursor-pointer font-medium">
+                Inside Gazipur
+              </Label>
+            </div>
+            {loading ? (
+              <span className="font-semibold text-muted-foreground">—</span>
+            ) : (
+              <span className="font-semibold">৳{formatPrice(cartPricing?.delivery?.inside_gazipur_charge)}</span>
             )}
           </div>
 

@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { useCartStore } from "@/hooks/useCartStore"
 import Link from "next/link"
 import { useGlobalDiscount } from "@/lib/useGlobalDiscount"
+import { useRouter } from "next/navigation"
+import { setDirectCheckoutItems, type CartItem } from "@/lib/cart"
 
 interface ProductCardProps {
   id: string
@@ -30,6 +32,19 @@ export function ProductCard({ id, name, price, originalPrice, image, discount }:
   const numericOriginal = showDiscount ? basePrice : (originalPrice !== undefined ? Number(originalPrice) : undefined)
 
   const addToCart = useCartStore((s) => s.addItem)
+  const router = useRouter()
+
+  const handleShopNow = (e: React.MouseEvent) => {
+    e.preventDefault()
+    // Use direct checkout instead of adding to cart
+    const directCheckoutItem: CartItem = {
+      productId: id,
+      quantity: 1,
+      addedAt: Date.now(),
+    }
+    setDirectCheckoutItems([directCheckoutItem])
+    router.push("/checkout")
+  }
 
   return (
     <Link href={`/product/${id}`} className="block w-full ">
@@ -59,12 +74,18 @@ export function ProductCard({ id, name, price, originalPrice, image, discount }:
                 <span className="text-lg lg:text-xl text-muted-foreground/60 line-through">৳{Math.round(numericOriginal).toFixed(0)}</span>
               )}
             </div>
-            <div className="pt-1">
+            <div className="pt-1 space-y-2">
               <Button
                 className="w-full rounded-full bg-black text-white hover:bg-black/90"
                 onClick={(e) => { e.preventDefault(); addToCart({ productId: id, quantity: 1 }) }}
               >
                 Add to Cart
+              </Button>
+              <Button
+                className="w-full rounded-full bg-white text-black border-2 border-black hover:bg-black hover:text-white transition-colors"
+                onClick={handleShopNow}
+              >
+                Shop Now
               </Button>
             </div>
           </div>

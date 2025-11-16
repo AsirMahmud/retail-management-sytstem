@@ -1282,8 +1282,8 @@ class OnlineCategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     filterset_fields = ['name', 'parent']
     search_fields = ['name', 'description']
-    ordering_fields = ['name', 'created_at']
-    ordering = ['name']
+    ordering_fields = ['name', 'order', 'created_at']
+    ordering = ['order', 'name']
     
     def get_permissions(self):
         """
@@ -1299,3 +1299,36 @@ class OnlineCategoryViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = super().get_queryset()
         return queryset.select_related('parent')
+    
+    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def update_order(self, request):
+        """
+        Bulk update the order of categories.
+        Expects: [{"id": 1, "order": 0}, {"id": 2, "order": 1}, ...]
+        """
+        from django.db import transaction
+        
+        try:
+            order_data = request.data
+            if not isinstance(order_data, list):
+                return Response(
+                    {'error': 'Expected a list of category orders'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            with transaction.atomic():
+                for item in order_data:
+                    category_id = item.get('id')
+                    new_order = item.get('order')
+                    
+                    if category_id is None or new_order is None:
+                        continue
+                    
+                    OnlineCategory.objects.filter(id=category_id).update(order=new_order)
+            
+            return Response({'message': 'Order updated successfully'}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )

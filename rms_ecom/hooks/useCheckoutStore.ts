@@ -3,8 +3,8 @@
 import { create } from "zustand"
 
 type CheckoutState = {
-  deliveryMethod: 'inside' | 'outside'
-  setDeliveryMethod: (method: 'inside' | 'outside') => void
+  deliveryMethod: 'inside' | 'gazipur' | 'outside'
+  setDeliveryMethod: (method: 'inside' | 'gazipur' | 'outside') => void
 }
 
 export const useCheckoutStore = create<CheckoutState>((set) => ({
