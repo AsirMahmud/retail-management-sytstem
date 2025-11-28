@@ -140,8 +140,8 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
               <ProductGrid 
                 category={categoryName} 
                 products={products.map(product => ({
-                  id: product.product_id,
-                  name: product.product_name,
+                  id: `${product.product_id}/${product.color_slug}`,
+                  name: `${product.product_name} - ${product.color_name}`,
                   price: parseFloat(product.product_price),
                   rating: 4.5,
                   image: product.cover_image_url || "/placeholder.jpg",
