@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button"
 import { ArrowRight } from "lucide-react"
 import { ecommerceApi } from "@/lib/api"
 import Image from "next/image"
+import Link from "next/link"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 
 interface HomePageSettings {
   logo_image_url?: string
@@ -26,6 +28,8 @@ interface HomePageSettings {
 export function HeroSection() {
   const [settings, setSettings] = useState<HomePageSettings>({})
   const [loading, setLoading] = useState(true)
+  const [onlineCategories, setOnlineCategories] = useState<Array<{ id: number; name: string; slug: string; parent: number | null; parent_name?: string; children_count?: number }>>([])
+  const [loadingCategories, setLoadingCategories] = useState(false)
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -41,6 +45,34 @@ export function HeroSection() {
 
     fetchSettings()
   }, [])
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      setLoadingCategories(true)
+      try {
+        const allCategories = await ecommerceApi.getOnlineCategories()
+        setOnlineCategories(allCategories)
+      } catch (error) {
+        console.error('Failed to fetch categories:', error)
+        setOnlineCategories([])
+      } finally {
+        setLoadingCategories(false)
+      }
+    }
+
+    fetchCategories()
+  }, [])
+
+  // Organize categories into hierarchical structure
+  const organizedCategories = onlineCategories
+    .filter(cat => !cat.parent) // Get only root categories
+    .map(category => {
+      const children = onlineCategories.filter(c => c.parent === category.id)
+      return {
+        ...category,
+        children
+      }
+    })
 
   if (loading) {
     return <div className="w-full h-96 bg-gray-200 animate-pulse" />
@@ -89,13 +121,65 @@ export function HeroSection() {
                 </p>
 
                 <div className="flex flex-wrap gap-4 pt-2">
-                  <Button size="lg" className="rounded-full px-8 h-12 group">
-                    Shop Now
-                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </Button>
-                  <Button size="lg" variant="outline" className="rounded-full px-8 h-12 bg-transparent">
-                    Explore Collections
-                  </Button>
+                  <Link href="/products">
+                    <Button size="lg" className="rounded-full px-8 h-12 group">
+                      Shop Now
+                      <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </Button>
+                  </Link>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="lg" variant="outline" className="rounded-full px-8 h-12 bg-transparent">
+                        Explore Collections
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56">
+                      {loadingCategories ? (
+                        <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
+                      ) : organizedCategories.length === 0 ? (
+                        <DropdownMenuItem disabled>No categories available</DropdownMenuItem>
+                      ) : (
+                        organizedCategories.map((category) => {
+                          const hasChildren = category.children && category.children.length > 0
+                          
+                          if (hasChildren) {
+                            return (
+                              <DropdownMenuSub key={category.id}>
+                                <DropdownMenuSubTrigger>
+                                  {category.name}
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent className="w-48">
+                                  {/* Parent category link */}
+                                  <DropdownMenuItem asChild>
+                                    <Link href={`/category/${category.slug}`} className="font-medium">
+                                      All {category.name}
+                                    </Link>
+                                  </DropdownMenuItem>
+                                  {category.children.length > 0 && (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      {/* Subcategories */}
+                                      {category.children.map((child) => (
+                                        <DropdownMenuItem key={child.id} asChild>
+                                          <Link href={`/category/${child.slug}`}>{child.name}</Link>
+                                        </DropdownMenuItem>
+                                      ))}
+                                    </>
+                                  )}
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                            )
+                          } else {
+                            return (
+                              <DropdownMenuItem key={category.id} asChild>
+                                <Link href={`/category/${category.slug}`}>{category.name}</Link>
+                              </DropdownMenuItem>
+                            )
+                          }
+                        })
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </div>

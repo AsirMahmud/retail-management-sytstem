@@ -6,7 +6,6 @@ import { PromoBanner } from "@/components/promo-banner"
 import { HeroSection } from "@/components/hero-section"
 import { BrandShowcase } from "@/components/brand-showcase"
 import { ProductSection } from "@/components/product-section"
-import { CategorySection } from "@/components/category-section"
 import { FeaturesSection } from "@/components/features-section"
 import { NewsletterSection } from "@/components/newsletter-section"
 import { SiteFooter } from "@/components/site-footer"
@@ -104,7 +103,6 @@ export default function HomePage() {
             )}
           </>
         )}
-        <CategorySection />
         <FeaturesSection />
         <NewsletterSection />
       </main>
@@ -133,6 +131,7 @@ function ColorSection({ title, baseProducts, toCard }: { title: string; baseProd
     <ProductSection
       title={title}
       products={entries.slice(0, 8).map(toCard)}
+      viewAllHref="/products"
     />
   )
 }
