@@ -29,6 +29,15 @@ interface HomePageSettings {
   logo_image?: string;
   logo_image_url?: string;
   logo_text?: string;
+  footer_tagline?: string;
+  footer_address?: string;
+  footer_phone?: string;
+  footer_email?: string;
+  footer_facebook_url?: string;
+  footer_instagram_url?: string;
+  footer_twitter_url?: string;
+  footer_github_url?: string;
+  footer_map_embed_url?: string;
   hero_badge_text?: string;
   hero_heading_line1?: string;
   hero_heading_line2?: string;
@@ -65,11 +74,25 @@ export default function HomePageSettingsPage() {
     setSaving(true);
     try {
       const formData = new FormData();
-      
+
       // Add all text fields
-      Object.keys(settings).forEach(key => {
+      // - Exclude image file fields (they're handled separately)
+      // - Exclude only helper *_image_url fields returned from backend
+      const helperUrlFields = new Set([
+        "logo_image_url",
+        "hero_primary_image_url",
+        "hero_secondary_image_url",
+      ]);
+
+      Object.keys(settings).forEach((key) => {
         const value = settings[key as keyof HomePageSettings];
-        if (value && typeof value === 'string' && !key.includes('_url')) {
+        const isHelperUrlField = helperUrlFields.has(key);
+        const isImageField =
+          key === "logo_image" ||
+          key === "hero_primary_image" ||
+          key === "hero_secondary_image";
+
+        if (value && typeof value === "string" && !isHelperUrlField && !isImageField) {
           formData.append(key, value);
         }
       });
@@ -81,11 +104,15 @@ export default function HomePageSettingsPage() {
           formData.append(field as string, v);
         }
       };
-      maybeAppendFile('logo_image');
-      maybeAppendFile('hero_primary_image');
-      maybeAppendFile('hero_secondary_image');
+      maybeAppendFile("logo_image");
+      maybeAppendFile("hero_primary_image");
+      maybeAppendFile("hero_secondary_image");
 
-      await updateSettingsMutation.mutateAsync(formData);
+      // Perform mutation and sync local state with the updated settings
+      const updated = await updateSettingsMutation.mutateAsync(formData);
+      if (updated) {
+        setSettings(updated as HomePageSettings);
+      }
 
       showToast({
         title: "Success",
@@ -123,8 +150,27 @@ export default function HomePageSettingsPage() {
     }
   };
 
+  // Sanitize Google Maps embed value:
+  // If user pastes full <iframe ...> HTML, extract only the src URL.
+  const normalizeMapEmbedValue = (value: string) => {
+    if (!value) return value;
+    if (value.includes("<iframe")) {
+      const match = value.match(/src=["']([^"']+)["']/);
+      if (match && match[1]) {
+        return match[1];
+      }
+    }
+    return value;
+  };
+
   const handleChange = (field: keyof HomePageSettings, value: string) => {
-    setSettings(prev => ({ ...prev, [field]: value }));
+    let nextValue = value;
+
+    if (field === "footer_map_embed_url") {
+      nextValue = normalizeMapEmbedValue(value);
+    }
+
+    setSettings(prev => ({ ...prev, [field]: nextValue }));
   };
 
   const handleImageChange = (field: string, file: File | null) => {
@@ -174,7 +220,7 @@ export default function HomePageSettingsPage() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="logo" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="logo">
                   <ImageIcon className="h-4 w-4 mr-2" />
                   Logo
@@ -184,6 +230,7 @@ export default function HomePageSettingsPage() {
                   Hero Section
                 </TabsTrigger>
                 <TabsTrigger value="stats">Statistics</TabsTrigger>
+                <TabsTrigger value="footer">Footer</TabsTrigger>
               </TabsList>
 
               <TabsContent value="logo" className="space-y-6 mt-6">
@@ -353,6 +400,110 @@ export default function HomePageSettingsPage() {
                       onChange={(e) => handleChange('stat_customers', e.target.value)}
                       placeholder="30,000+"
                     />
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="footer" className="space-y-6 mt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="footer_tagline">Footer Tagline</Label>
+                      <Input
+                        id="footer_tagline"
+                        value={settings.footer_tagline || ''}
+                        onChange={(e) => handleChange('footer_tagline', e.target.value)}
+                        placeholder="Modern retail experience, online & in-store"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="footer_address">Store Address</Label>
+                      <Textarea
+                        id="footer_address"
+                        value={settings.footer_address || ''}
+                        onChange={(e) => handleChange('footer_address', e.target.value)}
+                        placeholder="123 Retail Avenue, City, Country"
+                        rows={3}
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="footer_phone">Phone</Label>
+                        <Input
+                          id="footer_phone"
+                          value={settings.footer_phone || ''}
+                          onChange={(e) => handleChange('footer_phone', e.target.value)}
+                          placeholder="+1 (555) 000-0000"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="footer_email">Email</Label>
+                        <Input
+                          id="footer_email"
+                          type="email"
+                          value={settings.footer_email || ''}
+                          onChange={(e) => handleChange('footer_email', e.target.value)}
+                          placeholder="support@yourshop.com"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Social Media Links</Label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="footer_facebook_url" className="text-xs text-gray-500">Facebook URL</Label>
+                          <Input
+                            id="footer_facebook_url"
+                            value={settings.footer_facebook_url || ''}
+                            onChange={(e) => handleChange('footer_facebook_url', e.target.value)}
+                            placeholder="https://facebook.com/yourshop"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="footer_instagram_url" className="text-xs text-gray-500">Instagram URL</Label>
+                          <Input
+                            id="footer_instagram_url"
+                            value={settings.footer_instagram_url || ''}
+                            onChange={(e) => handleChange('footer_instagram_url', e.target.value)}
+                            placeholder="https://instagram.com/yourshop"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="footer_twitter_url" className="text-xs text-gray-500">Twitter/X URL</Label>
+                          <Input
+                            id="footer_twitter_url"
+                            value={settings.footer_twitter_url || ''}
+                            onChange={(e) => handleChange('footer_twitter_url', e.target.value)}
+                            placeholder="https://twitter.com/yourshop"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="footer_github_url" className="text-xs text-gray-500">GitHub URL (optional)</Label>
+                          <Input
+                            id="footer_github_url"
+                            value={settings.footer_github_url || ''}
+                            onChange={(e) => handleChange('footer_github_url', e.target.value)}
+                            placeholder="https://github.com/yourshop"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="footer_map_embed_url">Google Map Embed URL</Label>
+                      <Input
+                        id="footer_map_embed_url"
+                        value={settings.footer_map_embed_url || ''}
+                        onChange={(e) => handleChange('footer_map_embed_url', e.target.value)}
+                        placeholder="https://www.google.com/maps/embed?..."
+                      />
+                      <p className="text-xs text-gray-500">
+                        Paste the full embed URL from Google Maps (iframe <code>src</code> value).
+                      </p>
+                    </div>
                   </div>
                 </div>
               </TabsContent>

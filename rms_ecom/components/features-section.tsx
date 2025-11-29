@@ -23,7 +23,7 @@ export function FeaturesSection() {
   return (
     <section className="w-full py-16   bg-muted/30">
       <div className="container px-4">
-        <div className="flex justify-between max-w-[700px] mx-auto items-center">
+        <div className="flex justify-between max-w-[700px] md:flex-row flex-col gap-4 mx-auto items-center">
           {features.map((feature) => {
             const Icon = feature.icon
             return (

@@ -13,10 +13,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Search, SlidersHorizontal } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { StructuredData } from "@/components/structured-data"
+import { generateBreadcrumbStructuredData } from "@/lib/seo"
+import { useLoading } from "@/hooks/useLoading"
 
 export default function AllProductsPage() {
   const [products, setProducts] = useState<ProductByColorEntry[]>([])
-  const [loading, setLoading] = useState(true)
+  const { startLoading, stopLoading } = useLoading()
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("popular")
   const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(null)
@@ -27,7 +30,7 @@ export default function AllProductsPage() {
 
   useEffect(() => {
     const fetchProducts = async () => {
-      setLoading(true)
+      startLoading()
       try {
         const res = await ecommerceApi.getProductsByColorPaginated({
           page,
@@ -42,11 +45,11 @@ export default function AllProductsPage() {
       } catch (e) {
         console.error('Failed to fetch products', e)
       } finally {
-        setLoading(false)
+        stopLoading()
       }
     }
     fetchProducts()
-  }, [page, pageSize, searchTerm, sortBy, selectedCategorySlug, selectedGender])
+  }, [page, pageSize, searchTerm, sortBy, selectedCategorySlug, selectedGender, startLoading, stopLoading])
 
   // Reset to first page on key changes
   useEffect(() => {
@@ -65,15 +68,18 @@ export default function AllProductsPage() {
     setPage(1)
   }
 
+  const breadcrumbItems = [
+    { label: "Home", href: "/" }, 
+    { label: "All Products", href: "/products" }
+  ]
+
   return (
     <div className="min-h-screen flex flex-col">
+      <StructuredData data={generateBreadcrumbStructuredData(breadcrumbItems)} />
       <SiteHeader />
       <main className="flex-1">
         <div className="container mx-auto px-4 py-6">
-          <Breadcrumb items={[
-            { label: "Home", href: "/" }, 
-            { label: "All Products", href: "/products" }
-          ]} />
+          <Breadcrumb items={breadcrumbItems} />
 
           {/* Page Header */}
           <div className="mt-6 mb-8">
@@ -145,12 +151,7 @@ export default function AllProductsPage() {
 
             {/* Main Content */}
             <div className="flex-1">
-              {loading ? (
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                  <p className="text-muted-foreground">Loading products...</p>
-                </div>
-              ) : products.length === 0 ? (
+              {products.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground text-lg">
                     {searchTerm ? "No products found matching your search." : "No products available."}

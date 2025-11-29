@@ -1,10 +1,12 @@
 "use client"
 
-import { cn } from "@/lib/utils"
+import { cn, processSizeChart } from "@/lib/utils"
+import { useMemo } from "react"
 
 import { Ruler, Package, Users, Shirt } from "lucide-react"
 
 interface ProductDetailsSectionProps {
+  description?: string
   sizeChart?: Array<{ size: string; chest: string; waist: string; height: string }>
   materials?: Array<{ name: string; percentage: string }>
   whoIsThisFor?: Array<{ title: string; description: string }>
@@ -12,26 +14,14 @@ interface ProductDetailsSectionProps {
 }
 
 export function ProductDetailsSection({ sizeChart, materials, whoIsThisFor, features }: ProductDetailsSectionProps) {
-  const sizeChartData = (sizeChart && sizeChart.length > 0) ? sizeChart : [
-    { size: "S", chest: "34-36\"", waist: "28-30\"", height: "5'4\" - 5'7\"" },
-    { size: "M", chest: "38-40\"", waist: "32-34\"", height: "5'7\" - 5'10\"" },
-    { size: "L", chest: "42-44\"", waist: "36-38\"", height: "5'10\" - 6'1\"" },
-    { size: "XL", chest: "46-48\"", waist: "40-42\"", height: "6'1\" - 6'3\"" },
-  ]
-  const materialsData = (materials && materials.length > 0) ? materials : [
-    { name: "Cotton", percentage: "60%" },
-    { name: "Polyester", percentage: "35%" },
-    { name: "Elastane", percentage: "5%" },
-  ]
-  const whoIsThisForData = (whoIsThisFor && whoIsThisFor.length > 0) ? whoIsThisFor : [
-    { title: "Everyday Wear", description: "Ideal for daily comfort and casual outings with a relaxed fit." },
-    { title: "Active Lifestyle", description: "Breathable fabric suitable for light workouts and travel." },
-  ]
-  const featuresData = (features && features.length > 0) ? features : [
-    { title: "Soft & Breathable", description: "Premium combed cotton blend for all‑day comfort." },
-    { title: "Durable Stitching", description: "Reinforced seams for long‑lasting wear." },
-    { title: "Easy Care", description: "Machine washable with minimal shrinkage." },
-  ]
+  // Process size chart: deduplicate and sort by size (S > M > L > XL > XXL, etc.)
+  const sizeChartData = useMemo(() => {
+    return processSizeChart(sizeChart || []);
+  }, [sizeChart]);
+
+  const materialsData = materials || []
+  const whoIsThisForData = whoIsThisFor || []
+  const featuresData = features || []
   return (
     <div className="grid gap-8 lg:gap-12">
       {/* Size Chart Section */}
@@ -43,33 +33,39 @@ export function ProductDetailsSection({ sizeChart, materials, whoIsThisFor, feat
           <h2 className="text-xl lg:text-2xl font-bold">Size Chart</h2>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left py-4 px-4 font-semibold text-sm lg:text-base">Size</th>
-                <th className="text-left py-4 px-4 font-semibold text-sm lg:text-base">Chest (inches)</th>
-                <th className="text-left py-4 px-4 font-semibold text-sm lg:text-base">Waist (inches)</th>
-                <th className="text-left py-4 px-4 font-semibold text-sm lg:text-base">Height</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sizeChartData.map((row, index) => (
-                <tr key={row.size} className={cn("border-b border-border", index % 2 === 0 && "bg-muted/30")}>
-                  <td className="py-4 px-4 font-medium text-sm lg:text-base">{row.size}</td>
-                  <td className="py-4 px-4 text-muted-foreground text-sm lg:text-base">{row.chest}</td>
-                  <td className="py-4 px-4 text-muted-foreground text-sm lg:text-base">{row.waist}</td>
-                  <td className="py-4 px-4 text-muted-foreground text-sm lg:text-base">{row.height}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {sizeChartData.length > 0 ? (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left py-4 px-4 font-semibold text-sm lg:text-base">Size</th>
+                    <th className="text-left py-4 px-4 font-semibold text-sm lg:text-base">Chest (inches)</th>
+                    <th className="text-left py-4 px-4 font-semibold text-sm lg:text-base">Waist (inches)</th>
+                    <th className="text-left py-4 px-4 font-semibold text-sm lg:text-base">Height</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sizeChartData.map((row, index) => (
+                    <tr key={`${row.size}-${index}`} className={cn("border-b border-border", index % 2 === 0 && "bg-muted/30")}>
+                      <td className="py-4 px-4 font-medium text-sm lg:text-base">{row.size}</td>
+                      <td className="py-4 px-4 text-muted-foreground text-sm lg:text-base">{row.chest}</td>
+                      <td className="py-4 px-4 text-muted-foreground text-sm lg:text-base">{row.waist}</td>
+                      <td className="py-4 px-4 text-muted-foreground text-sm lg:text-base">{row.height}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-        <p className="mt-4 text-sm text-muted-foreground">
-          All measurements are approximate and may vary slightly. For the best fit, we recommend measuring your body and
-          comparing it to the size chart.
-        </p>
+            <p className="mt-4 text-sm text-muted-foreground">
+              All measurements are approximate and may vary slightly. For the best fit, we recommend measuring your body and
+              comparing it to the size chart.
+            </p>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">Size chart information is not available for this product.</p>
+        )}
       </div>
 
       {/* Material Composition Section */}

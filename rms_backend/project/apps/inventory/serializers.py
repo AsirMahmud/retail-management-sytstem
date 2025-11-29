@@ -408,17 +408,22 @@ class EcommerceProductDetailSerializer(EcommerceProductSerializer):
         return features
     
     def get_size_chart(self, obj):
-        """Get size chart from variations"""
+        """Get size chart from variations - deduplicated by size"""
         size_chart = []
+        seen_sizes = set()
         try:
             variations = obj.variations.filter(is_active=True)
             for var in variations:
-                size_chart.append({
-                    'size': var.size,
-                    'chest': f"{var.chest_size}" if var.chest_size else 'N/A',
-                    'waist': f"{var.waist_size}" if var.waist_size else 'N/A',
-                    'height': f"{var.height}" if var.height else 'N/A'
-                })
+                # Normalize size for comparison (case-insensitive)
+                size_key = var.size.upper().strip() if var.size else ''
+                if size_key and size_key not in seen_sizes:
+                    seen_sizes.add(size_key)
+                    size_chart.append({
+                        'size': var.size,
+                        'chest': f"{var.chest_size}" if var.chest_size else 'N/A',
+                        'waist': f"{var.waist_size}" if var.waist_size else 'N/A',
+                        'height': f"{var.height}" if var.height else 'N/A'
+                    })
         except:
             pass
         return size_chart

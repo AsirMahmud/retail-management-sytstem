@@ -12,6 +12,7 @@ from .models import Discount, Brand, HomePageSettings, DeliverySettings
 from .serializers import DiscountSerializer, DiscountListSerializer, BrandSerializer, HomePageSettingsSerializer, DeliverySettingsSerializer
 from django.utils.text import slugify
 from apps.inventory.models import Product, ProductVariation, Gallery, Image, OnlineCategory
+from apps.inventory.serializers import EcommerceProductSerializer
 from apps.customer.models import Customer
 from apps.online_preorder.models import OnlinePreorder
 from apps.online_preorder.serializers import OnlinePreorderSerializer, OnlinePreorderCreateSerializer
@@ -204,6 +205,15 @@ class PublicHomePageSettingsView(APIView):
             return Response({
                 'logo_image_url': None,
                 'logo_text': None,
+                'footer_tagline': None,
+                'footer_address': None,
+                'footer_phone': None,
+                'footer_email': None,
+                'footer_facebook_url': None,
+                'footer_instagram_url': None,
+                'footer_twitter_url': None,
+                'footer_github_url': None,
+                'footer_map_embed_url': None,
                 'hero_badge_text': 'New Collection 2024',
                 'hero_heading_line1': 'FIND',
                 'hero_heading_line2': 'CLOTHES',
@@ -556,7 +566,19 @@ class PublicCartPriceView(APIView):
             except Exception:
                 continue
 
-        products = Product.objects.filter(id__in=product_ids, is_active=True, assign_to_online=True)
+        # Use select_related and prefetch_related for optimized queries
+        products = Product.objects.filter(
+            id__in=product_ids, 
+            is_active=True, 
+            assign_to_online=True
+        ).select_related(
+            'category',
+            'online_category',
+            'supplier'
+        ).prefetch_related(
+            'galleries__images',
+            'variations'
+        )
         prod_map = {p.id: p for p in products}
 
         result_items = []
@@ -585,9 +607,26 @@ class PublicCartPriceView(APIView):
             effective_qty = min(line['quantity'], max_stock) if max_stock > 0 else line['quantity']
             line_total = unit_price * effective_qty
             subtotal += line_total
+            
+            # Get primary image from gallery, fallback to product image
+            # Use prefetched galleries to avoid additional queries
             image_url = None
-            if p.image:
+            try:
+                # Try to get primary image from prefetched galleries
+                for gallery in p.galleries.all():
+                    for img in gallery.images.all():
+                        if img.imageType == 'PRIMARY' and img.image:
+                            image_url = request.build_absolute_uri(img.image.url)
+                            break
+                    if image_url:
+                        break
+            except Exception:
+                pass
+            
+            # Fallback to product's main image if no primary image found
+            if not image_url and p.image:
                 image_url = request.build_absolute_uri(p.image.url)
+            
             result_items.append({
                 'productId': p.id,
                 'name': p.name,
@@ -603,8 +642,17 @@ class PublicCartPriceView(APIView):
             })
 
         delivery = DeliverySettings.load()
+        
+        # Serialize products with full information
+        product_serializer = EcommerceProductSerializer(
+            list(prod_map.values()), 
+            many=True, 
+            context={'request': request}
+        )
+        
         return Response({
             'items': result_items,
+            'products': product_serializer.data,  # Array of products with full info
             'subtotal': subtotal,
             'delivery': DeliverySettingsSerializer(delivery).data,
         })

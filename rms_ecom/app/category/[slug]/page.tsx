@@ -1,7 +1,7 @@
-"use client"
+ "use client"
 
 import { useEffect, useState } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useSearchParams, useRouter, useParams } from "next/navigation"
 import { SiteHeader } from "@/components/site-header"
 import { Breadcrumb } from "@/components/breadcrumb"
 import { CategoryFilters } from "@/components/category-filters"
@@ -9,13 +9,18 @@ import { ProductGrid } from "@/components/product-grid"
 import { NewsletterSection } from "@/components/newsletter-section"
 import { SiteFooter } from "@/components/site-footer"
 import { ecommerceApi, ProductByColorEntry } from "@/lib/api"
+import { StructuredData } from "@/components/structured-data"
+import { generateBreadcrumbStructuredData } from "@/lib/seo"
+import { useLoading } from "@/hooks/useLoading"
 
-export default function CategoryPage({ params }: { params: { slug: string } }) {
+export default function CategoryPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const genderParam = searchParams.get('gender')
+  const params = useParams<{ slug: string }>()
+  const slug = (params?.slug as string) || ""
+  const genderParam = searchParams.get("gender")
   const [products, setProducts] = useState<ProductByColorEntry[]>([])
-  const [loading, setLoading] = useState(true)
+  const { startLoading, stopLoading } = useLoading()
   const [page, setPage] = useState(1)
   const [pageSize] = useState(24)
   const [totalCount, setTotalCount] = useState(0)
@@ -28,20 +33,20 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000])
 
   // Use selectedCategory from filter if set, otherwise use URL slug
-  const activeCategorySlug = selectedCategory || params.slug
+  const activeCategorySlug = selectedCategory || slug
   // Use selectedGender from filter if set, otherwise use URL param
   const activeGender = selectedGender || genderParam
   const categoryName = activeCategorySlug.charAt(0).toUpperCase() + activeCategorySlug.slice(1)
 
   useEffect(() => {
     const fetchCategoryData = async () => {
-      setLoading(true)
+      startLoading()
       try {
         // Fetch products for this category with all filters
         // Use activeCategorySlug which can be from filter (child category) or URL (parent category)
         const resp = await ecommerceApi.getProductsByColorPaginated({
           online_category: activeCategorySlug,
-          gender: activeGender as 'men' | 'women' | 'unisex' | 'MALE' | 'FEMALE' | 'UNISEX' | undefined,
+          gender: activeGender as "men" | "women" | "MALE" | "FEMALE" | "UNISEX" | undefined,
           colors: selectedColor ? [selectedColor] : undefined,
           sizes: selectedSize ? [selectedSize] : undefined,
           price_min: priceRange[0] > 0 ? priceRange[0] : undefined,
@@ -54,12 +59,12 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
       } catch (error) {
         console.error('Failed to fetch category data:', error)
       } finally {
-        setLoading(false)
+        stopLoading()
       }
     }
 
     fetchCategoryData()
-  }, [activeCategorySlug, activeGender, selectedColor, selectedSize, priceRange, page, pageSize])
+  }, [activeCategorySlug, activeGender, selectedColor, selectedSize, priceRange, page, pageSize, startLoading, stopLoading])
 
   const handleCategoryChange = (categorySlug: string | null) => {
     setSelectedCategory(categorySlug)
@@ -71,9 +76,9 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
     setPage(1) // Reset to first page when gender changes
     // Update URL with gender parameter
     if (gender) {
-      router.push(`/category/${params.slug}?gender=${gender}`, { scroll: false })
+      router.push(`/category/${slug}?gender=${gender}`, { scroll: false })
     } else {
-      router.push(`/category/${params.slug}`, { scroll: false })
+      router.push(`/category/${slug}`, { scroll: false })
     }
   }
 
@@ -86,37 +91,26 @@ export default function CategoryPage({ params }: { params: { slug: string } }) {
   // Reset selected category when URL slug changes (user navigated to different category page)
   useEffect(() => {
     setSelectedCategory(null)
-  }, [params.slug])
+  }, [slug])
 
   // Sync URL gender param with state
   useEffect(() => {
     setSelectedGender(genderParam)
   }, [genderParam])
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <SiteHeader />
-        <main className="flex-1">
-          <div className="container mx-auto px-4 py-6">
-            <div className="text-center">Loading category...</div>
-          </div>
-        </main>
-        <SiteFooter />
-      </div>
-    )
-  }
+  const breadcrumbItems = [
+    { label: "Home", href: "/" },
+    { label: categoryName, href: `/category/${activeCategorySlug}` },
+  ]
 
   return (
     <div className="min-h-screen flex flex-col">
+      <StructuredData data={generateBreadcrumbStructuredData(breadcrumbItems)} />
       <SiteHeader />
       <main className="flex-1">
         <div className="container mx-auto px-4 py-6">
           <Breadcrumb
-            items={[
-              { label: "Home", href: "/" },
-              { label: categoryName, href: `/category/${activeCategorySlug}` },
-            ]}
+            items={breadcrumbItems}
           />
 
           <div className="flex gap-6 mt-6">

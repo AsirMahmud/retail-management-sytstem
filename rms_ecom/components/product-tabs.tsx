@@ -5,13 +5,14 @@ import { cn } from "@/lib/utils"
 import { ProductDetailsSection } from "@/components/product-details-section"
 
 interface ProductTabsProps {
+  description?: string
   sizeChart: Array<{ size: string; chest: string; waist: string; height: string }>
   materials: Array<{ name: string; percentage: string }>
   whoIsThisFor: Array<{ title: string; description: string }>
   features: Array<{ title: string; description: string }>
 }
 
-export function ProductTabs({ sizeChart, materials, whoIsThisFor, features }: ProductTabsProps) {
+export function ProductTabs({ description, sizeChart, materials, whoIsThisFor, features }: ProductTabsProps) {
   const [activeTab, setActiveTab] = useState("details")
 
   const tabs = [{ id: "details", label: "Product Details" }]
@@ -37,6 +38,7 @@ export function ProductTabs({ sizeChart, materials, whoIsThisFor, features }: Pr
 
         <div className="py-12">{activeTab === "details" && (
           <ProductDetailsSection 
+            description={description}
             sizeChart={sizeChart}
             materials={materials}
             whoIsThisFor={whoIsThisFor}

@@ -7,6 +7,7 @@ import { useCheckoutStore } from "@/hooks/useCheckoutStore"
 import { ecommerceApi } from "@/lib/api"
 import { getImageUrl } from "@/lib/utils"
 import { getCheckoutItems, type CartItem } from "@/lib/cart"
+import { useLoading } from "@/hooks/useLoading"
 
 interface CartPricing {
   subtotal: number
@@ -28,12 +29,36 @@ interface PricedCartItem {
   variant?: { color?: string | null; size?: string | null }
 }
 
+interface ProductInfo {
+  id: number
+  name: string
+  sku: string
+  description?: string
+  selling_price: string
+  original_price?: string | null
+  discount?: number | null
+  stock_quantity: number
+  image?: string
+  image_url?: string
+  online_category_name?: string
+  online_category_id?: number
+  available_colors: Array<{ name: string; hex: string }>
+  available_sizes: string[]
+  variants: Array<any>
+  primary_image?: string
+  images_ordered: string[]
+  created_at: string
+  updated_at: string
+}
+
 export function CheckoutSummary() {
   const cartStoreItems = useCartStore((s) => s.items)
   const { deliveryMethod, setDeliveryMethod } = useCheckoutStore()
   const [cartPricing, setCartPricing] = useState<CartPricing | null>(null)
   const [pricedItems, setPricedItems] = useState<PricedCartItem[]>([])
-  const [loading, setLoading] = useState(false)
+  const [products, setProducts] = useState<ProductInfo[]>([])
+  const [localLoading, setLocalLoading] = useState(false)
+  const { startLoading, stopLoading } = useLoading()
   const [items, setItems] = useState<CartItem[]>([])
 
   // Get checkout items (direct checkout or cart)
@@ -47,26 +72,54 @@ export function CheckoutSummary() {
       if (items.length === 0) {
         setCartPricing(null)
         setPricedItems([])
+        setProducts([])
         return
       }
 
       try {
-        setLoading(true)
-        const response = await ecommerceApi.priceCart(items)
+        startLoading()
+        setLocalLoading(true)
+        
+        // Normalize items: extract numeric productId and ensure variations are properly set
+        const normalizedItems = items.map((item) => {
+          let productId: string | number = item.productId
+          let variations = item.variations ? { ...item.variations } : {}
+          
+          // If productId contains a slash (e.g., "141/blue"), extract the numeric ID and color
+          if (typeof item.productId === 'string' && item.productId.includes('/')) {
+            const parts = item.productId.split('/')
+            productId = parts[0] // Get the numeric part
+            // If color is not already in variations, extract it from productId
+            if (!variations.color && parts.length > 1) {
+              variations.color = parts.slice(1).join('/') // Handle multi-part colors
+            }
+          }
+          
+          return {
+            productId: productId,
+            quantity: item.quantity,
+            variations: Object.keys(variations).length > 0 ? variations : undefined
+          }
+        })
+        
+        const response = await ecommerceApi.priceCart(normalizedItems)
         setCartPricing({
           subtotal: response.subtotal,
           delivery: response.delivery
         })
-        setPricedItems(response.items)
+        setPricedItems(response.items || [])
+        setProducts(response.products || [])
       } catch (error) {
         console.error("Failed to fetch cart pricing:", error)
+        setPricedItems([])
       } finally {
-        setLoading(false)
+        stopLoading()
+        setLocalLoading(false)
       }
     }
 
     fetchCartPricing()
-  }, [items])
+  }, [items, startLoading, stopLoading])
 
   // Helper function to safely format numbers
   const formatPrice = (value: number | string | null | undefined): string => {
@@ -106,52 +159,109 @@ export function CheckoutSummary() {
 
       {/* Cart Items */}
       <div className="space-y-4 mb-6 max-h-64 overflow-y-auto">
-        {items.map((it) => {
-          const itemColor = normalizeValue(it.variations?.color)
-          const itemSize = normalizeValue(it.variations?.size)
+        {items.length === 0 ? (
+          <div className="text-center text-muted-foreground py-4">No items in cart</div>
+        ) : (
+          items.map((it) => {
+            // Normalize variation values for comparison - same as cart-items
+            const itemColor = normalizeValue(it.variations?.color)
+            const itemSize = normalizeValue(it.variations?.size)
+            
+            // Extract numeric product ID from string (handle cases like "141/blue")
+            let numericProductId: number
+            if (typeof it.productId === 'string' && it.productId.includes('/')) {
+              const parts = it.productId.split('/')
+              numericProductId = Number(parts[0]) || 0
+            } else {
+              numericProductId = Number(it.productId) || 0
+            }
 
-          const pricedItem = pricedItems.find((pi) => {
-            if (pi.productId !== Number(it.productId)) return false
+            const pricedItem = pricedItems.find((pi) => {
+              // First check product ID
+              if (pi.productId !== numericProductId) return false
+              
+              // Normalize variant values
+              const piColor = normalizeValue(pi.variant?.color)
+              const piSize = normalizeValue(pi.variant?.size)
+              
+              // Match colors (both null/empty is considered a match)
+              const colorMatch = (piColor === itemColor) || (!piColor && !itemColor)
+              
+              // Match sizes (both null/empty is considered a match)
+              const sizeMatch = (piSize === itemSize) || (!piSize && !itemSize)
+              
+              return colorMatch && sizeMatch
+            })
+
+            // Get full product information from products array
+            const productInfo = products.find((p) => p.id === numericProductId)
+           
+            // Use product info for full details, fallback to pricedItem, then item data
+            const productName = productInfo?.name || (pricedItem?.name && pricedItem.name.trim()) || `Product ${numericProductId}`
+            const productSku = productInfo?.sku || ''
+            const productDescription = productInfo?.description || ''
+            const productCategory = productInfo?.online_category_name || ''
             
-            const piColor = normalizeValue(pi.variant?.color)
-            const piSize = normalizeValue(pi.variant?.size)
+            // Prioritize primary_image from product info, then fallback to other image sources
             
-            return piColor === itemColor && piSize === itemSize
+            const productImage = productInfo?.primary_image?productInfo.primary_image:"/placeholder.svg" 
+            
+            
+            const color = pricedItem?.variant?.color || it.variations?.color
+            const size = pricedItem?.variant?.size || it.variations?.size
+            const unitPrice = pricedItem?.unit_price || Number(productInfo?.selling_price) || 0
+            const originalPrice = productInfo?.original_price ? Number(productInfo.original_price) : null
+            const discount = productInfo?.discount || null
+
+            return (
+              <div key={`${it.productId}-${JSON.stringify(it.variations||{})}`} className="flex gap-4 p-3 border rounded-lg bg-card">
+                <div className="relative w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
+                  <Image 
+                    src={productImage} 
+                    alt={productName} 
+                    fill 
+                    className="object-cover"
+                    sizes="80px"
+                   
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-sm md:text-base mb-1 line-clamp-2">{productName}</h3>
+                      {productSku && (
+                        <p className="text-xs text-muted-foreground mb-1">SKU: {productSku}</p>
+                      )}
+                      {productCategory && (
+                        <p className="text-xs text-muted-foreground mb-1">{productCategory}</p>
+                      )}
+                      {(color || size) && (
+                        <div className="flex gap-2 text-xs text-muted-foreground mt-1">
+                          {color && <span>Color: <span className="font-medium">{color}</span></span>}
+                          {size && <span>Size: <span className="font-medium">{size}</span></span>}
+                        </div>
+                      )}
+                      {localLoading && !pricedItem ? (
+                        <p className="text-sm text-muted-foreground mt-2">Loading price...</p>
+                      ) : (
+                        <div className="flex items-center gap-2 mt-2">
+                          {originalPrice && originalPrice > unitPrice && (
+                            <span className="text-xs text-muted-foreground line-through">৳{formatPrice(originalPrice)}</span>
+                          )}
+                          <p className="text-sm font-semibold">৳{formatPrice(unitPrice)}</p>
+                          {discount && discount > 0 && (
+                            <span className="text-xs text-destructive font-medium">-{discount}%</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-sm font-medium text-muted-foreground flex-shrink-0">x{it.quantity}</div>
+                  </div>
+                </div>
+              </div>
+            )
           })
-
-          const productName = (pricedItem?.name && pricedItem.name.trim()) || `Product ${it.productId}`
-          const productImage = getImageUrl(pricedItem?.image_url)
-          const color = pricedItem?.variant?.color || it.variations?.color
-          const size = pricedItem?.variant?.size || it.variations?.size
-
-          return (
-            <div key={`${it.productId}-${JSON.stringify(it.variations||{})}`} className="flex gap-3">
-              <div className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
-                <Image 
-                  src={productImage} 
-                  alt={productName} 
-                  fill 
-                  className="object-cover"
-                  sizes="64px"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src = "/placeholder.svg";
-                  }}
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-sm line-clamp-1">{productName}</h3>
-                {(color || size) && (
-                  <p className="text-xs text-muted-foreground">
-                    {size && `${size}`}{size && color ? " / " : ""}{color && `${color}`}
-                  </p>
-                )}
-                <p className="text-sm font-semibold mt-1">৳{formatPrice(pricedItem?.unit_price || 0)}</p>
-              </div>
-              <div className="text-sm text-muted-foreground">x{it.quantity}</div>
-            </div>
-          )
-        })}
+        )}
       </div>
 
       {/* Delivery Method Selection */}
@@ -170,7 +280,7 @@ export function CheckoutSummary() {
               />
               <span className="text-sm font-medium">Inside Dhaka</span>
             </div>
-            {loading ? (
+            {localLoading ? (
               <span className="text-sm font-semibold text-muted-foreground">—</span>
             ) : (
               <span className="text-sm font-semibold">৳{formatPrice(cartPricing?.delivery?.inside_dhaka_charge)}</span>
@@ -188,7 +298,7 @@ export function CheckoutSummary() {
               />
               <span className="text-sm font-medium">Inside Gazipur</span>
             </div>
-            {loading ? (
+            {localLoading ? (
               <span className="text-sm font-semibold text-muted-foreground">—</span>
             ) : (
               <span className="text-sm font-semibold">৳{formatPrice(cartPricing?.delivery?.inside_gazipur_charge)}</span>
@@ -206,7 +316,7 @@ export function CheckoutSummary() {
               />
               <span className="text-sm font-medium">Outside Dhaka</span>
             </div>
-            {loading ? (
+            {localLoading ? (
               <span className="text-sm font-semibold text-muted-foreground">—</span>
             ) : (
               <span className="text-sm font-semibold">৳{formatPrice(cartPricing?.delivery?.outside_dhaka_charge)}</span>
@@ -219,7 +329,7 @@ export function CheckoutSummary() {
       <div className="space-y-3 pt-4 border-t">
         <div className="flex justify-between text-base">
           <span className="text-muted-foreground">Subtotal</span>
-          {loading ? (
+          {localLoading ? (
             <span className="font-semibold text-muted-foreground">—</span>
           ) : (
             <span className="font-semibold">৳{formatPrice(subtotal)}</span>
@@ -227,7 +337,7 @@ export function CheckoutSummary() {
         </div>
         <div className="flex justify-between text-base">
           <span className="text-muted-foreground">Delivery</span>
-          {loading ? (
+          {localLoading ? (
             <span className="font-semibold text-muted-foreground">—</span>
           ) : (
             <span className="font-semibold">৳{formatPrice(deliveryCharge)}</span>
@@ -235,7 +345,7 @@ export function CheckoutSummary() {
         </div>
         <div className="flex justify-between text-lg font-bold pt-2 border-t">
           <span>Total</span>
-          {loading ? (
+          {localLoading ? (
             <span className="text-muted-foreground">—</span>
           ) : (
             <span>৳{formatPrice(total)}</span>
