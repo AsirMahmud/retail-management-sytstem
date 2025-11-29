@@ -20,6 +20,7 @@ import { getCart, clearCart, getCheckoutItems, clearDirectCheckoutItems } from "
 import { ecommerceApi } from "@/lib/api"
 import { useCheckoutStore } from "@/hooks/useCheckoutStore"
 import { useBdAddress } from "@/hooks/useBdAddress"
+import { useLoading } from "@/hooks/useLoading"
 import dhakaThanasData from "../dhaka_thanas_structure.json"
 
 interface Place {
@@ -43,9 +44,9 @@ interface CityCorporation {
 export function CheckoutForm() {
   const router = useRouter()
   const [paymentMethod] = useState("cod")
-  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { deliveryMethod, setDeliveryMethod } = useCheckoutStore()
+  const { startLoading, stopLoading } = useLoading()
   const {
     divisions,
     districts,
@@ -68,6 +69,8 @@ export function CheckoutForm() {
     setSelectedUpazilla,
   } = useBdAddress()
   const [selectedUnion, setSelectedUnion] = useState<string>("")
+
+  const checkoutPlaceholderClass = "placeholder:text-muted-foreground/70"
   
   // Dhaka address states
   const [selectedCityCorp, setSelectedCityCorp] = useState<string>("")
@@ -108,7 +111,7 @@ export function CheckoutForm() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setError(null)
-    setSubmitting(true)
+    startLoading()
     try {
       const form = e.currentTarget
       const formData = new FormData(form)
@@ -227,7 +230,7 @@ export function CheckoutForm() {
     } catch (err: any) {
       setError(err?.message || "Failed to place order. Please try again.")
     } finally {
-      setSubmitting(false)
+      stopLoading()
     }
   }
 
@@ -239,20 +242,33 @@ export function CheckoutForm() {
         <div className="grid md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="firstName">First Name *</Label>
-            <Input id="firstName" name="firstName" placeholder="John" required />
+            <Input id="firstName" name="firstName" placeholder="John" required className={checkoutPlaceholderClass} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="lastName">Last Name *</Label>
-            <Input id="lastName" name="lastName" placeholder="Doe" required />
+            <Input id="lastName" name="lastName" placeholder="Doe" required className={checkoutPlaceholderClass} />
           </div>
         </div>
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" name="email" type="email" placeholder="john.doe@example.com" />
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            placeholder="john.doe@example.com"
+            className={checkoutPlaceholderClass}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="phone">Phone Number *</Label>
-          <Input id="phone" name="phone" type="tel" placeholder="01712345678" required />
+          <Input
+            id="phone"
+            name="phone"
+            type="tel"
+            placeholder="01712345678"
+            required
+            className={checkoutPlaceholderClass}
+          />
         </div>
       </div>
 
@@ -560,6 +576,7 @@ export function CheckoutForm() {
             placeholder={deliveryMethod === 'inside' ? "House No, Road No, Block, Building, etc." : "House No, Road No, Area, etc."}
             rows={3}
             required
+            className={checkoutPlaceholderClass}
           />
         </div>
 
@@ -584,7 +601,12 @@ export function CheckoutForm() {
       {/* Order Notes */}
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">Order Notes (Optional)</h2>
-        <Textarea name="notes" placeholder="Add any special instructions for your order..." rows={4} />
+        <Textarea
+          name="notes"
+          placeholder="Add any special instructions for your order..."
+          rows={4}
+          className={checkoutPlaceholderClass}
+        />
       </div>
 
       {error && (
@@ -594,8 +616,8 @@ export function CheckoutForm() {
       )}
 
       {/* Submit Button */}
-      <Button type="submit" size="lg" className="w-full h-12 text-base" disabled={submitting}>
-        {submitting ? "Placing Order..." : "Place Order"}
+      <Button type="submit" size="lg" className="w-full h-12 text-base">
+        Place Order
       </Button>
     </form>
   )

@@ -36,6 +36,15 @@ export interface HomePageSettings {
   logo_image?: string;
   logo_image_url?: string;
   logo_text?: string;
+  footer_tagline?: string;
+  footer_address?: string;
+  footer_phone?: string;
+  footer_email?: string;
+  footer_facebook_url?: string;
+  footer_instagram_url?: string;
+  footer_twitter_url?: string;
+  footer_github_url?: string;
+  footer_map_embed_url?: string;
   hero_badge_text: string;
   hero_heading_line1: string;
   hero_heading_line2?: string;
@@ -105,6 +114,15 @@ export interface UpdateBrandDTO {
 export interface UpdateHomePageSettingsDTO {
   logo_image?: File;
   logo_text?: string;
+  footer_tagline?: string;
+  footer_address?: string;
+  footer_phone?: string;
+  footer_email?: string;
+  footer_facebook_url?: string;
+  footer_instagram_url?: string;
+  footer_twitter_url?: string;
+  footer_github_url?: string;
+  footer_map_embed_url?: string;
   hero_badge_text?: string;
   hero_heading_line1?: string;
   hero_heading_line2?: string;

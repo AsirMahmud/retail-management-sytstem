@@ -7,17 +7,20 @@ import { Breadcrumb } from "@/components/breadcrumb"
 import { ProductGrid } from "@/components/product-grid"
 import { NewsletterSection } from "@/components/newsletter-section"
 import { ecommerceApi, ProductByColorEntry } from "@/lib/api"
+import { StructuredData } from "@/components/structured-data"
+import { generateBreadcrumbStructuredData } from "@/lib/seo"
+import { useLoading } from "@/hooks/useLoading"
 
 export default function UnisexCollectionPage() {
   const [products, setProducts] = useState<ProductByColorEntry[]>([])
-  const [loading, setLoading] = useState(true)
+  const { startLoading, stopLoading } = useLoading()
   const [page, setPage] = useState(1)
   const [pageSize] = useState(24)
   const [totalCount, setTotalCount] = useState(0)
 
   useEffect(() => {
     const run = async () => {
-      setLoading(true)
+      startLoading()
       try {
         // Filter by gender: 'UNISEX' - shows only UNISEX products
         const resp = await ecommerceApi.getProductsByColorPaginated({ 
@@ -28,28 +31,31 @@ export default function UnisexCollectionPage() {
         setProducts(resp.results)
         setTotalCount(resp.count)
       } finally {
-        setLoading(false)
+        stopLoading()
       }
     }
     run()
-  }, [page, pageSize])
+  }, [page, pageSize, startLoading, stopLoading])
+
+  const breadcrumbItems = [
+    { label: "Home", href: "/" }, 
+    { label: "Unisex", href: "/unisex" }
+  ]
 
   return (
     <div className="min-h-screen flex flex-col">
+      <StructuredData data={generateBreadcrumbStructuredData(breadcrumbItems)} />
       <SiteHeader />
       <main className="flex-1">
         <div className="container mx-auto px-4 py-6">
-          <Breadcrumb items={[{ label: "Home", href: "/" }, { label: "Unisex", href: "/unisex" }]} />
+          <Breadcrumb items={breadcrumbItems} />
 
           <div className="mt-6 mb-8">
             <h1 className="text-3xl md:text-4xl font-bold mb-2">Unisex</h1>
             <p className="text-muted-foreground">Explore unisex products for everyone</p>
           </div>
 
-          {loading ? (
-            <div className="text-center py-12">Loading products...</div>
-          ) : (
-            <ProductGrid
+          <ProductGrid
               category={`Unisex`}
               products={products.map((item) => ({
                 id: `${item.product_id}/${item.color_slug}`,
@@ -63,7 +69,6 @@ export default function UnisexCollectionPage() {
               pageSize={pageSize}
               onPageChange={setPage}
             />
-          )}
         </div>
         <NewsletterSection />
       </main>

@@ -11,6 +11,9 @@ import { Breadcrumb } from "@/components/breadcrumb"
 import { ecommerceApi, ProductDetailByColorResponse, EcommerceProduct, ProductByColorEntry } from "@/lib/api"
 import { ProductRecommendations } from "@/components/product-recommendations"
 import { ProductTabs } from "@/components/product-tabs"
+import { StructuredData } from "@/components/structured-data"
+import { generateProductStructuredData, generateBreadcrumbStructuredData } from "@/lib/seo"
+import { useLoading } from "@/hooks/useLoading"
 
 export default function ProductByColorPage() {
   const params = useParams()
@@ -20,23 +23,26 @@ export default function ProductByColorPage() {
 
   const [data, setData] = useState<ProductDetailByColorResponse | null>(null)
   const [suggested, setSuggested] = useState<ProductByColorEntry[]>([])
+  const [productDescription, setProductDescription] = useState<string>("")
   const [detailExtras, setDetailExtras] = useState<null | {
     size_chart?: { size: string; chest: string; waist: string; height: string }[]
     material_composition?: { name: string; percentage: string }[]
     who_is_this_for?: { title: string; description: string }[]
     features?: { title: string; description: string }[]
   }>(null)
-  const [loading, setLoading] = useState(true)
+  const { startLoading, stopLoading } = useLoading()
   const productId = Number(productIdParam)
 
   useEffect(() => {
     const run = async () => {
       try {
         if (!productId || !colorSlug) return
+        startLoading()
         const response = await ecommerceApi.getProductDetailByColor(productId, colorSlug)
         setData(response)
         // Fetch product details for size chart and other extras
         const showcase = await ecommerceApi.getProductDetail(productId)
+        setProductDescription(showcase.product.description || "")
         setDetailExtras({
           size_chart: showcase.product.size_chart,
           material_composition: showcase.product.material_composition,
@@ -73,11 +79,11 @@ export default function ProductByColorPage() {
         // Redirect to Not Available page if the color/product is not found
         router.replace('/product/not-available')
       } finally {
-        setLoading(false)
+        stopLoading()
       }
     }
     run()
-  }, [productId, colorSlug, router])
+  }, [productId, colorSlug, router, startLoading, stopLoading])
 
   // Compute external color toggler links consistently to keep hook order stable
   const colorToggler = useMemo(() => {
@@ -94,20 +100,6 @@ export default function ProductByColorPage() {
     }))
   }, [data, colorSlug, productId])
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen flex-col">
-        <SiteHeader />
-        <main className="flex-1">
-          <div className="container px-4 py-8">
-            <div className="text-center">Loading product...</div>
-          </div>
-        </main>
-        <SiteFooter />
-      </div>
-    )
-  }
-
   if (!data) return null
 
   const galleryImages = data.images.length > 0
@@ -120,7 +112,7 @@ export default function ProductByColorPage() {
     price: Math.round(Number(data.product.price)),
     originalPrice: undefined as number | undefined,
     discount: undefined as number | undefined,
-    description: "", // optional
+    description: productDescription,
     colors: [{ name: data.color.name, value: "#000000" }],
     sizes: data.sizes.map(s => s.size),
     variants: data.sizes.map(s => ({
@@ -134,17 +126,21 @@ export default function ProductByColorPage() {
 
   // colorToggler is computed above via useMemo
 
+  const breadcrumbItems = [
+    { label: "Home", href: "/" },
+    { label: "All Products", href: "/products" },
+    { label: `${data.product.name} - ${data.color.name}`, href: `/product/${data.product.id}/${data.color.slug}` },
+  ]
+
   return (
     <div className="flex min-h-screen flex-col">
+      <StructuredData data={generateProductStructuredData(data)} />
+      <StructuredData data={generateBreadcrumbStructuredData(breadcrumbItems)} />
       <SiteHeader />
       <main className="flex-1">
         <div className="container px-4 py-4 lg:py-6">
           <Breadcrumb
-            items={[
-              { label: "Home", href: "/" },
-              { label: "All Products", href: "/products" },
-              { label: `${data.product.name} - ${data.color.name}`, href: `/product/${data.product.id}/${data.color.slug}` },
-            ]}
+            items={breadcrumbItems}
           />
         </div>
 
@@ -164,6 +160,7 @@ export default function ProductByColorPage() {
         {/* Product details tabs (size chart, materials, audience, features) */}
         <div className="container px-4 pb-12 lg:pb-16">
           <ProductTabs
+            description={productDescription}
             sizeChart={detailExtras?.size_chart || []}
             materials={detailExtras?.material_composition || []}
             whoIsThisFor={detailExtras?.who_is_this_for || []}

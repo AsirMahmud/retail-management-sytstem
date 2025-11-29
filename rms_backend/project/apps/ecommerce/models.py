@@ -133,6 +133,55 @@ class HomePageSettings(models.Model):
     # Logo Settings
     logo_image = models.ImageField(upload_to='site_logo/', null=True, blank=True)
     logo_text = models.CharField(max_length=100, null=True, blank=True)
+
+    # Footer Settings
+    footer_tagline = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Short tagline shown under the footer logo",
+    )
+    footer_address = models.TextField(
+        null=True,
+        blank=True,
+        help_text="Store address shown in the footer. Supports multiple lines.",
+    )
+    footer_phone = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+        help_text="Primary contact phone number for the footer.",
+    )
+    footer_email = models.EmailField(
+        null=True,
+        blank=True,
+        help_text="Primary contact email address for the footer.",
+    )
+    footer_facebook_url = models.URLField(
+        null=True,
+        blank=True,
+        help_text="Facebook page URL for the footer social links.",
+    )
+    footer_instagram_url = models.URLField(
+        null=True,
+        blank=True,
+        help_text="Instagram page URL for the footer social links.",
+    )
+    footer_twitter_url = models.URLField(
+        null=True,
+        blank=True,
+        help_text="Twitter/X profile URL for the footer social links.",
+    )
+    footer_github_url = models.URLField(
+        null=True,
+        blank=True,
+        help_text="GitHub profile or organization URL for the footer social links.",
+    )
+    footer_map_embed_url = models.TextField(
+        null=True,
+        blank=True,
+        help_text="Google Maps embed URL used for the footer map preview.",
+    )
     
     # Hero Section Settings
     hero_badge_text = models.CharField(max_length=100, default="New Collection 2024")

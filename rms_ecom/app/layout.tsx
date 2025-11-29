@@ -8,11 +8,67 @@ import Script from "next/script"
 import "./globals.css"
 import { Suspense } from "react"
 import { DiscountInitializer } from "@/components/discount-initializer"
+import { LoadingProviderWrapper } from "@/components/loading-provider-wrapper"
 
 export const metadata: Metadata = {
-  title: "SHOP.CO - Your Fashion Destination",
-  description: "Find clothes that match your style",
-  generator: "v0.app",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://rawstitch.com.bd'),
+  title: {
+    default: "Raw Stitch - Premium Fashion & Clothing Store",
+    template: "%s | Raw Stitch"
+  },
+  description: "Raw Stitch - Your premier destination for premium fashion and clothing. Discover the latest trends in men's, women's, and unisex fashion. Shop quality apparel with style and confidence.",
+  keywords: ["Raw Stitch", "fashion", "clothing", "apparel", "men's fashion", "women's fashion", "online shopping", "fashion store", "premium clothing", "Bangladesh fashion"],
+  authors: [{ name: "Raw Stitch" }],
+  creator: "Raw Stitch",
+  publisher: "Raw Stitch",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: process.env.NEXT_PUBLIC_SITE_URL || "https://rawstitch.com.bd",
+    siteName: "Raw Stitch",
+    title: "Raw Stitch - Premium Fashion & Clothing Store",
+    description: "Your premier destination for premium fashion and clothing. Discover the latest trends in men's, women's, and unisex fashion.",
+    images: [
+      {
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Raw Stitch - Premium Fashion Store",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Raw Stitch - Premium Fashion & Clothing Store",
+    description: "Your premier destination for premium fashion and clothing. Discover the latest trends in men's, women's, and unisex fashion.",
+    images: ["/og-image.jpg"],
+    creator: "@rawstitch",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_VERIFICATION,
+    yandex: process.env.NEXT_PUBLIC_YANDEX_VERIFICATION,
+    yahoo: process.env.NEXT_PUBLIC_YAHOO_VERIFICATION,
+  },
+  alternates: {
+    canonical: process.env.NEXT_PUBLIC_SITE_URL || "https://rawstitch.com.bd",
+  },
+  category: "fashion",
 }
 
 export default function RootLayout({
@@ -51,9 +107,11 @@ export default function RootLayout({
             alt=""
           />
         </noscript>
-        <DiscountInitializer />
-        <Suspense fallback={null}>{children}</Suspense>
-        <Analytics />
+        <LoadingProviderWrapper>
+          <DiscountInitializer />
+          <Suspense fallback={null}>{children}</Suspense>
+          <Analytics />
+        </LoadingProviderWrapper>
       </body>
     </html>
   )

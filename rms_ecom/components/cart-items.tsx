@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { useCartStore } from "@/hooks/useCartStore"
 import { ecommerceApi } from "@/lib/api"
 import { getImageUrl } from "@/lib/utils"
+import { useLoading } from "@/hooks/useLoading"
 
 interface PricedCartItem {
   productId: number
@@ -25,36 +26,31 @@ export function CartItems() {
   const updateQty = useCartStore((s) => s.updateQuantity)
   const removeLine = useCartStore((s) => s.removeItem)
   const [pricedItems, setPricedItems] = useState<PricedCartItem[]>([])
-  const [loading, setLoading] = useState(true)
+  const { startLoading, stopLoading } = useLoading()
 
   useEffect(() => {
     const fetchPricedItems = async () => {
       if (items.length === 0) {
         setPricedItems([])
-        setLoading(false)
         return
       }
 
       try {
-        setLoading(true)
+        startLoading()
         const response = await ecommerceApi.priceCart(items)
         setPricedItems(response.items)
       } catch (error) {
         console.error("Failed to fetch cart prices:", error)
       } finally {
-        setLoading(false)
+        stopLoading()
       }
     }
 
     fetchPricedItems()
-  }, [items])
+  }, [items, startLoading, stopLoading])
 
   if (items.length === 0) {
     return <div className="text-center text-muted-foreground py-8">Your cart is empty.</div>
-  }
-
-  if (loading) {
-    return <div className="text-center text-muted-foreground py-8">Loading cart items...</div>
   }
 
   return (

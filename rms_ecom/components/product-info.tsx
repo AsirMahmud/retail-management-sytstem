@@ -130,7 +130,6 @@ export function ProductInfo({ productId, product, colorLinks }: ProductInfoProps
           )}
         </div>
 
-        <p className="text-muted-foreground leading-relaxed">{product.description}</p>
       </div>
 
       <div className="h-px bg-border" />

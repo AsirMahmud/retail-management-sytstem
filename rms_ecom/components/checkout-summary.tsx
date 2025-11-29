@@ -7,6 +7,7 @@ import { useCheckoutStore } from "@/hooks/useCheckoutStore"
 import { ecommerceApi } from "@/lib/api"
 import { getImageUrl } from "@/lib/utils"
 import { getCheckoutItems, type CartItem } from "@/lib/cart"
+import { useLoading } from "@/hooks/useLoading"
 
 interface CartPricing {
   subtotal: number
@@ -33,7 +34,8 @@ export function CheckoutSummary() {
   const { deliveryMethod, setDeliveryMethod } = useCheckoutStore()
   const [cartPricing, setCartPricing] = useState<CartPricing | null>(null)
   const [pricedItems, setPricedItems] = useState<PricedCartItem[]>([])
-  const [loading, setLoading] = useState(false)
+  const [localLoading, setLocalLoading] = useState(false)
+  const { startLoading, stopLoading } = useLoading()
   const [items, setItems] = useState<CartItem[]>([])
 
   // Get checkout items (direct checkout or cart)
@@ -51,7 +53,8 @@ export function CheckoutSummary() {
       }
 
       try {
-        setLoading(true)
+        startLoading()
+        setLocalLoading(true)
         const response = await ecommerceApi.priceCart(items)
         setCartPricing({
           subtotal: response.subtotal,
@@ -61,7 +64,8 @@ export function CheckoutSummary() {
       } catch (error) {
         console.error("Failed to fetch cart pricing:", error)
       } finally {
-        setLoading(false)
+        stopLoading()
+        setLocalLoading(false)
       }
     }
 
@@ -170,7 +174,7 @@ export function CheckoutSummary() {
               />
               <span className="text-sm font-medium">Inside Dhaka</span>
             </div>
-            {loading ? (
+            {localLoading ? (
               <span className="text-sm font-semibold text-muted-foreground">—</span>
             ) : (
               <span className="text-sm font-semibold">৳{formatPrice(cartPricing?.delivery?.inside_dhaka_charge)}</span>
@@ -188,7 +192,7 @@ export function CheckoutSummary() {
               />
               <span className="text-sm font-medium">Inside Gazipur</span>
             </div>
-            {loading ? (
+            {localLoading ? (
               <span className="text-sm font-semibold text-muted-foreground">—</span>
             ) : (
               <span className="text-sm font-semibold">৳{formatPrice(cartPricing?.delivery?.inside_gazipur_charge)}</span>
@@ -206,7 +210,7 @@ export function CheckoutSummary() {
               />
               <span className="text-sm font-medium">Outside Dhaka</span>
             </div>
-            {loading ? (
+            {localLoading ? (
               <span className="text-sm font-semibold text-muted-foreground">—</span>
             ) : (
               <span className="text-sm font-semibold">৳{formatPrice(cartPricing?.delivery?.outside_dhaka_charge)}</span>
@@ -219,7 +223,7 @@ export function CheckoutSummary() {
       <div className="space-y-3 pt-4 border-t">
         <div className="flex justify-between text-base">
           <span className="text-muted-foreground">Subtotal</span>
-          {loading ? (
+          {localLoading ? (
             <span className="font-semibold text-muted-foreground">—</span>
           ) : (
             <span className="font-semibold">৳{formatPrice(subtotal)}</span>
@@ -227,7 +231,7 @@ export function CheckoutSummary() {
         </div>
         <div className="flex justify-between text-base">
           <span className="text-muted-foreground">Delivery</span>
-          {loading ? (
+          {localLoading ? (
             <span className="font-semibold text-muted-foreground">—</span>
           ) : (
             <span className="font-semibold">৳{formatPrice(deliveryCharge)}</span>
@@ -235,7 +239,7 @@ export function CheckoutSummary() {
         </div>
         <div className="flex justify-between text-lg font-bold pt-2 border-t">
           <span>Total</span>
-          {loading ? (
+          {localLoading ? (
             <span className="text-muted-foreground">—</span>
           ) : (
             <span>৳{formatPrice(total)}</span>

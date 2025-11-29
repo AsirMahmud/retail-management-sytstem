@@ -1,23 +1,20 @@
 "use client"
 
-import { cn } from "@/lib/utils"
+import { cn, processSizeChart } from "@/lib/utils"
 
 import { Ruler, Package, Users, Shirt } from "lucide-react"
 
 interface ProductDetailsSectionProps {
+  description?: string
   sizeChart?: Array<{ size: string; chest: string; waist: string; height: string }>
   materials?: Array<{ name: string; percentage: string }>
   whoIsThisFor?: Array<{ title: string; description: string }>
   features?: Array<{ title: string; description: string }>
 }
 
-export function ProductDetailsSection({ sizeChart, materials, whoIsThisFor, features }: ProductDetailsSectionProps) {
-  const sizeChartData = (sizeChart && sizeChart.length > 0) ? sizeChart : [
-    { size: "S", chest: "34-36\"", waist: "28-30\"", height: "5'4\" - 5'7\"" },
-    { size: "M", chest: "38-40\"", waist: "32-34\"", height: "5'7\" - 5'10\"" },
-    { size: "L", chest: "42-44\"", waist: "36-38\"", height: "5'10\" - 6'1\"" },
-    { size: "XL", chest: "46-48\"", waist: "40-42\"", height: "6'1\" - 6'3\"" },
-  ]
+export function ProductDetailsSection({ description, sizeChart, materials, whoIsThisFor, features }: ProductDetailsSectionProps) {
+  // Process size chart from API: deduplicate and sort by size order
+  const sizeChartData = processSizeChart(sizeChart)
   const materialsData = (materials && materials.length > 0) ? materials : [
     { name: "Cotton", percentage: "60%" },
     { name: "Polyester", percentage: "35%" },
@@ -34,6 +31,15 @@ export function ProductDetailsSection({ sizeChart, materials, whoIsThisFor, feat
   ]
   return (
     <div className="grid gap-8 lg:gap-12">
+      {/* Product Description Section */}
+      {description && (
+        <div>
+          <p className="text-muted-foreground leading-relaxed text-base lg:text-lg whitespace-pre-line">
+            {description}
+          </p>
+        </div>
+      )}
+
       {/* Size Chart Section */}
       <div>
         <div className="flex items-center gap-3 mb-6">
@@ -54,14 +60,22 @@ export function ProductDetailsSection({ sizeChart, materials, whoIsThisFor, feat
               </tr>
             </thead>
             <tbody>
-              {sizeChartData.map((row, index) => (
-                <tr key={row.size} className={cn("border-b border-border", index % 2 === 0 && "bg-muted/30")}>
-                  <td className="py-4 px-4 font-medium text-sm lg:text-base">{row.size}</td>
-                  <td className="py-4 px-4 text-muted-foreground text-sm lg:text-base">{row.chest}</td>
-                  <td className="py-4 px-4 text-muted-foreground text-sm lg:text-base">{row.waist}</td>
-                  <td className="py-4 px-4 text-muted-foreground text-sm lg:text-base">{row.height}</td>
+              {sizeChartData.length > 0 ? (
+                sizeChartData.map((row, index) => (
+                  <tr key={`${row.size}-${index}`} className={cn("border-b border-border", index % 2 === 0 && "bg-muted/30")}>
+                    <td className="py-4 px-4 font-medium text-sm lg:text-base">{row.size}</td>
+                    <td className="py-4 px-4 text-muted-foreground text-sm lg:text-base">{row.chest}</td>
+                    <td className="py-4 px-4 text-muted-foreground text-sm lg:text-base">{row.waist}</td>
+                    <td className="py-4 px-4 text-muted-foreground text-sm lg:text-base">{row.height}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="py-8 px-4 text-center text-muted-foreground text-sm lg:text-base">
+                    No size chart available
+                  </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>

@@ -12,7 +12,7 @@ export default function CheckoutPage() {
       <main className="flex-1">
         <div className="container px-4 py-8">
           <div className="text-center mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-6">Cart</h1>
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-6">Checkout</h1>
             <CheckoutProgress currentStep={2} />
           </div>
 

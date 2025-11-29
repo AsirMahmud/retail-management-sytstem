@@ -7,6 +7,7 @@ import { useMemo, useEffect, useState } from "react"
 import Link from "next/link"
 import { useCartStore } from "@/hooks/useCartStore"
 import { ecommerceApi } from "@/lib/api"
+import { useLoading } from "@/hooks/useLoading"
 
 interface CartPricing {
   subtotal: number
@@ -22,7 +23,8 @@ export function CartSummary() {
   const items = useCartStore((s) => s.items)
   const [shippingMethod, setShippingMethod] = useState<'inside' | 'gazipur' | 'outside'>('inside')
   const [cartPricing, setCartPricing] = useState<CartPricing | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [localLoading, setLocalLoading] = useState(false)
+  const { startLoading, stopLoading } = useLoading()
 
   const itemCount = useMemo(() => items.reduce((n, it) => n + it.quantity, 0), [items])
 
@@ -34,7 +36,8 @@ export function CartSummary() {
       }
 
       try {
-        setLoading(true)
+        startLoading()
+        setLocalLoading(true)
         const response = await ecommerceApi.priceCart(items)
         // Convert all values to numbers to ensure proper type handling
         setCartPricing({
@@ -49,7 +52,8 @@ export function CartSummary() {
       } catch (error) {
         console.error("Failed to fetch cart pricing:", error)
       } finally {
-        setLoading(false)
+        stopLoading()
+        setLocalLoading(false)
       }
     }
 
@@ -98,7 +102,7 @@ export function CartSummary() {
                 Inside Dhaka
               </Label>
             </div>
-            {loading ? (
+            {localLoading ? (
               <span className="font-semibold text-muted-foreground">—</span>
             ) : (
               <span className="font-semibold">৳{formatPrice(cartPricing?.delivery?.inside_dhaka_charge)}</span>
@@ -112,7 +116,7 @@ export function CartSummary() {
                 Inside Gazipur
               </Label>
             </div>
-            {loading ? (
+            {localLoading ? (
               <span className="font-semibold text-muted-foreground">—</span>
             ) : (
               <span className="font-semibold">৳{formatPrice(cartPricing?.delivery?.inside_gazipur_charge)}</span>
@@ -126,7 +130,7 @@ export function CartSummary() {
                 Outside Dhaka
               </Label>
             </div>
-            {loading ? (
+            {localLoading ? (
               <span className="font-semibold text-muted-foreground">—</span>
             ) : (
               <span className="font-semibold">৳{formatPrice(cartPricing?.delivery?.outside_dhaka_charge)}</span>
@@ -139,7 +143,7 @@ export function CartSummary() {
       <div className="space-y-3 pt-4 border-t">
         <div className="flex justify-between text-base">
           <span className="text-muted-foreground">Subtotal</span>
-          {loading ? (
+          {localLoading ? (
             <span className="font-semibold text-muted-foreground">—</span>
           ) : (
             <span className="font-semibold">৳{formatPrice(subtotal)}</span>
@@ -148,7 +152,7 @@ export function CartSummary() {
 
         <div className="flex justify-between text-base">
           <span className="text-muted-foreground">Delivery</span>
-          {loading ? (
+          {localLoading ? (
             <span className="font-semibold text-muted-foreground">—</span>
           ) : (
             <span className="font-semibold">৳{formatPrice(deliveryCharge)}</span>
@@ -157,7 +161,7 @@ export function CartSummary() {
 
         <div className="flex justify-between text-lg font-bold pt-2 border-t">
           <span>Total</span>
-          {loading ? (
+          {localLoading ? (
             <span className="text-muted-foreground">—</span>
           ) : (
             <span>৳{formatPrice(total)}</span>
@@ -167,7 +171,7 @@ export function CartSummary() {
 
       {/* Checkout Button */}
       <Link href="/checkout">
-        <Button size="lg" className="w-full mt-6 h-12 text-base" disabled={loading || items.length === 0}>
+        <Button size="lg" className="w-full mt-6 h-12 text-base" disabled={localLoading || items.length === 0}>
           Checkout
         </Button>
       </Link>

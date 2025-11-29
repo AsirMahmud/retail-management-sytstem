@@ -1,20 +1,51 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { Search, ShoppingCart, User, Menu, ChevronRight, ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 import { useCartStore } from "@/hooks/useCartStore"
-import { ecommerceApi } from "@/lib/api"
+import { ecommerceApi, type ProductByColorEntry } from "@/lib/api"
 import { cn } from "@/lib/utils"
+import { useGlobalDiscount } from "@/lib/useGlobalDiscount"
+import {
+  CommandDialog,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "@/components/ui/command"
 
 export function SiteHeader() {
-  const [onlineCategories, setOnlineCategories] = useState<Array<{ id: number; name: string; slug: string; parent: number | null; parent_name?: string; children_count?: number }>>([])
+  const [onlineCategories, setOnlineCategories] = useState<
+    Array<{ id: number; name: string; slug: string; parent: number | null; parent_name?: string; children_count?: number }>
+  >([])
   const [loadingCategories, setLoadingCategories] = useState(false)
   const totalItems = useCartStore((s) => s.totalItems)
+  const [branding, setBranding] = useState<{ logo_image_url?: string; logo_text?: string }>({})
+  const globalDiscountValue = useGlobalDiscount((state) => state.discount?.value || 0)
+
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchResults, setSearchResults] = useState<ProductByColorEntry[]>([])
+  const [searchLoading, setSearchLoading] = useState(false)
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const router = useRouter()
 
   // Fetch online categories for desktop navigation
   useEffect(() => {
@@ -24,7 +55,7 @@ export function SiteHeader() {
         const allCategories = await ecommerceApi.getOnlineCategories()
         setOnlineCategories(allCategories)
       } catch (error) {
-        console.error('Failed to fetch categories:', error)
+        console.error("Failed to fetch categories:", error)
         setOnlineCategories([])
       } finally {
         setLoadingCategories(false)
@@ -34,139 +65,289 @@ export function SiteHeader() {
     fetchCategories()
   }, [])
 
+  useEffect(() => {
+    const fetchBranding = async () => {
+      try {
+        const data = await ecommerceApi.getHomePageSettings()
+        setBranding({
+          logo_image_url: data.logo_image_url,
+          logo_text: data.logo_text,
+        })
+      } catch (error) {
+        console.error("Failed to fetch branding:", error)
+      }
+    }
+
+    fetchBranding()
+  }, [])
+
   // Organize categories into hierarchical structure
   const organizedCategories = onlineCategories
-    .filter(cat => !cat.parent) // Get only root categories
-    .map(category => {
-      const children = onlineCategories.filter(c => c.parent === category.id)
+    .filter((cat) => !cat.parent) // Get only root categories
+    .map((category) => {
+      const children = onlineCategories.filter((c) => c.parent === category.id)
       return {
         ...category,
-        children
+        children,
       }
     })
-  
-  // Debug: Log categories structure
+
+  // Clean up debounce timer
   useEffect(() => {
-    if (organizedCategories.length > 0) {
-      console.log('Organized categories:', organizedCategories)
-      organizedCategories.forEach(cat => {
-        if (cat.children && cat.children.length > 0) {
-          console.log(`Category "${cat.name}" has ${cat.children.length} children:`, cat.children.map(c => c.name))
-        }
-      })
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current)
+      }
     }
-  }, [organizedCategories])
+  }, [])
+
+  const handleOpenSearch = () => {
+    setIsSearchOpen(true)
+  }
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value)
+
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current)
+    }
+
+    const trimmed = value.trim()
+
+    if (!trimmed || trimmed.length < 2) {
+      setSearchResults([])
+      setSearchLoading(false)
+      return
+    }
+
+    searchDebounceRef.current = setTimeout(async () => {
+      setSearchLoading(true)
+      try {
+        const resp = await ecommerceApi.getProductsByColorPaginated({
+          search: trimmed,
+          page: 1,
+          page_size: 8,
+          only_in_stock: true,
+        })
+        setSearchResults(resp.results || [])
+      } catch (error) {
+        console.error("Failed to search products:", error)
+        setSearchResults([])
+      } finally {
+        setSearchLoading(false)
+      }
+    }, 300)
+  }
+
+  const handleSelectProduct = (entry: ProductByColorEntry) => {
+    setIsSearchOpen(false)
+    setSearchQuery("")
+    setSearchResults([])
+    router.push(`/product/${entry.product_id}/${entry.color_slug}`)
+  }
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between px-4">
-        {/* Logo */}
-        <Link href="/" className="flex items-center space-x-2">
-          <span className="text-2xl font-bold tracking-tight">SHOP.CO</span>
-        </Link>
+    <>
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container flex h-16 items-center justify-between px-4">
+          {/* Logo */}
+          <Link href="/" className="flex items-center space-x-2" aria-label="Go to home">
+            {branding.logo_image_url ? (
+              <span className="relative h-10 w-32">
+                <Image
+                  src={branding.logo_image_url}
+                  alt={branding.logo_text || "Shop logo"}
+                  fill
+                  className="object-contain"
+                  sizes="128px"
+                  priority
+                />
+              </span>
+            ) : (
+              <span className="text-2xl font-bold tracking-tight">{branding.logo_text || "SHOP.CO"}</span>
+            )}
+          </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6">
-          <Link href="/products" className="text-sm font-medium hover:underline underline-offset-4">
-            All Products
-          </Link>
-          <DropdownMenu>
-            <DropdownMenuTrigger className="text-sm font-medium hover:underline underline-offset-4">
-              Categories
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56">
-              {loadingCategories ? (
-                <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
-              ) : organizedCategories.length === 0 ? (
-                <DropdownMenuItem disabled>No categories available</DropdownMenuItem>
-              ) : (
-                organizedCategories.map((category) => {
-                  const hasChildren = category.children && category.children.length > 0
-                  
-                  if (hasChildren) {
-                    return (
-                      <DropdownMenuSub key={category.id}>
-                        <DropdownMenuSubTrigger>
-                          {category.name}
-                        </DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent className="w-48">
-                          {/* Parent category link */}
-                          <DropdownMenuItem asChild>
-                            <Link href={`/category/${category.slug}`} className="font-medium">
-                              All {category.name}
-                            </Link>
-                          </DropdownMenuItem>
-                          {category.children.length > 0 && (
-                            <>
-                              <DropdownMenuSeparator />
-                              {/* Subcategories */}
-                              {category.children.map((child) => (
-                                <DropdownMenuItem key={child.id} asChild>
-                                  <Link href={`/category/${child.slug}`}>{child.name}</Link>
-                                </DropdownMenuItem>
-                              ))}
-                            </>
-                          )}
-                        </DropdownMenuSubContent>
-                      </DropdownMenuSub>
-                    )
-                  } else {
-                    return (
-                      <DropdownMenuItem key={category.id} asChild>
-                        <Link href={`/category/${category.slug}`}>{category.name}</Link>
-                      </DropdownMenuItem>
-                    )
-                  }
-                })
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Link href="/women" className="text-sm font-medium hover:underline underline-offset-4">
-            Women
-          </Link>
-          <Link href="/men" className="text-sm font-medium hover:underline underline-offset-4">
-            Men
-          </Link>
-          <Link href="/unisex" className="text-sm font-medium hover:underline underline-offset-4">
-            Unisex
-          </Link>
-        </nav>
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-6">
+            <Link href="/products" className="text-sm font-medium hover:underline underline-offset-4">
+              All Products
+            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="text-sm font-medium hover:underline underline-offset-4">
+                Categories
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                {loadingCategories ? (
+                  <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
+                ) : organizedCategories.length === 0 ? (
+                  <DropdownMenuItem disabled>No categories available</DropdownMenuItem>
+                ) : (
+                  organizedCategories.map((category) => {
+                    const hasChildren = category.children && category.children.length > 0
 
-        {/* Search Bar */}
-        <div className="hidden md:flex flex-1 max-w-md mx-8">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input type="search" placeholder="Search for products..." className="w-full pl-10" />
+                    if (hasChildren) {
+                      return (
+                        <DropdownMenuSub key={category.id}>
+                          <DropdownMenuSubTrigger>{category.name}</DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent className="w-48">
+                            {/* Parent category link */}
+                            <DropdownMenuItem asChild>
+                              <Link href={`/category/${category.slug}`} className="font-medium">
+                                All {category.name}
+                              </Link>
+                            </DropdownMenuItem>
+                            {category.children.length > 0 && (
+                              <>
+                                <DropdownMenuSeparator />
+                                {/* Subcategories */}
+                                {category.children.map((child: { id: number; name: string; slug: string }) => (
+                                  <DropdownMenuItem key={child.id} asChild>
+                                    <Link href={`/category/${child.slug}`}>{child.name}</Link>
+                                  </DropdownMenuItem>
+                                ))}
+                              </>
+                            )}
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                      )
+                    } else {
+                      return (
+                        <DropdownMenuItem key={category.id} asChild>
+                          <Link href={`/category/${category.slug}`}>{category.name}</Link>
+                        </DropdownMenuItem>
+                      )
+                    }
+                  })
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Link href="/women" className="text-sm font-medium hover:underline underline-offset-4">
+              Women
+            </Link>
+            <Link href="/men" className="text-sm font-medium hover:underline underline-offset-4">
+              Men
+            </Link>
+            <Link href="/unisex" className="text-sm font-medium hover:underline underline-offset-4">
+              Unisex
+            </Link>
+          </nav>
+
+          {/* Search Bar */}
+          <div className="hidden md:flex flex-1 max-w-md mx-8">
+            <button
+              type="button"
+              className="relative w-full text-left"
+              onClick={handleOpenSearch}
+              aria-label="Open product search"
+            >
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search for products..."
+                className="w-full pl-10 cursor-pointer"
+                readOnly
+              />
+            </button>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" className="hidden md:inline-flex" onClick={handleOpenSearch}>
+              <Search className="h-5 w-5" />
+              <span className="sr-only">Search</span>
+            </Button>
+            <Link href="/cart">
+              <Button variant="ghost" size="icon" className="relative">
+                <ShoppingCart className="h-5 w-5" />
+                {totalItems > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-4 h-4 rounded-full bg-primary text-[10px] font-medium text-primary-foreground flex items-center justify-center px-1">
+                    {totalItems}
+                  </span>
+                )}
+                <span className="sr-only">Shopping cart</span>
+              </Button>
+            </Link>
+            <Button variant="ghost" size="icon" className="hidden md:inline-flex">
+              <User className="h-5 w-5" />
+              <span className="sr-only">Account</span>
+            </Button>
+
+            {/* Mobile Menu */}
+            <MobileNavigationSheet />
           </div>
         </div>
+      </header>
 
-        {/* Actions */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="hidden md:inline-flex">
-            <Search className="h-5 w-5" />
-            <span className="sr-only">Search</span>
-          </Button>
-          <Link href="/cart">
-            <Button variant="ghost" size="icon" className="relative">
-              <ShoppingCart className="h-5 w-5" />
-              {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-4 h-4 rounded-full bg-primary text-[10px] font-medium text-primary-foreground flex items-center justify-center px-1">
-                  {totalItems}
-                </span>
-              )}
-              <span className="sr-only">Shopping cart</span>
-            </Button>
-          </Link>
-          <Button variant="ghost" size="icon" className="hidden md:inline-flex">
-            <User className="h-5 w-5" />
-            <span className="sr-only">Account</span>
-          </Button>
-
-          {/* Mobile Menu */}
-          <MobileNavigationSheet />
-        </div>
-      </div>
-    </header>
+      <CommandDialog
+        open={isSearchOpen}
+        onOpenChange={(open) => {
+          setIsSearchOpen(open)
+          if (!open) {
+            setSearchQuery("")
+            setSearchResults([])
+          }
+        }}
+        title="Search products"
+        description="Search for products by name"
+      >
+        <CommandInput
+          autoFocus
+          placeholder="Search for products..."
+          value={searchQuery}
+          onValueChange={handleSearchChange}
+        />
+        <CommandList>
+          {searchLoading && <CommandEmpty>Searching products...</CommandEmpty>}
+          {!searchLoading && searchQuery.trim().length >= 2 && searchResults.length === 0 && (
+            <CommandEmpty>No products found.</CommandEmpty>
+          )}
+          {!searchLoading && searchResults.length > 0 && (
+            <CommandGroup heading="Products">
+              {searchResults.map((product) => (
+                <CommandItem
+                  key={`${product.product_id}-${product.color_slug}`}
+                  value={`${product.product_name} ${product.color_name}`}
+                  onSelect={() => handleSelectProduct(product)}
+                >
+                  <div className="flex items-center gap-3 w-full">
+                    <div className="relative h-12 w-12 overflow-hidden rounded-md bg-muted flex-shrink-0">
+                      <Image
+                        src={product.cover_image_url || "/placeholder.jpg"}
+                        alt={product.product_name}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="flex flex-col overflow-hidden">
+                      <span className="truncate font-medium">
+                        {product.product_name} - {product.color_name}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {globalDiscountValue > 0 ? (
+                          <>
+                            <span className="text-xs font-semibold">
+                              ৳{Math.round(Number.parseFloat(product.product_price) * (1 - globalDiscountValue / 100)).toFixed(0)}
+                            </span>
+                            <span className="text-xs text-muted-foreground line-through">
+                              ৳{Number.parseFloat(product.product_price).toFixed(0)}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            ৳{Number.parseFloat(product.product_price).toFixed(0)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          )}
+        </CommandList>
+      </CommandDialog>
+    </>
   )
 }
 

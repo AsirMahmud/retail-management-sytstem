@@ -285,6 +285,15 @@ export const ecommerceApi = {
   getHomePageSettings: async (): Promise<{
     logo_image_url?: string;
     logo_text?: string;
+    footer_tagline?: string;
+    footer_address?: string;
+    footer_phone?: string;
+    footer_email?: string;
+    footer_facebook_url?: string;
+    footer_instagram_url?: string;
+    footer_twitter_url?: string;
+    footer_github_url?: string;
+    footer_map_embed_url?: string;
     hero_badge_text?: string;
     hero_heading_line1?: string;
     hero_heading_line2?: string;
@@ -298,7 +307,10 @@ export const ecommerceApi = {
     stat_products?: string;
     stat_customers?: string;
   }> => {
-    const response = await fetch(`${API_BASE_URL}/ecommerce/public/home-page-settings/`);
+    const response = await fetch(`${API_BASE_URL}/ecommerce/public/home-page-settings/`, {
+      // Always fetch fresh settings so footer reflects latest admin changes
+      cache: 'no-store',
+    });
     if (!response.ok) throw new Error('Failed to fetch home page settings');
     return response.json();
   },

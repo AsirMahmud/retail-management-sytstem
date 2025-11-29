@@ -8,9 +8,38 @@ import Image from "next/image"
 import Link from "next/link"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 
+// Helper to ensure image URLs are absolute
+const getAbsoluteImageUrl = (url: string | null | undefined, fallback: string = "/fashion-models-wearing-modern-streetwear.jpg"): string => {
+  if (!url) return fallback
+  
+  // If already absolute URL, return as is
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url
+  }
+  
+  // If relative URL starting with /media/, make it absolute
+  if (url.startsWith('/media/')) {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000'
+    return `${baseUrl}${url}`
+  }
+  
+  // For other relative paths, assume they're in /media/
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000'
+  return `${baseUrl}/media/${url.startsWith('/') ? url.slice(1) : url}`
+}
+
 interface HomePageSettings {
   logo_image_url?: string
   logo_text?: string
+  footer_tagline?: string
+  footer_address?: string
+  footer_phone?: string
+  footer_email?: string
+  footer_facebook_url?: string
+  footer_instagram_url?: string
+  footer_twitter_url?: string
+  footer_github_url?: string
+  footer_map_embed_url?: string
   hero_badge_text?: string
   hero_heading_line1?: string
   hero_heading_line2?: string
@@ -92,6 +121,8 @@ export function HeroSection() {
             {/* Left Content - Takes 7 columns on large screens */}
             <div className="lg:col-span-7 z-10">
               <div className="flex flex-col gap-6 max-w-2xl">
+              
+
                 {/* Small Badge */}
                 <div className="inline-flex items-center gap-2 bg-foreground text-background px-4 py-2 rounded-full w-fit text-sm font-medium">
                   <span className="relative flex h-2 w-2">
@@ -189,22 +220,24 @@ export function HeroSection() {
               {/* Main Image */}
               <div className="absolute top-0 right-0 w-[70%] h-[75%] rounded-3xl overflow-hidden shadow-2xl border-4 border-background">
                 <Image
-                  src={settings.hero_primary_image_url || "/fashion-models-wearing-modern-streetwear.jpg"}
+                  src={getAbsoluteImageUrl(settings.hero_primary_image_url)}
                   alt="Fashion model"
                   fill
                   sizes="(max-width: 768px) 70vw, 40vw"
                   className="object-cover w-full h-full"
+                  unoptimized
                 />
               </div>
 
               {/* Secondary Image - Overlapping */}
               <div className="absolute bottom-0 left-0 w-[60%] h-[50%] rounded-3xl overflow-hidden shadow-2xl border-4 border-background">
                 <Image 
-                  src={settings.hero_secondary_image_url || "/product-model.jpg"} 
+                  src={getAbsoluteImageUrl(settings.hero_secondary_image_url, "/product-model.jpg")} 
                   alt="Fashion style" 
                   fill
                   sizes="(max-width: 768px) 60vw, 30vw"
                   className="object-cover w-full h-full"
+                  unoptimized
                 />
               </div>
 

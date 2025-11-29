@@ -8,24 +8,26 @@ import { ProductGrid } from "@/components/product-grid"
 import { CategoryFilters } from "@/components/category-filters"
 import { NewsletterSection } from "@/components/newsletter-section"
 import { ecommerceApi, EcommerceProduct } from "@/lib/api"
+import { useLoading } from "@/hooks/useLoading"
 
 export default function ShopPage() {
   const [products, setProducts] = useState<EcommerceProduct[]>([])
-  const [loading, setLoading] = useState(true)
+  const { startLoading, stopLoading } = useLoading()
 
   useEffect(() => {
     const fetchAll = async () => {
       try {
+        startLoading()
         const data = await ecommerceApi.getAllProducts()
         setProducts(data.products)
       } catch (e) {
         console.error('Failed to fetch products', e)
       } finally {
-        setLoading(false)
+        stopLoading()
       }
     }
     fetchAll()
-  }, [])
+  }, [startLoading, stopLoading])
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -40,10 +42,7 @@ export default function ShopPage() {
             </aside>
 
             <div className="flex-1">
-              {loading ? (
-                <div className="text-center py-8">Loading products...</div>
-              ) : (
-                <ProductGrid
+              <ProductGrid
                   category="All"
                   products={products.map(p => ({
                     id: p.id,
@@ -53,7 +52,6 @@ export default function ShopPage() {
                     image: p.primary_image || p.image_url || p.image || "/placeholder.jpg",
                   }))}
                 />
-              )}
             </div>
           </div>
         </div>
