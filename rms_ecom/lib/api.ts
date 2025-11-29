@@ -346,6 +346,27 @@ export const ecommerceApi = {
   // Public: Price cart items on the server
   priceCart: async (items: Array<{ productId: string | number; quantity: number; variations?: Record<string, string> }>): Promise<{
     items: Array<{ productId: number; name: string; image_url?: string | null; unit_price: number; quantity: number; line_total: number; max_stock?: number; variant?: { color?: string | null; size?: string | null } }>
+    products: Array<{
+      id: number
+      name: string
+      sku: string
+      description?: string
+      selling_price: string
+      original_price?: string | null
+      discount?: number | null
+      stock_quantity: number
+      image?: string
+      image_url?: string
+      online_category_name?: string
+      online_category_id?: number
+      available_colors: Array<{ name: string; hex: string }>
+      available_sizes: string[]
+      variants: Array<any>
+      primary_image?: string
+      images_ordered: string[]
+      created_at: string
+      updated_at: string
+    }>
     subtotal: number
     delivery: { inside_dhaka_charge: number; inside_gazipur_charge: number; outside_dhaka_charge: number; updated_at: string }
   }> => {

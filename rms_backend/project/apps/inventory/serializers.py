@@ -407,74 +407,25 @@ class EcommerceProductDetailSerializer(EcommerceProductSerializer):
             pass
         return features
     
-    def _get_size_order(self, size_str):
-        """Get numeric order value for size sorting (XS < S < M < L < XL < XXL < 3XL, etc.)"""
-        if not size_str:
-            return 9999
-        
-        size_upper = str(size_str).upper().strip()
-        
-        # Standard size order mapping
-        size_order_map = {
-            'XS': 1, 'XXS': 0.5,
-            'S': 2,
-            'M': 3,
-            'L': 4,
-            'XL': 5, 'X-L': 5,
-            'XXL': 6, '2XL': 6, 'X-XL': 6,
-            '3XL': 7, 'XXXL': 7,
-            '4XL': 8, 'XXXXL': 8,
-            '5XL': 9, 'XXXXXL': 9,
-        }
-        
-        # Check if it's a standard size
-        if size_upper in size_order_map:
-            return size_order_map[size_upper]
-        
-        # Try to extract numeric value (e.g., "28", "30", "32")
-        try:
-            # Remove non-numeric characters and convert
-            import re
-            numeric_part = re.sub(r'[^\d.]', '', size_upper)
-            if numeric_part:
-                return float(numeric_part) + 100  # Offset numeric sizes to come after standard sizes
-        except:
-            pass
-        
-        # For unknown sizes, use alphabetical order with high offset
-        return 1000 + ord(size_upper[0]) if size_upper else 9999
-    
     def get_size_chart(self, obj):
-        """Get size chart from variations with deduplication and proper ordering"""
-        size_chart_dict = {}
+        """Get size chart from variations - deduplicated by size"""
+        size_chart = []
+        seen_sizes = set()
         try:
             variations = obj.variations.filter(is_active=True)
             for var in variations:
-                size_key = str(var.size).strip()
-                # Deduplicate: keep first occurrence or prefer one with more complete data
-                if size_key not in size_chart_dict:
-                    size_chart_dict[size_key] = {
-                        'size': size_key,
+                # Normalize size for comparison (case-insensitive)
+                size_key = var.size.upper().strip() if var.size else ''
+                if size_key and size_key not in seen_sizes:
+                    seen_sizes.add(size_key)
+                    size_chart.append({
+                        'size': var.size,
                         'chest': f"{var.chest_size}" if var.chest_size else 'N/A',
                         'waist': f"{var.waist_size}" if var.waist_size else 'N/A',
                         'height': f"{var.height}" if var.height else 'N/A'
-                    }
-                else:
-                    # If duplicate, prefer entry with more complete data
-                    existing = size_chart_dict[size_key]
-                    if var.chest_size and existing['chest'] == 'N/A':
-                        existing['chest'] = f"{var.chest_size}"
-                    if var.waist_size and existing['waist'] == 'N/A':
-                        existing['waist'] = f"{var.waist_size}"
-                    if var.height and existing['height'] == 'N/A':
-                        existing['height'] = f"{var.height}"
+                    })
         except:
             pass
-        
-        # Convert dict to list and sort by size order
-        size_chart = list(size_chart_dict.values())
-        size_chart.sort(key=lambda x: self._get_size_order(x['size']))
-        
         return size_chart
 
 class ProductVariationSerializer(serializers.ModelSerializer):

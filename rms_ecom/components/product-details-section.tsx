@@ -1,6 +1,7 @@
 "use client"
 
 import { cn, processSizeChart } from "@/lib/utils"
+import { useMemo } from "react"
 
 import { Ruler, Package, Users, Shirt } from "lucide-react"
 
@@ -12,34 +13,17 @@ interface ProductDetailsSectionProps {
   features?: Array<{ title: string; description: string }>
 }
 
-export function ProductDetailsSection({ description, sizeChart, materials, whoIsThisFor, features }: ProductDetailsSectionProps) {
-  // Process size chart from API: deduplicate and sort by size order
-  const sizeChartData = processSizeChart(sizeChart)
-  const materialsData = (materials && materials.length > 0) ? materials : [
-    { name: "Cotton", percentage: "60%" },
-    { name: "Polyester", percentage: "35%" },
-    { name: "Elastane", percentage: "5%" },
-  ]
-  const whoIsThisForData = (whoIsThisFor && whoIsThisFor.length > 0) ? whoIsThisFor : [
-    { title: "Everyday Wear", description: "Ideal for daily comfort and casual outings with a relaxed fit." },
-    { title: "Active Lifestyle", description: "Breathable fabric suitable for light workouts and travel." },
-  ]
-  const featuresData = (features && features.length > 0) ? features : [
-    { title: "Soft & Breathable", description: "Premium combed cotton blend for all‑day comfort." },
-    { title: "Durable Stitching", description: "Reinforced seams for long‑lasting wear." },
-    { title: "Easy Care", description: "Machine washable with minimal shrinkage." },
-  ]
+export function ProductDetailsSection({ sizeChart, materials, whoIsThisFor, features }: ProductDetailsSectionProps) {
+  // Process size chart: deduplicate and sort by size (S > M > L > XL > XXL, etc.)
+  const sizeChartData = useMemo(() => {
+    return processSizeChart(sizeChart || []);
+  }, [sizeChart]);
+
+  const materialsData = materials || []
+  const whoIsThisForData = whoIsThisFor || []
+  const featuresData = features || []
   return (
     <div className="grid gap-8 lg:gap-12">
-      {/* Product Description Section */}
-      {description && (
-        <div>
-          <p className="text-muted-foreground leading-relaxed text-base lg:text-lg whitespace-pre-line">
-            {description}
-          </p>
-        </div>
-      )}
-
       {/* Size Chart Section */}
       <div>
         <div className="flex items-center gap-3 mb-6">
@@ -49,41 +33,39 @@ export function ProductDetailsSection({ description, sizeChart, materials, whoIs
           <h2 className="text-xl lg:text-2xl font-bold">Size Chart</h2>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left py-4 px-4 font-semibold text-sm lg:text-base">Size</th>
-                <th className="text-left py-4 px-4 font-semibold text-sm lg:text-base">Chest (inches)</th>
-                <th className="text-left py-4 px-4 font-semibold text-sm lg:text-base">Waist (inches)</th>
-                <th className="text-left py-4 px-4 font-semibold text-sm lg:text-base">Height</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sizeChartData.length > 0 ? (
-                sizeChartData.map((row, index) => (
-                  <tr key={`${row.size}-${index}`} className={cn("border-b border-border", index % 2 === 0 && "bg-muted/30")}>
-                    <td className="py-4 px-4 font-medium text-sm lg:text-base">{row.size}</td>
-                    <td className="py-4 px-4 text-muted-foreground text-sm lg:text-base">{row.chest}</td>
-                    <td className="py-4 px-4 text-muted-foreground text-sm lg:text-base">{row.waist}</td>
-                    <td className="py-4 px-4 text-muted-foreground text-sm lg:text-base">{row.height}</td>
+        {sizeChartData.length > 0 ? (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left py-4 px-4 font-semibold text-sm lg:text-base">Size</th>
+                    <th className="text-left py-4 px-4 font-semibold text-sm lg:text-base">Chest (inches)</th>
+                    <th className="text-left py-4 px-4 font-semibold text-sm lg:text-base">Waist (inches)</th>
+                    <th className="text-left py-4 px-4 font-semibold text-sm lg:text-base">Height</th>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={4} className="py-8 px-4 text-center text-muted-foreground text-sm lg:text-base">
-                    No size chart available
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                </thead>
+                <tbody>
+                  {sizeChartData.map((row, index) => (
+                    <tr key={`${row.size}-${index}`} className={cn("border-b border-border", index % 2 === 0 && "bg-muted/30")}>
+                      <td className="py-4 px-4 font-medium text-sm lg:text-base">{row.size}</td>
+                      <td className="py-4 px-4 text-muted-foreground text-sm lg:text-base">{row.chest}</td>
+                      <td className="py-4 px-4 text-muted-foreground text-sm lg:text-base">{row.waist}</td>
+                      <td className="py-4 px-4 text-muted-foreground text-sm lg:text-base">{row.height}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-        <p className="mt-4 text-sm text-muted-foreground">
-          All measurements are approximate and may vary slightly. For the best fit, we recommend measuring your body and
-          comparing it to the size chart.
-        </p>
+            <p className="mt-4 text-sm text-muted-foreground">
+              All measurements are approximate and may vary slightly. For the best fit, we recommend measuring your body and
+              comparing it to the size chart.
+            </p>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">Size chart information is not available for this product.</p>
+        )}
       </div>
 
       {/* Material Composition Section */}

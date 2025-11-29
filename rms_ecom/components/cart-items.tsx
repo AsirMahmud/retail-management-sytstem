@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { useCartStore } from "@/hooks/useCartStore"
 import { ecommerceApi } from "@/lib/api"
 import { getImageUrl } from "@/lib/utils"
-import { useLoading } from "@/hooks/useLoading"
 
 interface PricedCartItem {
   productId: number
@@ -21,36 +20,65 @@ interface PricedCartItem {
   variant?: { color?: string | null; size?: string | null }
 }
 
+interface ProductInfo {
+  id: number
+  name: string
+  sku: string
+  description?: string
+  selling_price: string
+  original_price?: string | null
+  discount?: number | null
+  stock_quantity: number
+  image?: string
+  image_url?: string
+  online_category_name?: string
+  online_category_id?: number
+  available_colors: Array<{ name: string; hex: string }>
+  available_sizes: string[]
+  variants: Array<any>
+  primary_image?: string
+  images_ordered: string[]
+  created_at: string
+  updated_at: string
+}
+
 export function CartItems() {
   const items = useCartStore((s) => s.items)
   const updateQty = useCartStore((s) => s.updateQuantity)
   const removeLine = useCartStore((s) => s.removeItem)
   const [pricedItems, setPricedItems] = useState<PricedCartItem[]>([])
-  const { startLoading, stopLoading } = useLoading()
+  const [products, setProducts] = useState<ProductInfo[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchPricedItems = async () => {
       if (items.length === 0) {
         setPricedItems([])
+        setLoading(false)
         return
       }
 
       try {
-        startLoading()
+        setLoading(true)
         const response = await ecommerceApi.priceCart(items)
         setPricedItems(response.items)
+        setProducts(response.products || [])
       } catch (error) {
         console.error("Failed to fetch cart prices:", error)
       } finally {
-        stopLoading()
+        setLoading(false)
       }
     }
 
     fetchPricedItems()
-  }, [items, startLoading, stopLoading])
+  }, [items])
 
   if (items.length === 0) {
     return <div className="text-center text-muted-foreground py-8">Your cart is empty.</div>
+  }
+
+  if (loading) {
+    return <div className="text-center text-muted-foreground py-8">Loading cart items...</div>
   }
 
   return (
@@ -74,10 +102,26 @@ export function CartItems() {
           return piColor === itemColor && piSize === itemSize
         })
 
-        const productName = (pricedItem?.name && pricedItem.name.trim()) || `Product ${it.productId}`
-        const productImage = getImageUrl(pricedItem?.image_url)
+        // Get full product information from products array
+        const productInfo = products.find((p) => p.id === Number(it.productId))
+
+        // Use product info for full details, fallback to pricedItem, then item data
+        const productName = productInfo?.name || (pricedItem?.name && pricedItem.name.trim()) || `Product ${it.productId}`
+        const productSku = productInfo?.sku || ''
+        const productCategory = productInfo?.online_category_name || ''
+        
+        // Use primary_image from product info if available, otherwise use image_url from pricedItem
+        const productImage = getImageUrl(
+          productInfo?.primary_image || 
+          productInfo?.image_url || 
+          pricedItem?.image_url || 
+          null
+        )
+        
         const color = pricedItem?.variant?.color || it.variations?.color
         const size = pricedItem?.variant?.size || it.variations?.size
+        const originalPrice = productInfo?.original_price ? Number(productInfo.original_price) : null
+        const discount = productInfo?.discount || null
 
         return (
           <div key={`${it.productId}-${JSON.stringify(it.variations||{})}`} className="flex gap-4 p-4 border rounded-lg bg-card">
@@ -87,18 +131,28 @@ export function CartItems() {
                 alt={productName}
                 fill
                 className="object-cover"
-                sizes="96px"
               />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex justify-between items-start gap-4">
                 <div className="flex-1">
                   <h3 className="font-semibold text-base md:text-lg mb-1">{productName}</h3>
-                  <p className="text-xs text-muted-foreground mb-1">ID: {it.productId}</p>
+                  {productSku && (
+                    <p className="text-xs text-muted-foreground mb-1">SKU: {productSku}</p>
+                  )}
+                  {productCategory && (
+                    <p className="text-xs text-muted-foreground mb-1">{productCategory}</p>
+                  )}
                   {(color || size) && (
                     <div className="flex gap-2 text-sm text-muted-foreground mt-1">
                       {color && <span>Color: <span className="font-medium">{color}</span></span>}
                       {size && <span>Size: <span className="font-medium">{size}</span></span>}
+                    </div>
+                  )}
+                  {originalPrice && originalPrice > (pricedItem?.unit_price || 0) && discount && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-muted-foreground line-through">৳{originalPrice.toFixed(2)}</span>
+                      <span className="text-xs text-destructive font-medium">-{discount}%</span>
                     </div>
                   )}
                 </div>

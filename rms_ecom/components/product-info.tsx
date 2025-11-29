@@ -91,18 +91,7 @@ export function ProductInfo({ productId, product, colorLinks }: ProductInfoProps
         <h1 className="font-serif text-3xl lg:text-[40px] font-bold mb-3 leading-tight">{toTitleCase(product.name)}</h1>
 
         {/* Stock Information Badge */}
-        {selectedSizeStock > 0 && (
-          <div className="mb-4">
-            <Badge 
-              variant={selectedSizeStock < 10 ? "destructive" : selectedSizeStock < 20 ? "secondary" : "default"}
-              className="text-sm px-3 py-1"
-            >
-              {selectedSizeStock < 10 
-                ? `Only ${selectedSizeStock} left` 
-                : `${selectedSizeStock} in stock`}
-            </Badge>
-          </div>
-        )}
+      
         
         {/* Show out of stock badge when no stock */}
         {selectedSizeStock === 0 && (
@@ -177,6 +166,18 @@ export function ProductInfo({ productId, product, colorLinks }: ProductInfoProps
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-muted-foreground">Choose Size</h3>
         </div>
+        {selectedSizeStock > 0 && (
+          <div className="mb-4">
+            <Badge 
+              variant={selectedSizeStock < 10 ? "destructive" : selectedSizeStock < 20 ? "secondary" : "default"}
+              className="text-sm px-3 py-1 rounded-full"
+            >
+              {selectedSizeStock < 10 
+                ? `Only ${selectedSizeStock} left` 
+                : `${selectedSizeStock} in stock`}
+            </Badge>
+          </div>
+        )}
         <div className="flex flex-wrap gap-3">
           {availableSizesWithStock.map((sizeInfo) => (
             <button

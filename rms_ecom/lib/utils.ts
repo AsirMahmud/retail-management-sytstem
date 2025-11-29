@@ -33,97 +33,83 @@ export function getImageUrl(imagePath: string | null | undefined): string {
 }
 
 /**
- * Get numeric order value for size sorting (XS < S < M < L < XL < XXL < 3XL, etc.)
- * @param size - The size string to get order for
- * @returns Numeric order value for sorting
+ * Sort sizes in a logical order: XS < S < M < L < XL < XXL < 3XL, etc.
+ * Also handles numeric sizes (28, 30, 32, etc.)
  */
-export function getSizeOrder(size: string | null | undefined): number {
-  if (!size) return 9999;
-  
-  const sizeUpper = String(size).toUpperCase().trim();
-  
-  // Standard size order mapping
-  const sizeOrderMap: Record<string, number> = {
-    'XXS': 0.5,
+export function sortSizes(sizes: string[]): string[] {
+  const sizeOrder: { [key: string]: number } = {
     'XS': 1,
     'S': 2,
     'M': 3,
     'L': 4,
     'XL': 5,
-    'X-L': 5,
     'XXL': 6,
     '2XL': 6,
-    'X-XL': 6,
     '3XL': 7,
-    'XXXL': 7,
     '4XL': 8,
-    'XXXXL': 8,
     '5XL': 9,
-    'XXXXXL': 9,
   };
-  
-  // Check if it's a standard size
-  if (sizeUpper in sizeOrderMap) {
-    return sizeOrderMap[sizeUpper];
-  }
-  
-  // Try to extract numeric value (e.g., "28", "30", "32")
-  const numericPart = sizeUpper.replace(/[^\d.]/g, '');
-  if (numericPart) {
-    const numericValue = parseFloat(numericPart);
-    if (!isNaN(numericValue)) {
-      return numericValue + 100; // Offset numeric sizes to come after standard sizes
+
+  return [...sizes].sort((a, b) => {
+    const aUpper = a.toUpperCase().trim();
+    const bUpper = b.toUpperCase().trim();
+
+    // Check if both are in the predefined order
+    const aOrder = sizeOrder[aUpper];
+    const bOrder = sizeOrder[bUpper];
+
+    if (aOrder !== undefined && bOrder !== undefined) {
+      return aOrder - bOrder;
     }
-  }
-  
-  // For unknown sizes, use alphabetical order with high offset
-  return 1000 + (sizeUpper.charCodeAt(0) || 0);
+
+    // If only one is in the order, prioritize the one in order
+    if (aOrder !== undefined) return -1;
+    if (bOrder !== undefined) return 1;
+
+    // Try to parse as numbers
+    const aNum = parseFloat(aUpper);
+    const bNum = parseFloat(bUpper);
+
+    if (!isNaN(aNum) && !isNaN(bNum)) {
+      return aNum - bNum;
+    }
+
+    // If only one is a number, prioritize the number
+    if (!isNaN(aNum)) return -1;
+    if (!isNaN(bNum)) return 1;
+
+    // Fall back to string comparison
+    return aUpper.localeCompare(bUpper);
+  });
 }
 
 /**
- * Process and sort size chart data with deduplication
- * @param sizeChart - Array of size chart entries from API
- * @returns Deduplicated and sorted size chart array
+ * Process size chart data: deduplicate and sort by size
  */
 export function processSizeChart(
-  sizeChart?: Array<{ size: string; chest: string; waist: string; height: string }>
+  sizeChart: Array<{ size: string; chest: string; waist: string; height: string }>
 ): Array<{ size: string; chest: string; waist: string; height: string }> {
   if (!sizeChart || sizeChart.length === 0) {
     return [];
   }
+
+  // Deduplicate by size (keep first occurrence)
+  const seen = new Set<string>();
+  const unique: Array<{ size: string; chest: string; waist: string; height: string }> = [];
   
-  // Deduplicate by size
-  const sizeMap = new Map<string, { size: string; chest: string; waist: string; height: string }>();
-  
-  for (const entry of sizeChart) {
-    const sizeKey = String(entry.size).trim();
-    if (!sizeKey) continue;
-    
-    if (!sizeMap.has(sizeKey)) {
-      sizeMap.set(sizeKey, {
-        size: sizeKey,
-        chest: entry.chest || 'N/A',
-        waist: entry.waist || 'N/A',
-        height: entry.height || 'N/A',
-      });
-    } else {
-      // If duplicate, prefer entry with more complete data
-      const existing = sizeMap.get(sizeKey)!;
-      if (entry.chest && entry.chest !== 'N/A' && existing.chest === 'N/A') {
-        existing.chest = entry.chest;
-      }
-      if (entry.waist && entry.waist !== 'N/A' && existing.waist === 'N/A') {
-        existing.waist = entry.waist;
-      }
-      if (entry.height && entry.height !== 'N/A' && existing.height === 'N/A') {
-        existing.height = entry.height;
-      }
+  for (const item of sizeChart) {
+    const sizeKey = item.size?.toUpperCase().trim() || '';
+    if (sizeKey && !seen.has(sizeKey)) {
+      seen.add(sizeKey);
+      unique.push(item);
     }
   }
+
+  // Sort by size
+  const sortedSizes = sortSizes(unique.map(item => item.size));
   
-  // Convert to array and sort by size order
-  const sortedChart = Array.from(sizeMap.values());
-  sortedChart.sort((a, b) => getSizeOrder(a.size) - getSizeOrder(b.size));
-  
-  return sortedChart;
+  // Reorder the array based on sorted sizes
+  return sortedSizes.map(size => {
+    return unique.find(item => item.size.toUpperCase().trim() === size.toUpperCase().trim())!;
+  }).filter(Boolean);
 }
