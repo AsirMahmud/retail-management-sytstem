@@ -195,20 +195,17 @@ export function CheckoutSummary() {
 
             // Get full product information from products array
             const productInfo = products.find((p) => p.id === numericProductId)
-
+           
             // Use product info for full details, fallback to pricedItem, then item data
             const productName = productInfo?.name || (pricedItem?.name && pricedItem.name.trim()) || `Product ${numericProductId}`
             const productSku = productInfo?.sku || ''
             const productDescription = productInfo?.description || ''
             const productCategory = productInfo?.online_category_name || ''
             
-            // Use primary_image from product info if available, otherwise use image_url from pricedItem
-            const productImage = getImageUrl(
-              productInfo?.primary_image || 
-              productInfo?.image_url || 
-              pricedItem?.image_url || 
-              null
-            )
+            // Prioritize primary_image from product info, then fallback to other image sources
+            
+            const productImage = productInfo?.primary_image?productInfo.primary_image:"/placeholder.svg" 
+            
             
             const color = pricedItem?.variant?.color || it.variations?.color
             const size = pricedItem?.variant?.size || it.variations?.size
@@ -225,10 +222,7 @@ export function CheckoutSummary() {
                     fill 
                     className="object-cover"
                     sizes="80px"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.src = "/placeholder.svg";
-                    }}
+                   
                   />
                 </div>
                 <div className="flex-1 min-w-0">
