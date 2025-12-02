@@ -224,7 +224,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "https://rawstitch.info",
     "https://rawstitch.vercel.app",
-    "https://retail-management-sytstem-omega.vercel.app"
+    "https://retail-management-sytstem-omega.vercel.app",
+    "https://www.rawstitch.com.bd"
 
 ]
 

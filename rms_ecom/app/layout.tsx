@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   },
   description: "Raw Stitch - Your premier destination for premium fashion and clothing. Discover the latest trends in men's, women's, and unisex fashion. Shop quality apparel with style and confidence.",
   keywords: ["Raw Stitch", "fashion", "clothing", "apparel", "men's fashion", "women's fashion", "online shopping", "fashion store", "premium clothing", "Bangladesh fashion"],
-  authors: [{ name: "Raw Stitch" }],
+  authors: [{ name: "Asir Mahmud" }],
   creator: "Raw Stitch",
   publisher: "Raw Stitch",
   formatDetection: {
@@ -93,7 +93,7 @@ export default function RootLayout({
               t.src=v;s=b.getElementsByTagName(e)[0];
               s.parentNode.insertBefore(t,s)}(window, document,'script',
               'https://connect.facebook.net/en_US/fbevents.js');
-              fbq('init', '3742262609400768');
+              fbq('init', '1172486235071828');
               fbq('track', 'PageView');
             `,
           }}
@@ -103,7 +103,7 @@ export default function RootLayout({
             height="1"
             width="1"
             style={{ display: "none" }}
-            src="https://www.facebook.com/tr?id=3742262609400768&ev=PageView&noscript=1"
+            src="https://www.facebook.com/tr?id=1172486235071828&ev=PageView&noscript=1"
             alt=""
           />
         </noscript>

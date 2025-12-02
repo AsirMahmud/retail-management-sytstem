@@ -144,3 +144,4 @@ If you have a logo file (like `placeholder-logo.png`):
 - This is normal - each platform uses different sizes
 - Ensure all sizes are provided for best compatibility
 
+

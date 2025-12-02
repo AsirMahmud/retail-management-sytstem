@@ -12,3 +12,4 @@ export default function WomenLayout({ children }: { children: React.ReactNode })
   return <>{children}</>
 }
 
+
