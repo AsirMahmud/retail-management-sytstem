@@ -100,12 +100,12 @@ const mainNavItems = [
     icon: Globe,
     href: "/ecommerce-settings",
     subItems: [
-      { title: "Product Settings", href: "/ecommerce-settings" },
+    
       { title: "Home Page Settings", href: "/ecommerce-settings/home-page" },
       { title: "Discount Management", href: "/ecommerce-settings/discounts" },
       { title: "Product Status", href: "/ecommerce-settings/product-status" },
       { title: "Delivery Charges", href: "/ecommerce-settings/delivery-charges" },
-      { title: "Open Ecommerce Site", href: "https://retail-management-sytstem-omega.vercel.app/" },
+      { title: "Open Ecommerce Site", href: "https:/rawstitch.com.bd" },
     ],
   },
 ];
