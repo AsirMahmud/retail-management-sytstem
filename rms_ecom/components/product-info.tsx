@@ -25,9 +25,11 @@ interface ProductInfoProps {
   }
   // Optional: when provided, render color options as links (navigating to other color pages)
   colorLinks?: Array<{ name: string; value: string; href: string; active?: boolean; oos?: boolean }>
+  onAddToCart?: (payload: { quantity: number; size?: string; color?: string }) => void
+  onBuyNow?: (payload: { quantity: number; size?: string; color?: string }) => void
 }
 
-export function ProductInfo({ productId, product, colorLinks }: ProductInfoProps) {
+export function ProductInfo({ productId, product, colorLinks, onAddToCart, onBuyNow }: ProductInfoProps) {
   const [selectedColor, setSelectedColor] = useState(0)
   const [selectedSize, setSelectedSize] = useState(0)
   const [quantity, setQuantity] = useState(1)
@@ -251,6 +253,7 @@ export function ProductInfo({ productId, product, colorLinks }: ProductInfoProps
                   size: sizeName,
                 },
               })
+              onAddToCart?.({ quantity, size: sizeName, color: colorName })
             }}
           >
             {selectedSizeStock === 0 ? "Out of Stock" : "Add to Cart"}
@@ -276,6 +279,7 @@ export function ProductInfo({ productId, product, colorLinks }: ProductInfoProps
               addedAt: Date.now(),
             }
             setDirectCheckoutItems([directCheckoutItem])
+            onBuyNow?.({ quantity, size: sizeName, color: colorName })
             router.push("/checkout")
           }}
         >

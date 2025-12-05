@@ -15,6 +15,12 @@ import { StructuredData } from "@/components/structured-data"
 import { generateProductStructuredData, generateBreadcrumbStructuredData } from "@/lib/seo"
 import { useLoading } from "@/hooks/useLoading"
 
+const trackFbEvent = (event: string, payload: Record<string, unknown>) => {
+  if (typeof window !== "undefined" && (window as any).fbq) {
+    (window as any).fbq("track", event, payload)
+  }
+}
+
 export default function ProductByColorPage() {
   const params = useParams()
   const router = useRouter()
@@ -85,6 +91,20 @@ export default function ProductByColorPage() {
     run()
   }, [productId, colorSlug, router, startLoading, stopLoading])
 
+  // Fire ViewContent once the product data is loaded so Meta Catalog can match items
+  useEffect(() => {
+    if (!data) return
+    const price = Number(data.product.price) || undefined
+    const contentId = data.product.id.toString()
+    trackFbEvent("ViewContent", {
+      content_ids: [contentId],
+      content_type: "product",
+      content_name: `${data.product.name} - ${data.color.name}`,
+      currency: "BDT",
+      value: price,
+    })
+  }, [data])
+
   // Compute external color toggler links consistently to keep hook order stable
   const colorToggler = useMemo(() => {
     const available = data?.available_colors ?? []
@@ -152,6 +172,42 @@ export default function ProductByColorPage() {
                 productId={data.product.id}
                 product={productInfo} 
                 colorLinks={colorToggler.map(c => ({ name: c.name, value: c.hex, href: c.href, active: c.active, oos: c.oos }))} 
+              onAddToCart={(payload) => {
+                const price = Number(data.product.price) || undefined
+                const contentId = data.product.id.toString()
+                trackFbEvent("AddToCart", {
+                  content_ids: [contentId],
+                  content_type: "product",
+                  currency: "BDT",
+                  value: price,
+                  contents: [{
+                    id: contentId,
+                    quantity: payload.quantity,
+                    item_price: price,
+                    color: payload.color,
+                    size: payload.size,
+                  }],
+                  num_items: payload.quantity,
+                })
+              }}
+              onBuyNow={(payload) => {
+                const price = Number(data.product.price) || undefined
+                const contentId = data.product.id.toString()
+                trackFbEvent("InitiateCheckout", {
+                  content_ids: [contentId],
+                  content_type: "product",
+                  currency: "BDT",
+                  value: price ? price * payload.quantity : undefined,
+                  contents: [{
+                    id: contentId,
+                    quantity: payload.quantity,
+                    item_price: price,
+                    color: payload.color,
+                    size: payload.size,
+                  }],
+                  num_items: payload.quantity,
+                })
+              }}
               />
             </div>
           </div>

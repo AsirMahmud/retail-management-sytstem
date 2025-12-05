@@ -147,7 +147,9 @@ export function generateProductStructuredData(
   product: ProductDetailByColorResponse,
   baseUrl: string = SITE_URL
 ): object {
+  const productId = product.product.id.toString()
   const productUrl = `${baseUrl}/product/${product.product.id}/${product.color.slug}`
+  const priceNumber = Number(product.product.price)
   const productImage = product.images.length > 0 
     ? (product.images[0].url.startsWith("http") ? product.images[0].url : `${baseUrl}${product.images[0].url}`)
     : `${baseUrl}/og-image.jpg`
@@ -155,6 +157,9 @@ export function generateProductStructuredData(
   return {
     "@context": "https://schema.org",
     "@type": "Product",
+    "@id": productUrl,
+    productID: productId,
+    sku: productId,
     name: `${product.product.name} - ${product.color.name}`,
     description: `Premium ${product.product.category || "fashion"} from Raw Stitch in ${product.color.name}`,
     image: product.images.map(img => 
@@ -168,7 +173,8 @@ export function generateProductStructuredData(
       "@type": "Offer",
       url: productUrl,
       priceCurrency: "BDT",
-      price: product.product.price,
+      price: priceNumber,
+      sku: productId,
       availability: product.total_stock_for_color > 0 
         ? "https://schema.org/InStock" 
         : "https://schema.org/OutOfStock",
