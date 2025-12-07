@@ -69,6 +69,9 @@ export const metadata: Metadata = {
     canonical: process.env.NEXT_PUBLIC_SITE_URL || "https://rawstitch.com.bd",
   },
   category: "fashion",
+  other: {
+    "facebook-domain-verification": "xa42obkhic8rvhzlbholcsagiquj5j",
+  },
 }
 
 export default function RootLayout({
