@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { homePageSettingsApi } from "@/lib/api/ecommerce";
 
 const formSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -27,6 +28,7 @@ type FormValues = z.infer<typeof formSchema>;
 export default function LoginPage() {
   const { login } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [branding, setBranding] = useState<{ logo_image_url?: string; logo_text?: string }>({});
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -35,6 +37,22 @@ export default function LoginPage() {
       password: "",
     },
   });
+
+  useEffect(() => {
+    const fetchBranding = async () => {
+      try {
+        const data = await homePageSettingsApi.get();
+        setBranding({
+          logo_image_url: data.logo_image_url,
+          logo_text: data.logo_text,
+        });
+      } catch (err) {
+        console.error("Failed to load branding", err);
+      }
+    };
+
+    fetchBranding();
+  }, []);
 
   const onSubmit = async (values: FormValues) => {
     try {
@@ -56,7 +74,18 @@ export default function LoginPage() {
           />
         </div>
         <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px] order-1 md:order-2">
-          <div className="flex flex-col space-y-2 text-center">
+          <div className="flex flex-col space-y-3 text-center items-center">
+            {branding.logo_image_url ? (
+              <img
+                src={branding.logo_image_url}
+                alt={branding.logo_text || "Brand logo"}
+                className="h-12 w-auto"
+              />
+            ) : (
+              <span className="text-xl font-semibold tracking-tight">
+                {branding.logo_text || "Raw Stitch"}
+              </span>
+            )}
             <h1 className="text-2xl font-semibold tracking-tight">
               Welcome back
             </h1>
