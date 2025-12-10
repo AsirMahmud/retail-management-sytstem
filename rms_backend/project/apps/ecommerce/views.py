@@ -8,8 +8,8 @@ from django.utils import timezone
 from django.db.models import Q
 from django.db import IntegrityError
 from datetime import datetime
-from .models import Discount, Brand, HomePageSettings, DeliverySettings
-from .serializers import DiscountSerializer, DiscountListSerializer, BrandSerializer, HomePageSettingsSerializer, DeliverySettingsSerializer
+from .models import Discount, Brand, HomePageSettings, DeliverySettings, HeroSlide
+from .serializers import DiscountSerializer, DiscountListSerializer, BrandSerializer, HomePageSettingsSerializer, DeliverySettingsSerializer, HeroSlideSerializer
 from django.utils.text import slugify
 from apps.inventory.models import Product, ProductVariation, Gallery, Image, OnlineCategory
 from apps.inventory.serializers import EcommerceProductSerializer
@@ -535,6 +535,34 @@ class DeliverySettingsView(APIView):
         serializer = DeliverySettingsSerializer(settings, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        return Response(serializer.data)
+
+
+class HeroSlideViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing hero slides
+    """
+    queryset = HeroSlide.objects.all()
+    serializer_class = HeroSlideSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+    
+    def get_queryset(self):
+        queryset = HeroSlide.objects.all()
+        # Filter by active status if requested
+        is_active = self.request.query_params.get('is_active', None)
+        if is_active is not None:
+            queryset = queryset.filter(is_active=is_active.lower() == 'true')
+        return queryset.order_by('display_order', 'created_at')
+
+
+class PublicHeroSlidesView(APIView):
+    """Public API endpoint for active hero slides"""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        slides = HeroSlide.objects.filter(is_active=True).order_by('display_order', 'created_at')
+        serializer = HeroSlideSerializer(slides, many=True, context={'request': request})
         return Response(serializer.data)
 
 
