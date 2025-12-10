@@ -5,14 +5,18 @@ import {
   brandsApi,
   homePageSettingsApi,
   productEcommerceApi,
+  heroSlidesApi,
   Discount,
   Brand,
   HomePageSettings,
+  HeroSlide,
   CreateDiscountDTO,
   UpdateDiscountDTO,
   CreateBrandDTO,
   UpdateBrandDTO,
-  UpdateHomePageSettingsDTO
+  UpdateHomePageSettingsDTO,
+  CreateHeroSlideDTO,
+  UpdateHeroSlideDTO
 } from '@/lib/api/ecommerce';
 
 // Query Keys
@@ -39,6 +43,13 @@ export const ecommerceKeys = {
   products: {
     all: () => [...ecommerceKeys.all, 'products'] as const,
     ecommerceStatus: (id: number) => [...ecommerceKeys.products.all(), 'ecommerce-status', id] as const,
+  },
+  heroSlides: {
+    all: () => [...ecommerceKeys.all, 'hero-slides'] as const,
+    lists: () => [...ecommerceKeys.heroSlides.all(), 'list'] as const,
+    list: (filters: string) => [...ecommerceKeys.heroSlides.lists(), { filters }] as const,
+    details: () => [...ecommerceKeys.heroSlides.all(), 'detail'] as const,
+    detail: (id: number) => [...ecommerceKeys.heroSlides.details(), id] as const,
   },
 };
 
@@ -168,6 +179,54 @@ export const useUpdateProductEcommerceStatus = () => {
       // Invalidate product queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['inventory', 'products', 'list'] });
       queryClient.invalidateQueries({ queryKey: ['inventory', 'products', 'detail', productId] });
+    },
+  });
+};
+
+// Hero Slides Hooks
+export const useHeroSlides = (filters?: string) => {
+  return useQuery({
+    queryKey: ecommerceKeys.heroSlides.list(filters || ''),
+    queryFn: heroSlidesApi.getAll,
+  });
+};
+
+export const useHeroSlide = (id: number) => {
+  return useQuery({
+    queryKey: ecommerceKeys.heroSlides.detail(id),
+    queryFn: () => heroSlidesApi.getById(id),
+    enabled: !!id,
+  });
+};
+
+export const useCreateHeroSlide = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: heroSlidesApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ecommerceKeys.heroSlides.lists() });
+    },
+  });
+};
+
+export const useUpdateHeroSlide = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: heroSlidesApi.update,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ecommerceKeys.heroSlides.lists() });
+      queryClient.invalidateQueries({ queryKey: ecommerceKeys.heroSlides.detail(data.id) });
+    },
+  });
+};
+
+export const useDeleteHeroSlide = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: heroSlidesApi.delete,
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ecommerceKeys.heroSlides.lists() });
+      queryClient.invalidateQueries({ queryKey: ecommerceKeys.heroSlides.detail(id) });
     },
   });
 };

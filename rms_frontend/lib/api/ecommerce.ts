@@ -137,6 +137,53 @@ export interface UpdateHomePageSettingsDTO {
   stat_customers?: string;
 }
 
+export interface HeroSlide {
+  id: number;
+  title: string;
+  subtitle?: string;
+  button_text: string;
+  image?: string;
+  image_url?: string;
+  bg_color: string;
+  layout: 'clean-left' | 'centered-clean' | 'split-clean' | 'image-showcase' | 'bold-left';
+  title_class: string;
+  subtitle_class: string;
+  stats: Array<{ value: string; label: string }>;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateHeroSlideDTO {
+  title: string;
+  subtitle?: string;
+  button_text?: string;
+  image?: File;
+  bg_color?: string;
+  layout?: 'clean-left' | 'centered-clean' | 'split-clean' | 'image-showcase' | 'bold-left';
+  title_class?: string;
+  subtitle_class?: string;
+  stats?: Array<{ value: string; label: string }>;
+  display_order?: number;
+  is_active?: boolean;
+}
+
+export interface UpdateHeroSlideDTO {
+  id: number;
+  title?: string;
+  subtitle?: string;
+  button_text?: string;
+  image?: File;
+  bg_color?: string;
+  layout?: 'clean-left' | 'centered-clean' | 'split-clean' | 'image-showcase' | 'bold-left';
+  title_class?: string;
+  subtitle_class?: string;
+  stats?: Array<{ value: string; label: string }>;
+  display_order?: number;
+  is_active?: boolean;
+}
+
 // Discounts API
 export const discountsApi = {
   getAll: async (): Promise<Discount[]> => {
@@ -235,5 +282,62 @@ export const productEcommerceApi = {
   }): Promise<any> => {
     const { data } = await axiosInstance.patch(`/inventory/products/${productId}/update_ecommerce_status/`, status);
     return data;
+  },
+};
+
+// Hero Slides API
+export const heroSlidesApi = {
+  getAll: async (): Promise<HeroSlide[]> => {
+    const { data } = await axiosInstance.get('/ecommerce/hero-slides/');
+    return data.results || data;
+  },
+
+  getById: async (id: number): Promise<HeroSlide> => {
+    const { data } = await axiosInstance.get(`/ecommerce/hero-slides/${id}/`);
+    return data;
+  },
+
+  create: async (slide: CreateHeroSlideDTO): Promise<HeroSlide> => {
+    const formData = new FormData();
+    formData.append('title', slide.title);
+    if (slide.subtitle) formData.append('subtitle', slide.subtitle);
+    if (slide.button_text) formData.append('button_text', slide.button_text);
+    if (slide.image) formData.append('image', slide.image);
+    if (slide.bg_color) formData.append('bg_color', slide.bg_color);
+    if (slide.layout) formData.append('layout', slide.layout);
+    if (slide.title_class) formData.append('title_class', slide.title_class);
+    if (slide.subtitle_class) formData.append('subtitle_class', slide.subtitle_class);
+    if (slide.stats) formData.append('stats', JSON.stringify(slide.stats));
+    if (slide.display_order !== undefined) formData.append('display_order', slide.display_order.toString());
+    if (slide.is_active !== undefined) formData.append('is_active', slide.is_active.toString());
+
+    const { data } = await axiosInstance.post('/ecommerce/hero-slides/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
+
+  update: async ({ id, ...slide }: UpdateHeroSlideDTO): Promise<HeroSlide> => {
+    const formData = new FormData();
+    if (slide.title) formData.append('title', slide.title);
+    if (slide.subtitle !== undefined) formData.append('subtitle', slide.subtitle);
+    if (slide.button_text) formData.append('button_text', slide.button_text);
+    if (slide.image) formData.append('image', slide.image);
+    if (slide.bg_color) formData.append('bg_color', slide.bg_color);
+    if (slide.layout) formData.append('layout', slide.layout);
+    if (slide.title_class) formData.append('title_class', slide.title_class);
+    if (slide.subtitle_class) formData.append('subtitle_class', slide.subtitle_class);
+    if (slide.stats) formData.append('stats', JSON.stringify(slide.stats));
+    if (slide.display_order !== undefined) formData.append('display_order', slide.display_order.toString());
+    if (slide.is_active !== undefined) formData.append('is_active', slide.is_active.toString());
+
+    const { data } = await axiosInstance.patch(`/ecommerce/hero-slides/${id}/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await axiosInstance.delete(`/ecommerce/hero-slides/${id}/`);
   },
 };

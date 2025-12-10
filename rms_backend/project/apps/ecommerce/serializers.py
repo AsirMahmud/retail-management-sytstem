@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Discount, Brand, HomePageSettings, DeliverySettings
+from .models import Discount, Brand, HomePageSettings, DeliverySettings, HeroSlide
 from apps.inventory.serializers import ProductSerializer, CategorySerializer, OnlineCategorySerializer
 
 
@@ -319,4 +319,38 @@ class DeliverySettingsSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = ['updated_at']
+
+
+class HeroSlideSerializer(serializers.ModelSerializer):
+    """Serializer for HeroSlide model"""
+    image_url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = HeroSlide
+        fields = [
+            'id',
+            'title',
+            'subtitle',
+            'button_text',
+            'image',
+            'image_url',
+            'bg_color',
+            'layout',
+            'title_class',
+            'subtitle_class',
+            'stats',
+            'display_order',
+            'is_active',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+    
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
 

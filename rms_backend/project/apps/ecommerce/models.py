@@ -259,3 +259,66 @@ class DeliverySettings(models.Model):
         # Prevent deletion of the singleton
         pass
 
+
+class HeroSlide(models.Model):
+    """Model for managing hero section slides"""
+    LAYOUT_CHOICES = [
+        ('clean-left', 'Clean Left'),
+        ('centered-clean', 'Centered Clean'),
+        ('split-clean', 'Split Clean'),
+        ('image-showcase', 'Image Showcase'),
+        ('bold-left', 'Bold Left'),
+    ]
+    
+    BG_COLOR_CHOICES = [
+        ('bg-slate-950', 'Slate 950'),
+        ('bg-orange-950', 'Orange 950'),
+        ('bg-purple-950', 'Purple 950'),
+        ('bg-emerald-950', 'Emerald 950'),
+        ('bg-slate-900', 'Slate 900'),
+        ('bg-blue-950', 'Blue 950'),
+        ('bg-red-950', 'Red 950'),
+        ('bg-green-950', 'Green 950'),
+    ]
+    
+    title = models.CharField(max_length=200, help_text="Main title (use \\n for line breaks)")
+    subtitle = models.TextField(max_length=500, blank=True, null=True)
+    button_text = models.CharField(max_length=50, default="Shop Now")
+    image = models.ImageField(upload_to='hero_slides/', help_text="Hero slide background image")
+    bg_color = models.CharField(max_length=50, choices=BG_COLOR_CHOICES, default='bg-slate-950')
+    layout = models.CharField(max_length=50, choices=LAYOUT_CHOICES, default='clean-left')
+    
+    # Title styling
+    title_class = models.CharField(
+        max_length=200,
+        default="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-black text-white leading-tight tracking-tighter",
+        help_text="CSS classes for title styling"
+    )
+    
+    # Subtitle styling
+    subtitle_class = models.CharField(
+        max_length=200,
+        default="text-sm sm:text-base text-white/80 max-w-lg leading-relaxed",
+        help_text="CSS classes for subtitle styling"
+    )
+    
+    # Stats (stored as JSON)
+    stats = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Array of stats objects: [{'value': '200+', 'label': 'Brands'}]"
+    )
+    
+    display_order = models.PositiveIntegerField(default=0, help_text="Order of display (lower numbers appear first)")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['display_order', 'created_at']
+        verbose_name = 'Hero Slide'
+        verbose_name_plural = 'Hero Slides'
+    
+    def __str__(self):
+        return f"{self.title} (Order: {self.display_order})"
+

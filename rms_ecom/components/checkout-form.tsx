@@ -163,19 +163,76 @@ export function CheckoutForm() {
       // Fetch authoritative prices and delivery charges
       const pricingResponse = await ecommerceApi.priceCart(cartItems)
       
-      // Fetch authoritative prices for each product
-      const uniqueIds = Array.from(new Set(cartItems.map((i) => Number(i.productId))))
-      const idToPrice = new Map<number, number>()
-      await Promise.all(
-        uniqueIds.map(async (id) => {
-          const detail = await ecommerceApi.getProductDetail(id)
-          idToPrice.set(id, Number(detail.product.selling_price))
+      // Helper function to extract numeric product ID (handles cases like "141/blue")
+      const extractNumericProductId = (productId: string | number): number => {
+        if (typeof productId === 'number') {
+          return productId
+        }
+        if (typeof productId === 'string' && productId.includes('/')) {
+          const parts = productId.split('/')
+          return Number(parts[0]) || 0
+        }
+        return Number(productId) || 0
+      }
+
+      // Helper function to normalize variation values for matching
+      const normalizeValue = (val: string | null | undefined) => {
+        if (!val) return null
+        return String(val).trim() || null
+      }
+
+      // Create a map of product info from pricing response
+      const productInfoMap = new Map<number, { original_price: number | null; discount: number | null }>()
+      if (pricingResponse.products) {
+        pricingResponse.products.forEach((product) => {
+          productInfoMap.set(product.id, {
+            original_price: product.original_price ? Number(product.original_price) : null,
+            discount: product.discount || null
+          })
         })
-      )
+      }
 
       const items = cartItems.map((it) => {
-        const pid = Number(it.productId)
-        const unit_price = idToPrice.get(pid) ?? 0
+        const pid = extractNumericProductId(it.productId)
+        
+        // Find matching priced item from pricing response
+        const itemColor = normalizeValue(it.variations?.color)
+        const itemSize = normalizeValue(it.variations?.size)
+        
+        const pricedItem = pricingResponse.items?.find((pi) => {
+          if (pi.productId !== pid) return false
+          const piColor = normalizeValue(pi.variant?.color)
+          const piSize = normalizeValue(pi.variant?.size)
+          const colorMatch = (piColor === itemColor) || (!piColor && !itemColor)
+          const sizeMatch = (piSize === itemSize) || (!piSize && !itemSize)
+          return colorMatch && sizeMatch
+        })
+
+        if (!pricedItem) {
+          throw new Error(`Pricing information not found for product ID: ${pid}`)
+        }
+
+        // Get product discount info
+        const productInfo = productInfoMap.get(pid)
+        const originalPrice = productInfo?.original_price
+        const discountPercent = productInfo?.discount
+
+        // Calculate unit price and discount amount
+        let unit_price = pricedItem.unit_price
+        let discountAmount = 0
+
+        // If we have original price and discount percentage, calculate discount amount
+        if (originalPrice && discountPercent && discountPercent > 0) {
+          const discountedPrice = originalPrice * (1 - discountPercent / 100)
+          // Backend expects: (quantity * unit_price) - discount = final total
+          // So: unit_price should be original_price, discount = (original - discounted) * quantity
+          unit_price = originalPrice
+          discountAmount = (originalPrice - discountedPrice) * it.quantity
+        } else {
+          // No discount, use the unit_price from pricing response (already discounted if applicable)
+          unit_price = pricedItem.unit_price
+        }
+        
         const size = it.variations?.size || ""
         const color = it.variations?.color || ""
         return {
@@ -184,7 +241,7 @@ export function CheckoutForm() {
           color,
           quantity: it.quantity,
           unit_price,
-          discount: 0,
+          discount: discountAmount,
         }
       })
 

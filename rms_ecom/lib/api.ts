@@ -329,6 +329,29 @@ export const ecommerceApi = {
     return response.json();
   },
 
+  // Get hero slides
+  getHeroSlides: async (): Promise<Array<{
+    id: number;
+    title: string;
+    subtitle?: string;
+    button_text: string;
+    image?: string;
+    image_url?: string;
+    bg_color: string;
+    layout: string;
+    title_class: string;
+    subtitle_class: string;
+    stats: Array<{ value: string; label: string }>;
+    display_order: number;
+    is_active: boolean;
+  }>> => {
+    const response = await fetch(`${API_BASE_URL}/ecommerce/public/hero-slides/`, {
+      cache: 'no-store',
+    });
+    if (!response.ok) throw new Error('Failed to fetch hero slides');
+    return response.json();
+  },
+
   // Get active app-wide discounts
   getActiveAppWideDiscount: async (): Promise<Discount[]> => {
     const response = await fetch(`${API_BASE_URL}/ecommerce/discounts/active/?discount_type=APP_WIDE`);
@@ -411,6 +434,42 @@ export const ecommerceApi = {
         throw new Error(errorData.error || errorData.detail || 'Failed to create online preorder')
       } catch {
         throw new Error(`Failed to create online preorder (${response.status})`)
+      }
+    }
+    return response.json()
+  },
+
+  // Get Online Preorder by ID
+  getOnlinePreorder: async (id: number): Promise<{
+    id: number;
+    customer_name: string;
+    customer_phone: string;
+    customer_email?: string;
+    items: Array<{
+      product_id: number;
+      size: string;
+      color: string;
+      quantity: number;
+      unit_price: number;
+      discount?: number;
+    }>;
+    shipping_address?: Record<string, unknown>;
+    delivery_charge: number;
+    delivery_method?: string;
+    total_amount: number;
+    status: string;
+    notes?: string;
+    expected_delivery_date?: string;
+    created_at: string;
+    updated_at: string;
+  }> => {
+    const response = await fetch(`${API_BASE_URL}/online-preorder/orders/${id}/`)
+    if (!response.ok) {
+      try {
+        const errorData = await response.json()
+        throw new Error(errorData.error || errorData.detail || 'Failed to fetch online preorder')
+      } catch {
+        throw new Error(`Failed to fetch online preorder (${response.status})`)
       }
     }
     return response.json()

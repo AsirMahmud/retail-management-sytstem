@@ -12,12 +12,15 @@ from .views import (
     DeliverySettingsView,
     PublicCartPriceView,
     CreateOnlinePreorderView,
+    HeroSlideViewSet,
+    PublicHeroSlidesView,
 )
 
 router = DefaultRouter()
 router.register(r'discounts', DiscountViewSet, basename='discount')
 router.register(r'brands', BrandViewSet, basename='brand')
 router.register(r'home-page-settings', HomePageSettingsViewSet, basename='home-page-settings')
+router.register(r'hero-slides', HeroSlideViewSet, basename='hero-slide')
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -29,5 +32,6 @@ urlpatterns = [
     path('delivery-settings/', DeliverySettingsView.as_view(), name='delivery-settings'),
     path('public/cart/price/', PublicCartPriceView.as_view(), name='public-cart-price'),
     path('orders/create/', CreateOnlinePreorderView.as_view(), name='create-online-preorder'),
+    path('public/hero-slides/', PublicHeroSlidesView.as_view(), name='public-hero-slides'),
 ]
 
