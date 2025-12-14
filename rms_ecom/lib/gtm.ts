@@ -1,4 +1,4 @@
-type GTMEvent = 'add_to_cart' | 'purchase' | 'view_item' | 'begin_checkout' | 'remove_from_cart';
+type GTMEvent = 'add_to_cart' | 'purchase' | 'view_item' | 'begin_checkout' | 'remove_from_cart' | 'view_item_list';
 
 interface GTMItem {
     item_id: string;
@@ -23,6 +23,9 @@ interface GTMParams {
 }
 
 export const sendGTMEvent = (event: GTMEvent, params: GTMParams) => {
+    // Log event for debugging
+    console.log(`[GTM] ${event}`, params);
+
     if (typeof window !== 'undefined' && (window as any).dataLayer) {
         (window as any).dataLayer.push({
             event,

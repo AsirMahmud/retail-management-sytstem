@@ -218,7 +218,12 @@ export function CartItems() {
                   variant="ghost"
                   size="icon"
                   className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
-                  onClick={() => removeLine(String(it.productId), it.variations)}
+                  onClick={() => removeLine(String(it.productId), it.variations, {
+                    name: productName,
+                    price: unitPrice,
+                    quantity: it.quantity,
+                    discount: discount || 0
+                  })}
                 >
                   <Trash2 className="h-5 w-5" />
                   <span className="sr-only">Remove item</span>
@@ -230,7 +235,12 @@ export function CartItems() {
                     variant="ghost"
                     size="icon"
                     className="h-6 w-6 rounded-full hover:bg-background"
-                    onClick={() => updateQty(String(it.productId), it.quantity - 1, it.variations)}
+                    onClick={() => updateQty(String(it.productId), it.quantity - 1, it.variations, {
+                      name: productName,
+                      price: unitPrice,
+                      quantity: it.quantity,
+                      discount: discount || 0
+                    })}
                   >
                     <Minus className="h-3 w-3" />
                     <span className="sr-only">Decrease quantity</span>
@@ -244,7 +254,12 @@ export function CartItems() {
                     onClick={() => {
                       const max = pricedItem?.max_stock
                       if (max && it.quantity >= max) return
-                      updateQty(String(it.productId), it.quantity + 1, it.variations)
+                      updateQty(String(it.productId), it.quantity + 1, it.variations, {
+                        name: productName,
+                        price: unitPrice,
+                        quantity: it.quantity,
+                        discount: discount || 0
+                      })
                     }}
                   >
                     <Plus className="h-3 w-3" />

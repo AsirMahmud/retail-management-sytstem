@@ -10,8 +10,8 @@ type CartState = {
 
 type CartActions = {
     addItem: (input: { productId: string; quantity?: number; variations?: Record<string, string>; productDetails?: any }) => void
-    removeItem: (productId: string, variations?: Record<string, string>) => void
-    updateQuantity: (productId: string, quantity: number, variations?: Record<string, string>) => void
+    removeItem: (productId: string, variations?: Record<string, string>, productDetails?: any) => void
+    updateQuantity: (productId: string, quantity: number, variations?: Record<string, string>, productDetails?: any) => void
     clearCart: () => void
     refreshFromStorage: () => void
 }
@@ -53,13 +53,45 @@ export const useCartStore = create<CartState & CartActions>((set, get) => ({
         }
     },
 
-    removeItem: (productId, variations) => {
+    removeItem: (productId, variations, productDetails) => {
+        // GTM Event
+        if (productDetails) {
+            sendGTMEvent('remove_from_cart', {
+                currency: 'BDT',
+                value: productDetails.price * (productDetails.quantity || 1),
+                items: [{
+                    item_id: productId,
+                    item_name: productDetails.name,
+                    price: productDetails.price,
+                    quantity: productDetails.quantity || 1,
+                    discount: productDetails.discount,
+                    item_variant: variations ? Object.values(variations).join('-') : undefined
+                }]
+            })
+        }
+
         removeItemFromCart(productId, variations)
         const items = getCart()
         set({ items, totalItems: computeTotalItems(items) })
     },
 
-    updateQuantity: (productId, quantity, variations) => {
+    updateQuantity: (productId, quantity, variations, productDetails) => {
+        // GTM Event if removing
+        if (quantity <= 0 && productDetails) {
+            sendGTMEvent('remove_from_cart', {
+                currency: 'BDT',
+                value: productDetails.price * (productDetails.quantity || 1),
+                items: [{
+                    item_id: productId,
+                    item_name: productDetails.name,
+                    price: productDetails.price,
+                    quantity: productDetails.quantity || 1, // The quantity being removed is the current quantity
+                    discount: productDetails.discount,
+                    item_variant: variations ? Object.values(variations).join('-') : undefined
+                }]
+            })
+        }
+
         updateCartQuantity(productId, quantity, variations)
         const items = getCart()
         set({ items, totalItems: computeTotalItems(items) })
