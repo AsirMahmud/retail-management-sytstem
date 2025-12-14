@@ -45,7 +45,7 @@ export function ProductInfo({ productId, product, colorLinks, onAddToCart, onBuy
 
   // Get current color
   const currentColor = product.colors[selectedColor]
-  
+
   // Get available sizes for selected color with stock info
   const availableSizesWithStock = useMemo(() => {
     if (!product.variants || product.variants.length === 0) {
@@ -58,13 +58,13 @@ export function ProductInfo({ productId, product, colorLinks, onAddToCart, onBuy
         variant: null,
       }))
     }
-    
+
     return product.sizes.map((size, index) => {
       // Find variant for this specific size + color combination
       const variant = product.variants.find(
         v => v.size === size && v.color === currentColor.name
       )
-      
+
       const stock = variant?.stock || 0
       return {
         size,
@@ -93,12 +93,12 @@ export function ProductInfo({ productId, product, colorLinks, onAddToCart, onBuy
         <h1 className="font-serif text-3xl lg:text-[40px] font-bold mb-3 leading-tight">{toTitleCase(product.name)}</h1>
 
         {/* Stock Information Badge */}
-      
-        
+
+
         {/* Show out of stock badge when no stock */}
         {selectedSizeStock === 0 && (
           <div className="mb-4">
-            <Badge 
+            <Badge
               variant="destructive"
               className="text-sm px-3 py-1"
             >
@@ -170,12 +170,12 @@ export function ProductInfo({ productId, product, colorLinks, onAddToCart, onBuy
         </div>
         {selectedSizeStock > 0 && (
           <div className="mb-4">
-            <Badge 
+            <Badge
               variant={selectedSizeStock < 10 ? "destructive" : selectedSizeStock < 20 ? "secondary" : "default"}
               className="text-sm px-3 py-1 rounded-full"
             >
-              {selectedSizeStock < 10 
-                ? `Only ${selectedSizeStock} left` 
+              {selectedSizeStock < 10
+                ? `Only ${selectedSizeStock} left`
                 : `${selectedSizeStock} in stock`}
             </Badge>
           </div>
@@ -194,11 +194,11 @@ export function ProductInfo({ productId, product, colorLinks, onAddToCart, onBuy
               className={cn(
                 "rounded-full px-6 py-2.5 text-sm font-medium transition-all relative group",
                 !sizeInfo.inStock && "opacity-50 cursor-not-allowed",
-                selectedSize === sizeInfo.index 
-                  ? "bg-foreground text-background" 
+                selectedSize === sizeInfo.index
+                  ? "bg-foreground text-background"
                   : sizeInfo.inStock
-                  ? "bg-muted hover:bg-muted/80 text-foreground"
-                  : "bg-muted/50 text-muted-foreground"
+                    ? "bg-muted hover:bg-muted/80 text-foreground"
+                    : "bg-muted/50 text-muted-foreground"
               )}
               title={sizeInfo.inStock ? `${currentColor.name} ${sizeInfo.size}: ${sizeInfo.stock} in stock` : "Out of stock"}
             >
@@ -237,8 +237,8 @@ export function ProductInfo({ productId, product, colorLinks, onAddToCart, onBuy
             </button>
           </div>
 
-          <Button 
-            size="lg" 
+          <Button
+            size="lg"
             className="flex-1 rounded-full h-auto py-4 text-base font-medium"
             disabled={selectedSizeStock === 0}
             onClick={() => {
@@ -252,6 +252,11 @@ export function ProductInfo({ productId, product, colorLinks, onAddToCart, onBuy
                   color: colorName,
                   size: sizeName,
                 },
+                productDetails: {
+                  name: product.name,
+                  price: discounted,
+                  discount: finalDiscount,
+                }
               })
               onAddToCart?.({ quantity, size: sizeName, color: colorName })
             }}
@@ -260,8 +265,8 @@ export function ProductInfo({ productId, product, colorLinks, onAddToCart, onBuy
           </Button>
         </div>
 
-        <Button 
-          size="lg" 
+        <Button
+          size="lg"
           className="w-full rounded-full h-auto py-4 text-base font-medium bg-white text-black border-2 border-black hover:bg-black hover:text-white transition-colors"
           disabled={selectedSizeStock === 0}
           onClick={() => {

@@ -77,7 +77,18 @@ export function ProductCard({ id, name, price, originalPrice, image, discount }:
             <div className="pt-1 space-y-2">
               <Button
                 className="w-full rounded-full bg-black text-white hover:bg-black/90"
-                onClick={(e) => { e.preventDefault(); addToCart({ productId: id, quantity: 1 }) }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  addToCart({
+                    productId: id,
+                    quantity: 1,
+                    productDetails: {
+                      name,
+                      price: numericDiscounted,
+                      discount: finalDiscount
+                    }
+                  })
+                }}
               >
                 Add to Cart
               </Button>

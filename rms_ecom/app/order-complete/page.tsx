@@ -9,6 +9,7 @@ import { SiteFooter } from "@/components/site-footer"
 import { useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { ecommerceApi } from "@/lib/api"
+import { sendGTMEvent } from "@/lib/gtm"
 
 interface OnlinePreorder {
   id: number;
@@ -62,6 +63,27 @@ export default function OrderCompletePage() {
 
     fetchOrder()
   }, [preorderId])
+
+  // GTM Purchase Event
+  useEffect(() => {
+    if (order) {
+      sendGTMEvent('purchase', {
+        transaction_id: String(order.id),
+        value: order.total_amount,
+        tax: 0,
+        shipping: order.delivery_charge,
+        currency: 'BDT',
+        items: order.items.map(item => ({
+          item_id: String(item.product_id),
+          item_name: `Product ${item.product_id}`, // Ideally we'd have the name here, but api might not return it directly in items?
+          price: item.unit_price,
+          quantity: item.quantity,
+          discount: item.discount,
+          item_variant: `${item.color || ''} ${item.size || ''}`.trim()
+        }))
+      })
+    }
+  }, [order])
 
   const formatPrice = (value: number | string): string => {
     const num = Number(value)
@@ -218,7 +240,7 @@ export default function OrderCompletePage() {
             )}
 
             <p className="text-sm text-muted-foreground mb-8">
-              {order.customer_email 
+              {order.customer_email
                 ? "A confirmation email has been sent to your email address with order details and tracking information."
                 : "Your order has been placed successfully. We will contact you soon with order updates."}
             </p>

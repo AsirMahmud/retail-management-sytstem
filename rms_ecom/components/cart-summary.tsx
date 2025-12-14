@@ -38,7 +38,30 @@ export function CartSummary() {
       try {
         startLoading()
         setLocalLoading(true)
-        const response = await ecommerceApi.priceCart(items)
+
+        // Normalize items: extract numeric productId and ensure variations are properly set
+        const normalizedItems = items.map((item) => {
+          let productId: string | number = item.productId
+          let variations = item.variations ? { ...item.variations } : {}
+
+          // If productId contains a slash (e.g., "141/blue"), extract the numeric ID and color
+          if (typeof item.productId === 'string' && item.productId.includes('/')) {
+            const parts = item.productId.split('/')
+            productId = parts[0] // Get the numeric part
+            // If color is not already in variations, extract it from productId
+            if (!variations.color && parts.length > 1) {
+              variations.color = parts.slice(1).join('/') // Handle multi-part colors
+            }
+          }
+
+          return {
+            productId: productId,
+            quantity: item.quantity,
+            variations: Object.keys(variations).length > 0 ? variations : undefined
+          }
+        })
+
+        const response = await ecommerceApi.priceCart(normalizedItems)
         // Convert all values to numbers to ensure proper type handling
         setCartPricing({
           subtotal: Number(response.subtotal) || 0,

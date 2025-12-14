@@ -67,11 +67,26 @@ export default function LoginPage() {
     <div className="container flex h-screen w-screen items-center justify-center">
       <div className="grid w-full grid-cols-1 md:grid-cols-2 gap-8 items-center">
         <div className="hidden md:flex items-center justify-center order-2 md:order-1">
-          <img
-            src="/raw_stitch.JPG"
-            alt="Login illustration"
-            className="w-full h-auto max-w-lg object-cover rounded-lg shadow-lg"
-          />
+          <div className="relative w-full max-w-lg">
+            <img
+              src="/raw_stitch.JPG"
+              alt="Login illustration"
+              className="w-full h-auto object-cover rounded-lg shadow-lg"
+            />
+            <div className="absolute top-4 left-4 rounded-md bg-background/80 px-3 py-2 shadow-sm backdrop-blur">
+              {branding.logo_image_url ? (
+                <img
+                  src={branding.logo_image_url}
+                  alt={branding.logo_text || "Brand logo"}
+                  className="h-10 w-auto"
+                />
+              ) : (
+                <span className="text-lg font-semibold tracking-tight">
+                  {branding.logo_text || "Raw Stitch"}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
         <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px] order-1 md:order-2">
           <div className="flex flex-col space-y-3 text-center items-center">
