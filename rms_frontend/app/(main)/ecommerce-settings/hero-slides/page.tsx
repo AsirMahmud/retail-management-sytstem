@@ -91,6 +91,80 @@ const SUBTITLE_SIZE_OPTIONS = [
   { value: "small", label: "Small", class: "text-xs sm:text-sm md:text-base" },
 ];
 
+const HERO_PRESETS = [
+  {
+    key: "clean-left",
+    name: "Find Your Style",
+    description: "Clean left layout with bold numbers",
+    layout: "clean-left",
+    bg_color: "bg-slate-950",
+    title: "FIND YOUR\nSTYLE",
+    subtitle: "Discover meticulously crafted garments designed for you",
+    button_text: "Shop Now",
+    stats: [
+      { value: "200+", label: "Brands" },
+      { value: "2K+", label: "Products" },
+      { value: "30K+", label: "Customers" },
+    ],
+  },
+  {
+    key: "centered-clean",
+    name: "Summer Vibes",
+    description: "Centered hero with two stats",
+    layout: "centered-clean",
+    bg_color: "bg-orange-950",
+    title: "SUMMER\nVIBES",
+    subtitle: "Fresh seasonal styles with vibrant colors and breathable fabrics",
+    button_text: "Explore",
+    stats: [
+      { value: "500+", label: "Pieces" },
+      { value: "40%", label: "Off" },
+    ],
+  },
+  {
+    key: "split-clean",
+    name: "Pure Luxury",
+    description: "Split layout with image on the right",
+    layout: "split-clean",
+    bg_color: "bg-purple-950",
+    title: "PURE\nLUXURY",
+    subtitle: "Exclusive designer pieces that elevate your wardrobe",
+    button_text: "Discover",
+    stats: [
+      { value: "100+", label: "Designers" },
+      { value: "Limited", label: "Drops" },
+    ],
+  },
+  {
+    key: "image-showcase",
+    name: "Sustainable Fashion",
+    description: "Image-first layout with stats grid",
+    layout: "image-showcase",
+    bg_color: "bg-emerald-950",
+    title: "SUSTAINABLE\nFASHION",
+    subtitle: "Eco-friendly collection with organic materials",
+    button_text: "Shop Green",
+    stats: [
+      { value: "100%", label: "Organic" },
+      { value: "Fair", label: "Trade" },
+    ],
+  },
+  {
+    key: "bold-left",
+    name: "Workwear Essentials",
+    description: "Bold left layout for professional looks",
+    layout: "bold-left",
+    bg_color: "bg-slate-900",
+    title: "WORKWEAR\nESSENTIALS",
+    subtitle: "Professional pieces that work as hard as you do",
+    button_text: "Browse",
+    stats: [
+      { value: "150+", label: "Styles" },
+      { value: "All", label: "Sizes" },
+    ],
+  },
+];
+
 const TITLE_WEIGHT_OPTIONS = [
   { value: "black", label: "Black (Boldest)", class: "font-black" },
   { value: "bold", label: "Bold", class: "font-bold" },
@@ -341,6 +415,26 @@ export default function HeroSlidesPage() {
   const [titleWeight, setTitleWeight] = useState("black");
   const [titleLeading, setTitleLeading] = useState("tight");
   const [subtitleSize, setSubtitleSize] = useState("medium");
+
+  const applyPreset = (preset: (typeof HERO_PRESETS)[number]) => {
+    setFormData((prev) => ({
+      ...prev,
+      title: preset.title,
+      subtitle: preset.subtitle,
+      button_text: preset.button_text,
+      bg_color: preset.bg_color,
+      layout: preset.layout as any,
+      stats: preset.stats,
+      display_order: prev.display_order ?? slides?.length ?? 0,
+      is_active: prev.is_active ?? true,
+    }));
+    setStats(preset.stats || []);
+    // Reset styling to defaults for consistency
+    setTitleSize("extra-large");
+    setTitleWeight("black");
+    setTitleLeading("tight");
+    setSubtitleSize("medium");
+  };
 
   // Update title and subtitle classes when styling options change
   useEffect(() => {
@@ -631,6 +725,50 @@ export default function HeroSlidesPage() {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
                     {/* Form Section */}
                     <div className="space-y-6">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-base font-semibold">Presets</Label>
+                          <p className="text-xs text-muted-foreground">Apply ready-made hero layouts</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {HERO_PRESETS.map((preset) => (
+                            <button
+                              key={preset.key}
+                              type="button"
+                              onClick={() => applyPreset(preset)}
+                              className="group border rounded-lg p-3 text-left hover:border-primary transition-colors bg-white shadow-sm"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="space-y-1">
+                                  <div className="text-sm font-semibold">{preset.name}</div>
+                                  <div className="text-xs text-muted-foreground">{preset.description}</div>
+                                </div>
+                                <div
+                                  className="w-10 h-10 rounded-md border"
+                                  style={{ backgroundColor: (BG_COLOR_OPTIONS.find((c) => c.value === preset.bg_color)?.color) || "#0f172a" }}
+                                />
+                              </div>
+                              <div className="mt-2 text-[11px] text-muted-foreground">
+                                Layout: {preset.layout.replace("-", " ")}
+                              </div>
+                              <div className="mt-2 flex gap-2">
+                                {preset.stats.slice(0, 3).map((s, idx) => (
+                                  <span
+                                    key={idx}
+                                    className="text-[11px] px-2 py-1 rounded-full bg-slate-100 text-slate-700"
+                                  >
+                                    {s.value} {s.label}
+                                  </span>
+                                ))}
+                              </div>
+                              <div className="mt-3 inline-flex items-center text-xs font-medium text-primary group-hover:underline">
+                                Apply preset
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="title">Title *</Label>

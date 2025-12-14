@@ -11,18 +11,18 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 // Helper to ensure image URLs are absolute
 const getAbsoluteImageUrl = (url: string | null | undefined, fallback: string = "/fashion-models-wearing-modern-streetwear.jpg"): string => {
   if (!url) return fallback
-  
+
   // If already absolute URL, return as is
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url
   }
-  
+
   // If relative URL starting with /media/, make it absolute
   if (url.startsWith('/media/')) {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000'
     return `${baseUrl}${url}`
   }
-  
+
   // For other relative paths, assume they're in /media/
   const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:8000'
   return `${baseUrl}/media/${url.startsWith('/') ? url.slice(1) : url}`
@@ -121,7 +121,7 @@ export function HeroSection() {
             {/* Left Content - Takes 7 columns on large screens */}
             <div className="lg:col-span-7 z-10">
               <div className="flex flex-col gap-6 max-w-2xl">
-              
+
 
                 {/* Small Badge */}
                 <div className="inline-flex items-center gap-2 bg-foreground text-background px-4 py-2 rounded-full w-fit text-sm font-medium">
@@ -172,7 +172,7 @@ export function HeroSection() {
                       ) : (
                         organizedCategories.map((category) => {
                           const hasChildren = category.children && category.children.length > 0
-                          
+
                           if (hasChildren) {
                             return (
                               <DropdownMenuSub key={category.id}>
@@ -231,9 +231,9 @@ export function HeroSection() {
 
               {/* Secondary Image - Overlapping */}
               <div className="absolute bottom-0 left-0 w-[60%] h-[50%] rounded-3xl overflow-hidden shadow-2xl border-4 border-background">
-                <Image 
-                  src={getAbsoluteImageUrl(settings.hero_secondary_image_url, "/product-model.jpg")} 
-                  alt="Fashion style" 
+                <Image
+                  src={getAbsoluteImageUrl(settings.hero_secondary_image_url, "/product-model.jpg")}
+                  alt="Fashion style"
                   fill
                   sizes="(max-width: 768px) 60vw, 30vw"
                   className="object-cover w-full h-full"

@@ -60,7 +60,30 @@ export function CartItems() {
 
       try {
         setLoading(true)
-        const response = await ecommerceApi.priceCart(items)
+
+        // Normalize items: extract numeric productId and ensure variations are properly set
+        const normalizedItems = items.map((item) => {
+          let productId: string | number = item.productId
+          let variations = item.variations ? { ...item.variations } : {}
+
+          // If productId contains a slash (e.g., "141/blue"), extract the numeric ID and color
+          if (typeof item.productId === 'string' && item.productId.includes('/')) {
+            const parts = item.productId.split('/')
+            productId = parts[0] // Get the numeric part
+            // If color is not already in variations, extract it from productId
+            if (!variations.color && parts.length > 1) {
+              variations.color = parts.slice(1).join('/') // Handle multi-part colors
+            }
+          }
+
+          return {
+            productId: productId,
+            quantity: item.quantity,
+            variations: Object.keys(variations).length > 0 ? variations : undefined
+          }
+        })
+
+        const response = await ecommerceApi.priceCart(normalizedItems)
         setPricedItems(response.items)
         setProducts(response.products || [])
       } catch (error) {
@@ -74,11 +97,24 @@ export function CartItems() {
   }, [items])
 
   if (items.length === 0) {
-    return <div className="text-center text-muted-foreground py-8">Your cart is empty.</div>
+    return (
+      <div className="border border-dashed rounded-lg p-8 text-center">
+        <p className="text-muted-foreground mb-4">Your cart is empty.</p>
+        <Button asChild>
+          <a href="/">Continue Shopping</a>
+        </Button>
+      </div>
+    )
   }
 
   if (loading) {
-    return <div className="text-center text-muted-foreground py-8">Loading cart items...</div>
+    return (
+      <div className="space-y-4">
+        {[1, 2].map((i) => (
+          <div key={i} className="h-32 bg-muted animate-pulse rounded-lg" />
+        ))}
+      </div>
+    )
   }
 
   return (
@@ -93,38 +129,59 @@ export function CartItems() {
         const itemColor = normalizeValue(it.variations?.color)
         const itemSize = normalizeValue(it.variations?.size)
 
+        // Extract numeric product ID from string (handle cases like "141/blue")
+        let numericProductId: number
+        if (typeof it.productId === 'string' && it.productId.includes('/')) {
+          const parts = it.productId.split('/')
+          numericProductId = Number(parts[0]) || 0
+        } else {
+          numericProductId = Number(it.productId) || 0
+        }
+
         const pricedItem = pricedItems.find((pi) => {
-          if (pi.productId !== Number(it.productId)) return false
-          
+          if (pi.productId !== numericProductId) return false
+
           const piColor = normalizeValue(pi.variant?.color)
           const piSize = normalizeValue(pi.variant?.size)
-          
-          return piColor === itemColor && piSize === itemSize
+
+          // Match colors (both null/empty is considered a match)
+          const colorMatch = (piColor === itemColor) || (!piColor && !itemColor)
+
+          // Match sizes (both null/empty is considered a match)
+          const sizeMatch = (piSize === itemSize) || (!piSize && !itemSize)
+
+          return colorMatch && sizeMatch
         })
 
         // Get full product information from products array
-        const productInfo = products.find((p) => p.id === Number(it.productId))
+        const productInfo = products.find((p) => p.id === numericProductId)
 
         // Use product info for full details, fallback to pricedItem, then item data
-        const productName = productInfo?.name || (pricedItem?.name && pricedItem.name.trim()) || `Product ${it.productId}`
+        const productName = productInfo?.name || (pricedItem?.name && pricedItem.name.trim()) || `Product ${numericProductId}`
         const productSku = productInfo?.sku || ''
         const productCategory = productInfo?.online_category_name || ''
-        
-        // Use primary_image from product info if available, otherwise use image_url from pricedItem
-        const productImage = getImageUrl(
-          productInfo?.primary_image || 
-          productInfo?.image_url || 
-          pricedItem?.image_url || 
-          null
-        )
-        
-        const color = pricedItem?.variant?.color || it.variations?.color
-        const size = pricedItem?.variant?.size || it.variations?.size
+
+        // Prioritize primary_image from product info, then fallback to other image sources
+        const productImage = productInfo?.primary_image ? productInfo.primary_image : "/placeholder.svg"
+
+        const color = pricedItem?.variant?.color || itemColor // Use normalized color
+        const size = pricedItem?.variant?.size || itemSize   // Use normalized size
         const originalPrice = productInfo?.original_price ? Number(productInfo.original_price) : null
         const discount = productInfo?.discount || null
 
+        // Calculate unit price with discount applied
+        let unitPrice = pricedItem?.unit_price || Number(productInfo?.selling_price) || 0
+
+        // If we have original price and discount, calculate discounted price
+        if (originalPrice && discount && discount > 0) {
+          const discountedPrice = originalPrice * (1 - discount / 100)
+          unitPrice = discountedPrice
+        } else if (originalPrice && originalPrice > unitPrice) {
+          unitPrice = unitPrice > 0 ? unitPrice : originalPrice
+        }
+
         return (
-          <div key={`${it.productId}-${JSON.stringify(it.variations||{})}`} className="flex gap-4 p-4 border rounded-lg bg-card">
+          <div key={`${it.productId}-${JSON.stringify(it.variations || {})}`} className="flex gap-4 p-4 border rounded-lg bg-card">
             <div className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-muted">
               <Image
                 src={productImage}
@@ -149,12 +206,13 @@ export function CartItems() {
                       {size && <span>Size: <span className="font-medium">{size}</span></span>}
                     </div>
                   )}
-                  {originalPrice && originalPrice > (pricedItem?.unit_price || 0) && discount && (
+                  {originalPrice && originalPrice > unitPrice && (
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-xs text-muted-foreground line-through">৳{originalPrice.toFixed(2)}</span>
-                      <span className="text-xs text-destructive font-medium">-{discount}%</span>
+                      {discount && <span className="text-xs text-destructive font-medium">-{discount}%</span>}
                     </div>
                   )}
+                  <div className="font-semibold mt-1">৳{unitPrice.toFixed(2)}</div>
                 </div>
                 <Button
                   variant="ghost"
@@ -167,7 +225,6 @@ export function CartItems() {
                 </Button>
               </div>
               <div className="flex justify-between items-center mt-4">
-                <p className="text-sm text-muted-foreground">Price shown at checkout</p>
                 <div className="flex items-center gap-3 bg-muted rounded-full px-4 py-2">
                   <Button
                     variant="ghost"
@@ -194,6 +251,7 @@ export function CartItems() {
                     <span className="sr-only">Increase quantity</span>
                   </Button>
                 </div>
+                <div className="font-bold text-lg">৳{(unitPrice * it.quantity).toFixed(2)}</div>
               </div>
             </div>
           </div>
