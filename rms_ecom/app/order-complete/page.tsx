@@ -18,6 +18,7 @@ interface OnlinePreorder {
   customer_email?: string;
   items: Array<{
     product_id: number;
+    product_name?: string; // Added field
     size: string;
     color: string;
     quantity: number;
@@ -52,6 +53,34 @@ export default function OrderCompletePage() {
 
       try {
         const orderData = await ecommerceApi.getOnlinePreorder(Number(preorderId))
+
+        // Enrich with product names
+        try {
+          const cartItemsForPricing = orderData.items.map(item => ({
+            productId: item.product_id,
+            quantity: item.quantity,
+            variations: {
+              color: item.color,
+              size: item.size
+            }
+          }));
+          const validItems = cartItemsForPricing.filter(i => i.productId);
+          if (validItems.length > 0) {
+            const pricingData = await ecommerceApi.priceCart(validItems);
+            // Map names back to orderData items
+            orderData.items = orderData.items.map(item => {
+              const priced = pricingData.items.find(pi => pi.productId === item.product_id); // Simple match by ID
+              // Note: Matching by variant would be more precise but name is usually same for variants
+              return {
+                ...item,
+                product_name: priced?.name || undefined
+              };
+            });
+          }
+        } catch (e) {
+          console.warn("Failed to fetch product names for order", e);
+        }
+
         setOrder(orderData)
       } catch (err: any) {
         console.error("Failed to fetch order:", err)
@@ -75,13 +104,31 @@ export default function OrderCompletePage() {
         currency: 'BDT',
         items: order.items.map(item => ({
           item_id: String(item.product_id),
-          item_name: `Product ${item.product_id}`, // Ideally we'd have the name here, but api might not return it directly in items?
+          item_name: item.product_name || `Product ${item.product_id}`,
           price: item.unit_price,
           quantity: item.quantity,
           discount: item.discount,
           item_variant: `${item.color || ''} ${item.size || ''}`.trim()
         }))
       })
+
+      // Facebook Pixel Purchase
+      if (typeof window !== "undefined" && (window as any).fbq) {
+        (window as any).fbq('track', 'Purchase', {
+          content_ids: order.items.map(item => String(item.product_id)),
+          content_type: 'product',
+          currency: 'BDT',
+          value: order.total_amount,
+          contents: order.items.map(item => ({
+            id: String(item.product_id),
+            quantity: item.quantity,
+            item_price: item.unit_price,
+            color: item.color,
+            size: item.size
+          })),
+          num_items: order.items.reduce((sum, item) => sum + item.quantity, 0)
+        })
+      }
     }
   }, [order])
 
@@ -216,7 +263,7 @@ export default function OrderCompletePage() {
                   {order.items.map((item, index) => (
                     <div key={index} className="flex justify-between items-start pb-3 border-b last:border-0">
                       <div className="flex-1">
-                        <p className="font-medium">Product ID: {item.product_id}</p>
+                        <p className="font-medium">{item.product_name || `Product ID: ${item.product_id}`}</p>
                         <div className="text-sm text-muted-foreground mt-1">
                           {item.color && <span>Color: {item.color}</span>}
                           {item.color && item.size && <span className="mx-2">•</span>}

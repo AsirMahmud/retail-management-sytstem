@@ -9,6 +9,7 @@ import { ProductGallery } from "@/components/product-gallery"
 import { ProductInfo } from "@/components/product-info"
 import { Breadcrumb } from "@/components/breadcrumb"
 import { ecommerceApi, ProductDetailByColorResponse, EcommerceProduct, ProductByColorEntry } from "@/lib/api"
+import { sendGTMEvent } from "@/lib/gtm"
 import { ProductRecommendations } from "@/components/product-recommendations"
 import { ProductTabs } from "@/components/product-tabs"
 import { StructuredData } from "@/components/structured-data"
@@ -55,28 +56,28 @@ export default function ProductByColorPage() {
           who_is_this_for: showcase.product.who_is_this_for,
           features: showcase.product.features,
         })
-        
+
         // Fetch random products for "YOU MIGHT ALSO LIKE" section
         // Fetch a sample pool of products to randomize from (more efficient than fetching all)
         // Use pagination to get a good sample size (50-100 products)
-        const paginatedResponse = await ecommerceApi.getProductsByColorPaginated({ 
+        const paginatedResponse = await ecommerceApi.getProductsByColorPaginated({
           only_in_stock: true,
           page_size: 100, // Fetch up to 100 products for randomization
           page: 1
         })
-        
+
         // Filter out the current product and shuffle the rest
         const filteredProducts = paginatedResponse.results.filter(
           entry => entry.product_id !== productId
         )
-        
+
         // Shuffle array using Fisher-Yates algorithm for true randomization
         const shuffled = [...filteredProducts]
         for (let i = shuffled.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
         }
-        
+
         // Take first 8 products (or less if not enough available)
         const randomProducts = shuffled.slice(0, 8)
         setSuggested(randomProducts)
@@ -102,6 +103,19 @@ export default function ProductByColorPage() {
       content_name: `${data.product.name} - ${data.color.name}`,
       currency: "BDT",
       value: price,
+    })
+
+    // GTM View Item
+    sendGTMEvent('view_item', {
+      currency: 'BDT',
+      value: price,
+      items: [{
+        item_id: contentId,
+        item_name: data.product.name,
+        price: price,
+        item_variant: data.color.name,
+        quantity: 1
+      }]
     })
   }, [data])
 
@@ -168,46 +182,73 @@ export default function ProductByColorPage() {
           <div className="grid gap-8 lg:gap-12 grid-cols-1 lg:grid-cols-2">
             <ProductGallery images={galleryImages} />
             <div className="flex flex-col gap-4 lg:gap-5">
-              <ProductInfo 
+              <ProductInfo
                 productId={data.product.id}
-                product={productInfo} 
-                colorLinks={colorToggler.map(c => ({ name: c.name, value: c.hex, href: c.href, active: c.active, oos: c.oos }))} 
-              onAddToCart={(payload) => {
-                const price = Number(data.product.price) || undefined
-                const contentId = data.product.id.toString()
-                trackFbEvent("AddToCart", {
-                  content_ids: [contentId],
-                  content_type: "product",
-                  currency: "BDT",
-                  value: price,
-                  contents: [{
-                    id: contentId,
-                    quantity: payload.quantity,
-                    item_price: price,
-                    color: payload.color,
-                    size: payload.size,
-                  }],
-                  num_items: payload.quantity,
-                })
-              }}
-              onBuyNow={(payload) => {
-                const price = Number(data.product.price) || undefined
-                const contentId = data.product.id.toString()
-                trackFbEvent("InitiateCheckout", {
-                  content_ids: [contentId],
-                  content_type: "product",
-                  currency: "BDT",
-                  value: price ? price * payload.quantity : undefined,
-                  contents: [{
-                    id: contentId,
-                    quantity: payload.quantity,
-                    item_price: price,
-                    color: payload.color,
-                    size: payload.size,
-                  }],
-                  num_items: payload.quantity,
-                })
-              }}
+                product={productInfo}
+                colorLinks={colorToggler.map(c => ({ name: c.name, value: c.hex, href: c.href, active: c.active, oos: c.oos }))}
+                onAddToCart={(payload) => {
+                  const price = Number(data.product.price) || undefined
+                  const contentId = data.product.id.toString()
+
+                  trackFbEvent("AddToCart", {
+                    content_ids: [contentId],
+                    content_type: "product",
+                    currency: "BDT",
+                    value: price,
+                    contents: [{
+                      id: contentId,
+                      quantity: payload.quantity,
+                      item_price: price,
+                      color: payload.color,
+                      size: payload.size,
+                    }],
+                    num_items: payload.quantity,
+                  })
+
+                  // GTM
+                  sendGTMEvent('add_to_cart', {
+                    currency: 'BDT',
+                    value: price ? price * payload.quantity : 0,
+                    items: [{
+                      item_id: contentId,
+                      item_name: data.product.name,
+                      price: price,
+                      item_variant: `${payload.color} - ${payload.size}`,
+                      quantity: payload.quantity
+                    }]
+                  })
+                }}
+                onBuyNow={(payload) => {
+                  const price = Number(data.product.price) || undefined
+                  const contentId = data.product.id.toString()
+                  trackFbEvent("InitiateCheckout", {
+                    content_ids: [contentId],
+                    content_type: "product",
+                    currency: "BDT",
+                    value: price ? price * payload.quantity : undefined,
+                    contents: [{
+                      id: contentId,
+                      quantity: payload.quantity,
+                      item_price: price,
+                      color: payload.color,
+                      size: payload.size,
+                    }],
+                    num_items: payload.quantity,
+                  })
+
+                  // GTM
+                  sendGTMEvent('begin_checkout', {
+                    currency: 'BDT',
+                    value: price ? price * payload.quantity : 0,
+                    items: [{
+                      item_id: contentId,
+                      item_name: data.product.name,
+                      price: price,
+                      item_variant: `${payload.color} - ${payload.size}`,
+                      quantity: payload.quantity
+                    }]
+                  })
+                }}
               />
             </div>
           </div>

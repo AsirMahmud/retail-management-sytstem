@@ -1,4 +1,4 @@
- "use client"
+"use client"
 
 import { useEffect, useState } from "react"
 import { useSearchParams, useRouter, useParams } from "next/navigation"
@@ -9,6 +9,7 @@ import { ProductGrid } from "@/components/product-grid"
 import { NewsletterSection } from "@/components/newsletter-section"
 import { SiteFooter } from "@/components/site-footer"
 import { ecommerceApi, ProductByColorEntry } from "@/lib/api"
+import { sendGTMEvent } from "@/lib/gtm"
 import { StructuredData } from "@/components/structured-data"
 import { generateBreadcrumbStructuredData } from "@/lib/seo"
 import { useLoading } from "@/hooks/useLoading"
@@ -24,7 +25,7 @@ export default function CategoryPage() {
   const [page, setPage] = useState(1)
   const [pageSize] = useState(24)
   const [totalCount, setTotalCount] = useState(0)
-  
+
   // Filter states
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [selectedColor, setSelectedColor] = useState<string | null>(null)
@@ -65,6 +66,24 @@ export default function CategoryPage() {
 
     fetchCategoryData()
   }, [activeCategorySlug, activeGender, selectedColor, selectedSize, priceRange, page, pageSize, startLoading, stopLoading])
+
+  // GTM View Item List
+  useEffect(() => {
+    if (products.length > 0) {
+      sendGTMEvent('view_item_list', {
+        currency: 'BDT',
+        items: products.map((p, index) => ({
+          item_id: `${p.product_id}`,
+          item_name: p.product_name,
+          price: parseFloat(p.product_price),
+          item_list_name: categoryName,
+          index: index + 1,
+          quantity: 1,
+          item_variant: p.color_name
+        }))
+      })
+    }
+  }, [products, categoryName])
 
   const handleCategoryChange = (categorySlug: string | null) => {
     setSelectedCategory(categorySlug)
@@ -115,7 +134,7 @@ export default function CategoryPage() {
 
           <div className="flex gap-6 mt-6">
             <aside className="hidden lg:block w-64 flex-shrink-0">
-              <CategoryFilters 
+              <CategoryFilters
                 selectedCategory={selectedCategory}
                 selectedColor={selectedColor}
                 selectedSize={selectedSize}
@@ -131,8 +150,8 @@ export default function CategoryPage() {
             </aside>
 
             <div className="flex-1">
-              <ProductGrid 
-                category={categoryName} 
+              <ProductGrid
+                category={categoryName}
                 products={products.map(product => ({
                   id: `${product.product_id}/${product.color_slug}`,
                   name: `${product.product_name} - ${product.color_name}`,
