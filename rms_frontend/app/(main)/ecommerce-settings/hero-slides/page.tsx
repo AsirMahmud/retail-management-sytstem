@@ -34,7 +34,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+
 } from "@/components/ui/table";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import {
   ImageIcon,
@@ -46,7 +53,12 @@ import {
   Save,
   Eye,
   ArrowRight,
+  Monitor,
+  Smartphone,
+  Maximize2,
+  X,
 } from "lucide-react";
+
 import { useToast } from "@/hooks/use-toast";
 import {
   useHeroSlides,
@@ -161,6 +173,59 @@ const HERO_PRESETS = [
     stats: [
       { value: "150+", label: "Styles" },
       { value: "All", label: "Sizes" },
+    ],
+  },
+  {
+    key: "minimal-dark",
+    name: "Minimal Dark",
+    description: "Dark minimal layout with centered text",
+    layout: "centered-clean",
+    bg_color: "bg-slate-950",
+    title: "LESS IS\nMORE",
+    subtitle: "Essential pieces for the modern wardrobe",
+    button_text: "Shop Essentials",
+    stats: [],
+  },
+  {
+    key: "vibrant-pop",
+    name: "Vibrant Pop",
+    description: "Bold layout with high contrast",
+    layout: "bold-left",
+    bg_color: "bg-blue-950",
+    title: "SUMMER\nCOLLECTION",
+    subtitle: "Stand out this season with our boldest prints yet",
+    button_text: "Get The Look",
+    stats: [
+      { value: "New", label: "Arrivals" },
+      { value: "Hot", label: "Trends" },
+    ],
+  },
+  {
+    key: "urban-style",
+    name: "Urban Style",
+    description: "Streetwear aesthetic with red accents",
+    layout: "split-clean",
+    bg_color: "bg-red-950",
+    title: "URBAN\nLEGEND",
+    subtitle: "Dominate the streets with premium streetwear",
+    button_text: "Shop Street",
+    stats: [
+      { value: "50+", label: "Brands" },
+      { value: "24/7", label: "Style" },
+    ],
+  },
+  {
+    key: "eco-conscious",
+    name: "Eco Conscious",
+    description: "Green themed sustainable layout",
+    layout: "image-showcase",
+    bg_color: "bg-green-950",
+    title: "EARTH\nFIRST",
+    subtitle: "Fashion that respects the planet we live on",
+    button_text: "Join Movement",
+    stats: [
+      { value: "0%", label: "Carbon" },
+      { value: "100%", label: "Recycled" },
     ],
   },
 ];
@@ -409,7 +474,8 @@ export default function HeroSlidesPage() {
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [stats, setStats] = useState<Array<{ value: string; label: string }>>([]);
-  
+  const [isFullscreenPreviewOpen, setIsFullscreenPreviewOpen] = useState(false);
+
   // User-friendly styling options
   const [titleSize, setTitleSize] = useState("extra-large");
   const [titleWeight, setTitleWeight] = useState("black");
@@ -486,7 +552,7 @@ export default function HeroSlidesPage() {
       });
       setStats(slide.stats || []);
       setImageFile(null);
-      
+
       // Parse existing classes to set user-friendly options
       // Try to detect size, weight, and leading from existing classes
       if (slide.title_class.includes("text-9xl") || slide.title_class.includes("text-8xl")) {
@@ -498,7 +564,7 @@ export default function HeroSlidesPage() {
       } else {
         setTitleSize("small");
       }
-      
+
       if (slide.title_class.includes("font-black")) {
         setTitleWeight("black");
       } else if (slide.title_class.includes("font-bold")) {
@@ -506,7 +572,7 @@ export default function HeroSlidesPage() {
       } else {
         setTitleWeight("semibold");
       }
-      
+
       if (slide.title_class.includes("leading-tight")) {
         setTitleLeading("tight");
       } else if (slide.title_class.includes("leading-normal")) {
@@ -516,7 +582,7 @@ export default function HeroSlidesPage() {
       } else {
         setTitleLeading("none");
       }
-      
+
       if (slide.subtitle_class.includes("text-xl") || slide.subtitle_class.includes("text-lg")) {
         setSubtitleSize("large");
       } else if (slide.subtitle_class.includes("text-base")) {
@@ -770,120 +836,120 @@ export default function HeroSlidesPage() {
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="title">Title *</Label>
-                      <Input
-                        id="title"
-                        value={formData.title}
-                        onChange={(e) =>
-                          setFormData({ ...formData, title: e.target.value })
-                        }
-                        placeholder="FIND YOUR\nSTYLE"
-                      />
-                      <p className="text-xs text-gray-500">
-                        Use \n for line breaks
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="button_text">Button Text</Label>
-                      <Input
-                        id="button_text"
-                        value={formData.button_text}
-                        onChange={(e) =>
-                          setFormData({ ...formData, button_text: e.target.value })
-                        }
-                        placeholder="Shop Now"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="subtitle">Subtitle</Label>
-                    <Textarea
-                      id="subtitle"
-                      value={formData.subtitle}
-                      onChange={(e) =>
-                        setFormData({ ...formData, subtitle: e.target.value })
-                      }
-                      placeholder="Discover meticulously crafted garments..."
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="layout">Layout</Label>
-                        <Select
-                          value={formData.layout}
-                          onValueChange={(value: any) =>
-                            setFormData({ ...formData, layout: value })
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {LAYOUT_OPTIONS.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>
-                                {opt.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="space-y-2">
+                          <Label htmlFor="title">Title *</Label>
+                          <Input
+                            id="title"
+                            value={formData.title}
+                            onChange={(e) =>
+                              setFormData({ ...formData, title: e.target.value })
+                            }
+                            placeholder="FIND YOUR\nSTYLE"
+                          />
+                          <p className="text-xs text-gray-500">
+                            Use \n for line breaks
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="button_text">Button Text</Label>
+                          <Input
+                            id="button_text"
+                            value={formData.button_text}
+                            onChange={(e) =>
+                              setFormData({ ...formData, button_text: e.target.value })
+                            }
+                            placeholder="Shop Now"
+                          />
+                        </div>
                       </div>
+
                       <div className="space-y-2">
-                        <Label htmlFor="bg_color">Background Color</Label>
-                        <Select
-                          value={formData.bg_color}
-                          onValueChange={(value) =>
-                            setFormData({ ...formData, bg_color: value })
+                        <Label htmlFor="subtitle">Subtitle</Label>
+                        <Textarea
+                          id="subtitle"
+                          value={formData.subtitle}
+                          onChange={(e) =>
+                            setFormData({ ...formData, subtitle: e.target.value })
                           }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {BG_COLOR_OPTIONS.map((opt) => (
-                              <SelectItem key={opt.value} value={opt.value}>
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className="w-4 h-4 rounded border border-gray-300"
-                                    style={{ backgroundColor: opt.color }}
-                                  />
+                          placeholder="Discover meticulously crafted garments..."
+                          rows={3}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="layout">Layout</Label>
+                          <Select
+                            value={formData.layout}
+                            onValueChange={(value: any) =>
+                              setFormData({ ...formData, layout: value })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {LAYOUT_OPTIONS.map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value}>
                                   {opt.label}
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="bg_color">Background Color</Label>
+                          <Select
+                            value={formData.bg_color}
+                            onValueChange={(value) =>
+                              setFormData({ ...formData, bg_color: value })
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {BG_COLOR_OPTIONS.map((opt) => (
+                                <SelectItem key={opt.value} value={opt.value}>
+                                  <div className="flex items-center gap-2">
+                                    <div
+                                      className="w-4 h-4 rounded border border-gray-300"
+                                      style={{ backgroundColor: opt.color }}
+                                    />
+                                    {opt.label}
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="image">Image *</Label>
-                      {editingSlide?.image_url && !imageFile && (
-                        <img
-                          src={editingSlide.image_url}
-                          alt="Current"
-                          className="w-full h-48 object-cover mb-2 border rounded"
+                      <div className="space-y-2">
+                        <Label htmlFor="image">Image *</Label>
+                        {editingSlide?.image_url && !imageFile && (
+                          <img
+                            src={editingSlide.image_url}
+                            alt="Current"
+                            className="w-full h-48 object-cover mb-2 border rounded"
+                          />
+                        )}
+                        {imageFile && (
+                          <img
+                            src={URL.createObjectURL(imageFile)}
+                            alt="Preview"
+                            className="w-full h-48 object-cover mb-2 border rounded"
+                          />
+                        )}
+                        <Input
+                          id="image"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) =>
+                            setImageFile(e.target.files?.[0] || null)
+                          }
                         />
-                      )}
-                      {imageFile && (
-                        <img
-                          src={URL.createObjectURL(imageFile)}
-                          alt="Preview"
-                          className="w-full h-48 object-cover mb-2 border rounded"
-                        />
-                      )}
-                      <Input
-                        id="image"
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) =>
-                          setImageFile(e.target.files?.[0] || null)
-                        }
-                      />
-                    </div>
+                      </div>
 
                       {/* Title Styling Options */}
                       <div className="space-y-4 border rounded-lg p-4 bg-gray-50">
@@ -969,73 +1035,73 @@ export default function HeroSlidesPage() {
                         </div>
                       </div>
 
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label>Stats</Label>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={handleAddStat}
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          Add Stat
-                        </Button>
-                      </div>
-                      {stats.map((stat, index) => (
-                        <div key={index} className="flex gap-2">
-                          <Input
-                            placeholder="Value (e.g., 200+)"
-                            value={stat.value}
-                            onChange={(e) =>
-                              handleStatChange(index, "value", e.target.value)
-                            }
-                          />
-                          <Input
-                            placeholder="Label (e.g., Brands)"
-                            value={stat.label}
-                            onChange={(e) =>
-                              handleStatChange(index, "label", e.target.value)
-                            }
-                          />
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label>Stats</Label>
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => handleRemoveStat(index)}
+                            onClick={handleAddStat}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Plus className="h-4 w-4 mr-1" />
+                            Add Stat
                           </Button>
                         </div>
-                      ))}
-                    </div>
+                        {stats.map((stat, index) => (
+                          <div key={index} className="flex gap-2">
+                            <Input
+                              placeholder="Value (e.g., 200+)"
+                              value={stat.value}
+                              onChange={(e) =>
+                                handleStatChange(index, "value", e.target.value)
+                              }
+                            />
+                            <Input
+                              placeholder="Label (e.g., Brands)"
+                              value={stat.label}
+                              onChange={(e) =>
+                                handleStatChange(index, "label", e.target.value)
+                              }
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRemoveStat(index)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="display_order">Display Order</Label>
-                        <Input
-                          id="display_order"
-                          type="number"
-                          value={formData.display_order}
-                          onChange={(e) =>
-                            setFormData({
-                              ...formData,
-                              display_order: parseInt(e.target.value) || 0,
-                            })
-                          }
-                        />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="display_order">Display Order</Label>
+                          <Input
+                            id="display_order"
+                            type="number"
+                            value={formData.display_order}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                display_order: parseInt(e.target.value) || 0,
+                              })
+                            }
+                          />
+                        </div>
+                        <div className="flex items-center space-x-2 pt-6">
+                          <Switch
+                            id="is_active"
+                            checked={formData.is_active}
+                            onCheckedChange={(checked) =>
+                              setFormData({ ...formData, is_active: checked })
+                            }
+                          />
+                          <Label htmlFor="is_active">Active</Label>
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-2 pt-6">
-                        <Switch
-                          id="is_active"
-                          checked={formData.is_active}
-                          onCheckedChange={(checked) =>
-                            setFormData({ ...formData, is_active: checked })
-                          }
-                        />
-                        <Label htmlFor="is_active">Active</Label>
-                      </div>
-                    </div>
 
                       <div className="flex justify-end gap-2 pt-4 border-t">
                         <Button variant="outline" onClick={handleCloseDialog}>
@@ -1055,27 +1121,81 @@ export default function HeroSlidesPage() {
                           <Eye className="h-4 w-4" />
                           <Label className="text-base font-semibold">Live Preview</Label>
                         </div>
-                        <div className="flex-1 overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-white">
-                          <HeroSlidePreview
-                            title={formData.title || "Your Title"}
-                            subtitle={formData.subtitle || "Your subtitle text will appear here"}
-                            buttonText={formData.button_text || "Shop Now"}
-                            image={
-                              imageFile
-                                ? URL.createObjectURL(imageFile)
-                                : editingSlide?.image_url || "/placeholder.svg?height=600&width=1200"
-                            }
-                            bgColor={formData.bg_color || "bg-slate-950"}
-                            layout={formData.layout || "clean-left"}
-                            titleClass={formData.title_class || ""}
-                            subtitleClass={formData.subtitle_class || ""}
-                            stats={stats.filter((s) => s.value && s.label)}
-                          />
-                        </div>
+
+                        <Tabs defaultValue="desktop" className="flex-1 flex flex-col">
+                          <TabsList className="grid w-full grid-cols-2 mb-4">
+                            <TabsTrigger value="desktop" className="flex items-center gap-2">
+                              <Monitor className="h-4 w-4" /> Desktop
+                            </TabsTrigger>
+                            <TabsTrigger value="mobile" className="flex items-center gap-2">
+                              <Smartphone className="h-4 w-4" /> Mobile
+                            </TabsTrigger>
+                          </TabsList>
+
+                          <div className="flex-1 overflow-hidden bg-gray-200/50 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center p-4">
+                            <TabsContent value="desktop" className="w-full h-full m-0 data-[state=active]:flex data-[state=active]:flex-col">
+                              <div className="relative w-full h-full bg-white shadow-xl overflow-hidden rounded-md group">
+                                <HeroSlidePreview
+                                  title={formData.title || "Your Title"}
+                                  subtitle={formData.subtitle || "Your subtitle text will appear here"}
+                                  buttonText={formData.button_text || "Shop Now"}
+                                  image={
+                                    imageFile
+                                      ? URL.createObjectURL(imageFile)
+                                      : editingSlide?.image_url || "/placeholder.svg?height=600&width=1200"
+                                  }
+                                  bgColor={formData.bg_color || "bg-slate-950"}
+                                  layout={formData.layout || "clean-left"}
+                                  titleClass={formData.title_class || ""}
+                                  subtitleClass={formData.subtitle_class || ""}
+                                  stats={stats.filter((s) => s.value && s.label)}
+                                />
+                                <div className="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    className="shadow-lg"
+                                    onClick={() => setIsFullscreenPreviewOpen(true)}
+                                  >
+                                    <Maximize2 className="h-4 w-4 mr-2" />
+                                    Full Screen
+                                  </Button>
+                                </div>
+                              </div>
+                            </TabsContent>
+
+                            <TabsContent value="mobile" className="w-full h-full m-0 relative flex justify-center overflow-auto py-8">
+                              <div className="w-[375px] h-[667px] bg-white shadow-2xl rounded-[3rem] border-[8px] border-gray-900 overflow-hidden shrink-0 relative">
+                                {/* Notch */}
+                                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-6 bg-gray-900 rounded-b-xl z-50"></div>
+
+                                <div className="w-full h-full overflow-y-auto">
+                                  <HeroSlidePreview
+                                    title={formData.title || "Your Title"}
+                                    subtitle={formData.subtitle || "Your subtitle text will appear here"}
+                                    buttonText={formData.button_text || "Shop Now"}
+                                    image={
+                                      imageFile
+                                        ? URL.createObjectURL(imageFile)
+                                        : editingSlide?.image_url || "/placeholder.svg?height=600&width=1200"
+                                    }
+                                    bgColor={formData.bg_color || "bg-slate-950"}
+                                    layout={formData.layout || "clean-left"}
+                                    titleClass={formData.title_class || ""}
+                                    subtitleClass={formData.subtitle_class || ""}
+                                    stats={stats.filter((s) => s.value && s.label)}
+                                  />
+                                </div>
+                              </div>
+                            </TabsContent>
+                          </div>
+                        </Tabs>
                       </div>
                     </div>
                   </div>
                 </div>
+
+
               </DialogContent>
             </Dialog>
           </div>
@@ -1200,6 +1320,40 @@ export default function HeroSlidesPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Fullscreen Preview Overlay - Moved outside Dialog to avoid z-index/transform issues */}
+      {isFullscreenPreviewOpen && (
+        <div className="fixed inset-0 z-[100] bg-black flex flex-col">
+          <div className="absolute top-4 right-4 z-50">
+            <Button
+              variant="secondary"
+              size="lg"
+              className="rounded-full shadow-xl bg-white/10 hover:bg-white/20 text-white border-0"
+              onClick={() => setIsFullscreenPreviewOpen(false)}
+            >
+              <X className="h-6 w-6 mr-2" />
+              Close Preview
+            </Button>
+          </div>
+          <div className="flex-1 w-full h-full overflow-y-auto">
+            <HeroSlidePreview
+              title={formData.title || "Your Title"}
+              subtitle={formData.subtitle || "Your subtitle text will appear here"}
+              buttonText={formData.button_text || "Shop Now"}
+              image={
+                imageFile
+                  ? URL.createObjectURL(imageFile)
+                  : editingSlide?.image_url || "/placeholder.svg?height=600&width=1200"
+              }
+              bgColor={formData.bg_color || "bg-slate-950"}
+              layout={formData.layout || "clean-left"}
+              titleClass={formData.title_class || ""}
+              subtitleClass={formData.subtitle_class || ""}
+              stats={stats.filter((s) => s.value && s.label)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

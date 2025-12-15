@@ -106,7 +106,7 @@ export default function RootLayout({
           />
         </noscript>
         {/* Meta Pixel Code */}
-        
+
         <noscript>
           <img
             height="1"

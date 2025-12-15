@@ -189,6 +189,7 @@ export default function ProductByColorPage() {
                 onAddToCart={(payload) => {
                   const price = Number(data.product.price) || undefined
                   const contentId = data.product.id.toString()
+
                   trackFbEvent("AddToCart", {
                     content_ids: [contentId],
                     content_type: "product",
@@ -202,6 +203,19 @@ export default function ProductByColorPage() {
                       size: payload.size,
                     }],
                     num_items: payload.quantity,
+                  })
+
+                  // GTM
+                  sendGTMEvent('add_to_cart', {
+                    currency: 'BDT',
+                    value: price ? price * payload.quantity : 0,
+                    items: [{
+                      item_id: contentId,
+                      item_name: data.product.name,
+                      price: price,
+                      item_variant: `${payload.color} - ${payload.size}`,
+                      quantity: payload.quantity
+                    }]
                   })
                 }}
                 onBuyNow={(payload) => {
@@ -220,6 +234,19 @@ export default function ProductByColorPage() {
                       size: payload.size,
                     }],
                     num_items: payload.quantity,
+                  })
+
+                  // GTM
+                  sendGTMEvent('begin_checkout', {
+                    currency: 'BDT',
+                    value: price ? price * payload.quantity : 0,
+                    items: [{
+                      item_id: contentId,
+                      item_name: data.product.name,
+                      price: price,
+                      item_variant: `${payload.color} - ${payload.size}`,
+                      quantity: payload.quantity
+                    }]
                   })
                 }}
               />

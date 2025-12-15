@@ -111,6 +111,24 @@ export default function OrderCompletePage() {
           item_variant: `${item.color || ''} ${item.size || ''}`.trim()
         }))
       })
+
+      // Facebook Pixel Purchase
+      if (typeof window !== "undefined" && (window as any).fbq) {
+        (window as any).fbq('track', 'Purchase', {
+          content_ids: order.items.map(item => String(item.product_id)),
+          content_type: 'product',
+          currency: 'BDT',
+          value: order.total_amount,
+          contents: order.items.map(item => ({
+            id: String(item.product_id),
+            quantity: item.quantity,
+            item_price: item.unit_price,
+            color: item.color,
+            size: item.size
+          })),
+          num_items: order.items.reduce((sum, item) => sum + item.quantity, 0)
+        })
+      }
     }
   }, [order])
 

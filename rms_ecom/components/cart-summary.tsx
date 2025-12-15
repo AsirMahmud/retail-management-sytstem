@@ -8,6 +8,7 @@ import Link from "next/link"
 import { useCartStore } from "@/hooks/useCartStore"
 import { ecommerceApi } from "@/lib/api"
 import { useLoading } from "@/hooks/useLoading"
+import { sendGTMEvent } from "@/lib/gtm"
 
 interface CartPricing {
   subtotal: number
@@ -17,6 +18,13 @@ interface CartPricing {
     outside_dhaka_charge: number
     updated_at: string
   }
+  items: Array<{
+    productId: number;
+    name: string;
+    unit_price: number;
+    quantity: number;
+    variant?: { color?: string | null; size?: string | null };
+  }>
 }
 
 export function CartSummary() {
@@ -70,7 +78,8 @@ export function CartSummary() {
             inside_gazipur_charge: Number(response.delivery.inside_gazipur_charge) || 0,
             outside_dhaka_charge: Number(response.delivery.outside_dhaka_charge) || 0,
             updated_at: response.delivery.updated_at || ""
-          }
+          },
+          items: response.items
         })
       } catch (error) {
         console.error("Failed to fetch cart pricing:", error)
@@ -100,6 +109,41 @@ export function CartSummary() {
     deliveryCharge = Number(cartPricing?.delivery?.outside_dhaka_charge) || 0
   }
   const total = subtotal + deliveryCharge
+
+  const handleCheckout = () => {
+    if (!items.length || !cartPricing) return
+
+    // FB InitiateCheckout
+    if (typeof window !== "undefined" && (window as any).fbq) {
+      (window as any).fbq('track', 'InitiateCheckout', {
+        content_ids: cartPricing.items.map(i => String(i.productId)),
+        content_type: 'product',
+        currency: 'BDT',
+        value: total,
+        contents: cartPricing.items.map(i => ({
+          id: String(i.productId),
+          quantity: i.quantity,
+          item_price: i.unit_price,
+          color: i.variant?.color,
+          size: i.variant?.size,
+        })),
+        num_items: itemCount
+      })
+    }
+
+    // GA4 begin_checkout
+    sendGTMEvent('begin_checkout', {
+      currency: 'BDT',
+      value: total,
+      items: cartPricing.items.map(i => ({
+        item_id: String(i.productId),
+        item_name: i.name,
+        price: i.unit_price,
+        quantity: i.quantity,
+        item_variant: `${i.variant?.color || ''} ${i.variant?.size || ''}`.trim()
+      }))
+    })
+  }
 
   if (items.length === 0) {
     return (
@@ -194,7 +238,7 @@ export function CartSummary() {
 
       {/* Checkout Button */}
       <Link href="/checkout">
-        <Button size="lg" className="w-full mt-6 h-12 text-base" disabled={localLoading || items.length === 0}>
+        <Button size="lg" className="w-full mt-6 h-12 text-base" disabled={localLoading || items.length === 0} onClick={handleCheckout}>
           Checkout
         </Button>
       </Link>
