@@ -11,6 +11,7 @@ from apps.supplier.models import Supplier  # Import Supplier from supplier app
 from django.db.models import Sum
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
+from apps.utils import optimize_image
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -89,6 +90,9 @@ class Product(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
+        if self.image:
+            optimize_image(self.image, max_width=1080, max_height=1080)
+            
         if not self.sku and self.category:
             # Generate SKU by combining category name, timestamp, and a random component
             category_prefix = self.category.name[:3].upper()  # First 3 letters of category name
@@ -176,6 +180,11 @@ class Image(models.Model):
     def __str__(self):
         return f"{self.gallery.product.name} - {self.gallery.color} - {self.get_imageType_display()}"
     
+    def save(self, *args, **kwargs):
+        if self.image:
+            optimize_image(self.image, max_width=1080, max_height=1080)
+        super().save(*args, **kwargs)
+
     def delete(self, *args, **kwargs):
         """Override delete to also delete the file from filesystem"""
         if self.image:
