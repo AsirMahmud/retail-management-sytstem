@@ -495,6 +495,7 @@ class PublicProductDetailByColorView(APIView):
             'product': {
                 'id': product.id,
                 'name': product.name,
+                'sku': product.sku,
                 'price': str(product.selling_price),
                 'category': product.category.name if product.category else None,
             },

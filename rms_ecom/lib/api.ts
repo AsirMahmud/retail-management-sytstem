@@ -70,6 +70,7 @@ export interface ProductDetailByColorResponse {
   product: {
     id: number;
     name: string;
+    sku: string;
     price: string;
     category?: string | null;
   };
@@ -280,7 +281,7 @@ export const ecommerceApi = {
     if (!response.ok) throw new Error('Failed to fetch online categories');
     return response.json();
   },
-  
+
   // Get home page settings
   getHomePageSettings: async (): Promise<{
     logo_image_url?: string;

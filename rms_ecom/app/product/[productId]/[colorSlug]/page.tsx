@@ -96,7 +96,7 @@ export default function ProductByColorPage() {
   useEffect(() => {
     if (!data) return
     const price = Number(data.product.price) || undefined
-    const contentId = data.product.id.toString()
+    const contentId = data.product.sku
     trackFbEvent("ViewContent", {
       content_ids: [contentId],
       content_type: "product",
@@ -188,7 +188,7 @@ export default function ProductByColorPage() {
                 colorLinks={colorToggler.map(c => ({ name: c.name, value: c.hex, href: c.href, active: c.active, oos: c.oos }))}
                 onAddToCart={(payload) => {
                   const price = Number(data.product.price) || undefined
-                  const contentId = data.product.id.toString()
+                  const contentId = data.product.sku
 
                   trackFbEvent("AddToCart", {
                     content_ids: [contentId],
@@ -220,7 +220,7 @@ export default function ProductByColorPage() {
                 }}
                 onBuyNow={(payload) => {
                   const price = Number(data.product.price) || undefined
-                  const contentId = data.product.id.toString()
+                  const contentId = data.product.sku
                   trackFbEvent("InitiateCheckout", {
                     content_ids: [contentId],
                     content_type: "product",

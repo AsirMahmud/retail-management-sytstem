@@ -111,6 +111,31 @@ class Product(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.sku})"
+    
+    def delete(self, *args, **kwargs):
+        """Override delete to also delete the main product image and gallery folder from filesystem"""
+        from django.conf import settings
+        import shutil
+        
+        # Delete main product image
+        if self.image:
+            try:
+                if os.path.isfile(self.image.path):
+                    os.remove(self.image.path)
+            except (ValueError, OSError):
+                pass
+        
+        # Delete entire gallery folder for this product
+        if self.id:
+            gallery_folder = os.path.join(settings.MEDIA_ROOT, 'gallery', str(self.id))
+            if os.path.exists(gallery_folder) and os.path.isdir(gallery_folder):
+                try:
+                    shutil.rmtree(gallery_folder)
+                except OSError as e:
+                    # Log error but don't stop deletion
+                    print(f"Error deleting gallery folder {gallery_folder}: {e}")
+        
+        super().delete(*args, **kwargs)
 
 class ProductVariation(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='variations')
@@ -267,3 +292,16 @@ def delete_gallery_files(sender, instance, **kwargs):
     # This is a backup in case the Image post_delete signal doesn't fire
     # The Image post_delete signal should handle individual file deletion
     pass
+
+
+# Signal to handle file deletion when Product is deleted
+@receiver(post_delete, sender=Product)
+def delete_product_image(sender, instance, **kwargs):
+    """Delete the main product image file from filesystem when Product instance is deleted"""
+    if instance.image:
+        try:
+            if os.path.isfile(instance.image.path):
+                os.remove(instance.image.path)
+        except (ValueError, OSError):
+            # File might have been already deleted or path might be invalid
+            pass
