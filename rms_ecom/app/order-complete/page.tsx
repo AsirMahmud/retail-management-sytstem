@@ -19,6 +19,7 @@ interface OnlinePreorder {
   items: Array<{
     product_id: number;
     product_name?: string; // Added field
+    product_sku?: string; // Added field for FB Pixel
     size: string;
     color: string;
     quantity: number;
@@ -67,13 +68,14 @@ export default function OrderCompletePage() {
           const validItems = cartItemsForPricing.filter(i => i.productId);
           if (validItems.length > 0) {
             const pricingData = await ecommerceApi.priceCart(validItems);
-            // Map names back to orderData items
+            // Map names and SKUs back to orderData items
             orderData.items = orderData.items.map(item => {
-              const priced = pricingData.items.find(pi => pi.productId === item.product_id); // Simple match by ID
-              // Note: Matching by variant would be more precise but name is usually same for variants
+              const priced = pricingData.items.find(pi => pi.productId === item.product_id);
+              const product = pricingData.products.find(p => p.id === item.product_id);
               return {
                 ...item,
-                product_name: priced?.name || undefined
+                product_name: priced?.name || undefined,
+                product_sku: product?.sku || undefined
               };
             });
           }
@@ -115,12 +117,12 @@ export default function OrderCompletePage() {
       // Facebook Pixel Purchase
       if (typeof window !== "undefined" && (window as any).fbq) {
         (window as any).fbq('track', 'Purchase', {
-          content_ids: order.items.map(item => String(item.product_id)),
+          content_ids: order.items.map(item => item.product_sku || String(item.product_id)),
           content_type: 'product',
           currency: 'BDT',
           value: order.total_amount,
           contents: order.items.map(item => ({
-            id: String(item.product_id),
+            id: item.product_sku || String(item.product_id),
             quantity: item.quantity,
             item_price: item.unit_price,
             color: item.color,

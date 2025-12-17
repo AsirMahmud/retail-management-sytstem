@@ -5,6 +5,8 @@ from decimal import Decimal
 from apps.inventory.models import Product, Category, OnlineCategory
 import os
 from apps.utils import optimize_image
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 
 
 class Discount(models.Model):
@@ -133,6 +135,16 @@ class Brand(models.Model):
         if self.logo_image:
             optimize_image(self.logo_image, max_width=800, max_height=800)
         super().save(*args, **kwargs)
+    
+    def delete(self, *args, **kwargs):
+        """Override delete to also delete the logo image from filesystem"""
+        if self.logo_image:
+            try:
+                if os.path.isfile(self.logo_image.path):
+                    os.remove(self.logo_image.path)
+            except (ValueError, OSError):
+                pass
+        super().delete(*args, **kwargs)
 
 
 class HomePageSettings(models.Model):
@@ -343,4 +355,14 @@ class HeroSlide(models.Model):
         if self.image:
             optimize_image(self.image)
         super().save(*args, **kwargs)
+    
+    def delete(self, *args, **kwargs):
+        """Override delete to also delete the hero slide image from filesystem"""
+        if self.image:
+            try:
+                if os.path.isfile(self.image.path):
+                    os.remove(self.image.path)
+            except (ValueError, OSError):
+                pass
+        super().delete(*args, **kwargs)
 

@@ -155,6 +155,23 @@ export function CheckoutSummary() {
         value: cartPricing?.subtotal,
         items: gtmItems
       });
+
+      // Facebook Pixel InitiateCheckout
+      if (typeof window !== "undefined" && (window as any).fbq) {
+        (window as any).fbq('track', 'InitiateCheckout', {
+          content_ids: products.map(p => p.sku),
+          content_type: 'product',
+          currency: 'BDT',
+          value: cartPricing?.subtotal || 0,
+          contents: products.map(p => ({
+            id: p.sku,
+            quantity: pricedItems.find(pi => pi.productId === p.id)?.quantity || 1,
+            item_price: Number(p.selling_price)
+          })),
+          num_items: items.reduce((sum, it) => sum + it.quantity, 0)
+        })
+      }
+
       hasSentGTM.current = true;
     }
   }, [items, products, pricedItems, cartPricing])
