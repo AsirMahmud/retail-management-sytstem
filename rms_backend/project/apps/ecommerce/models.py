@@ -4,6 +4,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from decimal import Decimal
 from apps.inventory.models import Product, Category, OnlineCategory
 import os
+from apps.utils import optimize_image
 
 
 class Discount(models.Model):
@@ -116,6 +117,7 @@ class Brand(models.Model):
     website_url = models.URLField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
     display_order = models.PositiveIntegerField(default=0)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -126,6 +128,11 @@ class Brand(models.Model):
     
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        if self.logo_image:
+            optimize_image(self.logo_image, max_width=800, max_height=800)
+        super().save(*args, **kwargs)
 
 
 class HomePageSettings(models.Model):
@@ -216,6 +223,16 @@ class HomePageSettings(models.Model):
         return "Home Page Settings"
     
     def save(self, *args, **kwargs):
+        # Optimize images
+        if self.logo_image:
+            optimize_image(self.logo_image, max_width=500, max_height=500)
+        
+        if self.hero_primary_image:
+            optimize_image(self.hero_primary_image)
+            
+        if self.hero_secondary_image:
+            optimize_image(self.hero_secondary_image)
+
         # Ensure only one instance exists
         self.pk = 1
         super().save(*args, **kwargs)
@@ -321,4 +338,9 @@ class HeroSlide(models.Model):
     
     def __str__(self):
         return f"{self.title} (Order: {self.display_order})"
+    
+    def save(self, *args, **kwargs):
+        if self.image:
+            optimize_image(self.image)
+        super().save(*args, **kwargs)
 

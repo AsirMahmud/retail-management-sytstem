@@ -7,6 +7,15 @@ import { ecommerceApi } from "@/lib/api"
 import Image from "next/image"
 import Link from "next/link"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
+import { HeroSlide } from "./hero-slide"
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel"
+import Autoplay from "embla-carousel-autoplay"
 
 // Helper to ensure image URLs are absolute
 const getAbsoluteImageUrl = (url: string | null | undefined, fallback: string = "/fashion-models-wearing-modern-streetwear.jpg"): string => {
@@ -57,22 +66,31 @@ interface HomePageSettings {
 export function HeroSection() {
   const [settings, setSettings] = useState<HomePageSettings>({})
   const [loading, setLoading] = useState(true)
+  const [heroSlides, setHeroSlides] = useState<any[]>([])
   const [onlineCategories, setOnlineCategories] = useState<Array<{ id: number; name: string; slug: string; parent: number | null; parent_name?: string; children_count?: number }>>([])
   const [loadingCategories, setLoadingCategories] = useState(false)
 
   useEffect(() => {
-    const fetchSettings = async () => {
+    const fetchData = async () => {
       try {
-        const data = await ecommerceApi.getHomePageSettings()
-        setSettings(data)
+        const [settingsData, slidesData] = await Promise.all([
+          ecommerceApi.getHomePageSettings(),
+          ecommerceApi.getHeroSlides().catch(() => []) // Handle error gracefully
+        ])
+        setSettings(settingsData)
+        // Filter active slides and sort by display_order
+        const activeSlides = slidesData
+          .filter((s: any) => s.is_active)
+          .sort((a: any, b: any) => a.display_order - b.display_order)
+        setHeroSlides(activeSlides)
       } catch (error) {
-        console.error('Failed to fetch home page settings:', error)
+        console.error('Failed to fetch home page data:', error)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchSettings()
+    fetchData()
   }, [])
 
   useEffect(() => {
@@ -107,6 +125,40 @@ export function HeroSection() {
     return <div className="w-full h-96 bg-gray-200 animate-pulse" />
   }
 
+  // Render Dynamic Hero Slides if available
+  if (heroSlides.length > 0) {
+    return (
+      <section className="relative w-full overflow-hidden">
+        <Carousel
+          className="w-full"
+          opts={{ loop: true }}
+          plugins={[
+            Autoplay({
+              delay: 5000,
+              stopOnInteraction: false,
+              stopOnMouseEnter: true,
+            }),
+          ]}
+        >
+          <CarouselContent>
+            {heroSlides.map((slide) => (
+              <CarouselItem key={slide.id} className="pl-0">
+                <HeroSlide slide={slide} />
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          {heroSlides.length > 1 && (
+            <>
+              <CarouselPrevious className="left-4 z-20 bg-white/20 hover:bg-white/40 border-none text-white hidden sm:flex" />
+              <CarouselNext className="right-4 z-20 bg-white/20 hover:bg-white/40 border-none text-white hidden sm:flex" />
+            </>
+          )}
+        </Carousel>
+      </section>
+    )
+  }
+
+  // Fallback to Static Settings based layout
   return (
     <section className="relative w-full overflow-hidden bg-gradient-to-br from-secondary via-background to-secondary/50">
       <div className="container px-4 py-12 md:py-20 lg:py-24">
