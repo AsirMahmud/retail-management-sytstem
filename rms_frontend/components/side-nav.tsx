@@ -53,7 +53,7 @@ const mainNavItems = [
     subItems: [
       { title: "Overview", href: "/sales" },
       { title: "Sales History", href: "/sales/sales-history" },
-      {title:"Due",href:"/sales/due"}
+      { title: "Due", href: "/sales/due" }
     ],
   },
   {
@@ -70,7 +70,7 @@ const mainNavItems = [
       { title: "Products", href: "/inventory/products" },
       { title: "Add Product", href: "/inventory/add-product" },
       { title: "Categories", href: "/inventory/categories" },
-          { title: "Online Categories", href: "/inventory/online-category" },
+      { title: "Online Categories", href: "/inventory/online-category" },
       { title: "Suppliers", href: "/inventory/suppliers" },
     ],
   },
@@ -100,8 +100,9 @@ const mainNavItems = [
     icon: Globe,
     href: "/ecommerce-settings",
     subItems: [
-    
+
       { title: "Home Page Settings", href: "/ecommerce-settings/home-page" },
+      { title: "Hero Settings", href: "/ecommerce-settings/hero-slides" },
       { title: "Discount Management", href: "/ecommerce-settings/discounts" },
       { title: "Product Status", href: "/ecommerce-settings/product-status" },
       { title: "Delivery Charges", href: "/ecommerce-settings/delivery-charges" },
@@ -115,12 +116,12 @@ const utilityNavItems: {
   icon: any;
   href: string;
 }[] = [
-  {
-    title: "Settings",
-    icon: Settings,
-    href: "/settings",
-  },
-];
+    {
+      title: "Settings",
+      icon: Settings,
+      href: "/settings",
+    },
+  ];
 
 export function SideNav() {
   const [open, setOpen] = useState(false);
