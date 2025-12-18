@@ -34,6 +34,9 @@ import {
 } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/contexts/auth-context";
+import { homePageSettingsApi, HomePageSettings } from "@/lib/api/ecommerce";
+import { useEffect } from "react";
+import { BrandLogos } from "./brand-logos";
 
 const mainNavItems = [
   {
@@ -53,7 +56,7 @@ const mainNavItems = [
     subItems: [
       { title: "Overview", href: "/sales" },
       { title: "Sales History", href: "/sales/sales-history" },
-      {title:"Due",href:"/sales/due"}
+      { title: "Due", href: "/sales/due" }
     ],
   },
   {
@@ -70,7 +73,7 @@ const mainNavItems = [
       { title: "Products", href: "/inventory/products" },
       { title: "Add Product", href: "/inventory/add-product" },
       { title: "Categories", href: "/inventory/categories" },
-          { title: "Online Categories", href: "/inventory/online-category" },
+      { title: "Online Categories", href: "/inventory/online-category" },
       { title: "Suppliers", href: "/inventory/suppliers" },
     ],
   },
@@ -100,8 +103,9 @@ const mainNavItems = [
     icon: Globe,
     href: "/ecommerce-settings",
     subItems: [
-    
+
       { title: "Home Page Settings", href: "/ecommerce-settings/home-page" },
+      { title: "Hero Settings", href: "/ecommerce-settings/hero-slides" },
       { title: "Discount Management", href: "/ecommerce-settings/discounts" },
       { title: "Product Status", href: "/ecommerce-settings/product-status" },
       { title: "Delivery Charges", href: "/ecommerce-settings/delivery-charges" },
@@ -115,12 +119,12 @@ const utilityNavItems: {
   icon: any;
   href: string;
 }[] = [
-  {
-    title: "Settings",
-    icon: Settings,
-    href: "/settings",
-  },
-];
+    {
+      title: "Settings",
+      icon: Settings,
+      href: "/settings",
+    },
+  ];
 
 export function SideNav() {
   const [open, setOpen] = useState(false);
@@ -130,6 +134,19 @@ export function SideNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { logout } = useAuth();
+  const [branding, setBranding] = useState<HomePageSettings | null>(null);
+
+  useEffect(() => {
+    const fetchBranding = async () => {
+      try {
+        const data = await homePageSettingsApi.get();
+        setBranding(data);
+      } catch (error) {
+        console.error("Failed to fetch branding:", error);
+      }
+    };
+    fetchBranding();
+  }, []);
 
   const toggleCollapsible = (title: string) => {
     setOpenCollapsibles((prev) => ({
@@ -175,11 +192,19 @@ export function SideNav() {
         >
           <div className="flex flex-col h-full">
             <div className="flex flex-col h-auto items-center px-6 border-b border-blue-100 bg-white/50 backdrop-blur-sm">
-              <img
-                src="/raw_stitch.JPG"
-                alt="MenWear Pro Logo"
-                className="w-full h-32 object-cover rounded-lg my-4"
-              />
+              {branding?.logo_image_url ? (
+                <img
+                  src={branding.logo_image_url}
+                  alt={branding.logo_text || "Logo"}
+                  className="w-full h-24 object-contain my-4"
+                />
+              ) : (
+                <div className="py-8">
+                  <span className="text-xl font-bold text-blue-900">
+                    {branding?.logo_text || "RAW STITCH"}
+                  </span>
+                </div>
+              )}
             </div>
             <ScrollArea className="flex-1">
               <nav className="grid gap-1 p-4">
@@ -317,6 +342,12 @@ export function SideNav() {
                   </Link>
                 ))}
               </nav>
+              <div className="px-4 py-4 mt-auto">
+                <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-3 px-2">
+                  Our Brands
+                </p>
+                <BrandLogos className="justify-start gap-4 px-2" itemClassName="grayscale-[0.5] opacity-70 hover:opacity-100" />
+              </div>
             </ScrollArea>
             <div className="p-4 bg-white/50 backdrop-blur-sm border-t border-blue-100">
               <Button
@@ -334,12 +365,18 @@ export function SideNav() {
 
       <div className="hidden md:flex flex-col w-[280px] h-screen fixed border-r bg-gradient-to-b from-blue-50 to-white">
         <div className="flex h-auto items-center px-6 border-b border-blue-100 bg-white/50 backdrop-blur-sm">
-          <div className="flex flex-col h-auto mx-auto py-4 overflow-hidden items-center px-6 border-b border-blue-100 bg-white/50 backdrop-blur-sm">
-            <img
-              src="/raw_stitch.JPG"
-              alt="MenWear Pro Logo"
-              className="w-full h-32 object-cover rounded-lg my-4"
-            />
+          <div className="flex flex-col h-auto mx-auto py-4 overflow-hidden items-center">
+            {branding?.logo_image_url ? (
+              <img
+                src={branding.logo_image_url}
+                alt={branding.logo_text || "Logo"}
+                className="w-full h-24 object-contain"
+              />
+            ) : (
+              <span className="text-xl font-bold text-blue-900">
+                {branding?.logo_text || "RAW STITCH"}
+              </span>
+            )}
           </div>
         </div>
         <ScrollArea className="flex-1">
@@ -470,6 +507,12 @@ export function SideNav() {
               </Link>
             ))}
           </nav>
+          <div className="px-4 py-4 mt-auto">
+            <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-3 px-2">
+              Our Brands
+            </p>
+            <BrandLogos className="justify-start gap-4 px-2" itemClassName="grayscale-[0.5] opacity-70 hover:opacity-100" />
+          </div>
         </ScrollArea>
         <div className="p-4 bg-white/50 backdrop-blur-sm border-t border-blue-100">
           <Button

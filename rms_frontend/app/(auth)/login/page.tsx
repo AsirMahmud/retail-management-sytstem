@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { homePageSettingsApi } from "@/lib/api/ecommerce";
+import { BrandLogos } from "@/components/brand-logos";
 
 const formSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -66,47 +67,51 @@ export default function LoginPage() {
   return (
     <div className="container flex h-screen w-screen items-center justify-center">
       <div className="grid w-full grid-cols-1 md:grid-cols-2 gap-8 items-center">
-        <div className="hidden md:flex items-center justify-center order-2 md:order-1">
-          <div className="relative w-full max-w-lg">
-            <img
-              src="/raw_stitch.JPG"
-              alt="Login illustration"
-              className="w-full h-auto object-cover rounded-lg shadow-lg"
-            />
-            <div className="absolute top-4 left-4 rounded-md bg-background/80 px-3 py-2 shadow-sm backdrop-blur">
-              {branding.logo_image_url ? (
-                <img
-                  src={branding.logo_image_url}
-                  alt={branding.logo_text || "Brand logo"}
-                  className="h-10 w-auto"
-                />
-              ) : (
-                <span className="text-lg font-semibold tracking-tight">
-                  {branding.logo_text || "Raw Stitch"}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px] order-1 md:order-2">
-          <div className="flex flex-col space-y-3 text-center items-center">
+        <div className="hidden md:flex items-center justify-center">
+          <div className="flex flex-col items-center justify-center space-y-8">
             {branding.logo_image_url ? (
               <img
                 src={branding.logo_image_url}
                 alt={branding.logo_text || "Brand logo"}
-                className="h-12 w-auto"
+                className="max-h-32 w-auto object-contain transition-all hover:scale-105"
               />
             ) : (
-              <span className="text-xl font-semibold tracking-tight">
+              <span className="text-4xl font-bold tracking-tighter text-blue-900 animate-in fade-in slide-in-from-bottom-4 duration-1000">
                 {branding.logo_text || "Raw Stitch"}
               </span>
             )}
+
+            <div className="flex flex-col items-center gap-4 text-center">
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-[0.2em]">Authorized Access Only</p>
+              <div className="h-px w-24 bg-gradient-to-r from-transparent via-blue-200 to-transparent" />
+              <BrandLogos limit={6} className="gap-6" itemClassName="grayscale hover:grayscale-0 opacity-60 hover:opacity-100 scale-110" />
+            </div>
+          </div>
+        </div>
+        <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
+          <div className="flex flex-col space-y-3 text-center items-center">
+            <div className="md:hidden">
+              {branding.logo_image_url ? (
+                <img
+                  src={branding.logo_image_url}
+                  alt={branding.logo_text || "Brand logo"}
+                  className="h-10 w-auto mb-4"
+                />
+              ) : (
+                <span className="text-xl font-bold tracking-tight text-blue-900 mb-4 block">
+                  {branding.logo_text || "Raw Stitch"}
+                </span>
+              )}
+            </div>
             <h1 className="text-2xl font-semibold tracking-tight">
               Welcome back
             </h1>
             <p className="text-sm text-muted-foreground">
               Enter your credentials to sign in
             </p>
+            <div className="md:hidden pt-2">
+              <BrandLogos limit={4} className="gap-4" itemClassName="grayscale opacity-60 scale-90" />
+            </div>
           </div>
 
           {error && (
