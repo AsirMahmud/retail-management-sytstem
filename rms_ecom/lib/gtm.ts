@@ -35,3 +35,12 @@ export const sendGTMEvent = (event: GTMEvent, params: GTMParams) => {
         console.warn('GTM dataLayer not found');
     }
 };
+
+/**
+ * Normalizes a product ID by extracting the numeric part if it's a composite ID (e.g., "123/color-slug")
+ */
+export const normalizeProductId = (id: string | number): string => {
+    if (typeof id === 'number') return String(id);
+    if (!id) return '';
+    return id.split('/')[0];
+};

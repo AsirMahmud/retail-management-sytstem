@@ -96,7 +96,7 @@ export default function ProductByColorPage() {
   useEffect(() => {
     if (!data) return
     const price = Number(data.product.price) || undefined
-    const contentId = data.product.sku
+    const contentId = data.product.id.toString()
     trackFbEvent("ViewContent", {
       content_ids: [contentId],
       content_type: "product",
@@ -188,11 +188,13 @@ export default function ProductByColorPage() {
                 colorLinks={colorToggler.map(c => ({ name: c.name, value: c.hex, href: c.href, active: c.active, oos: c.oos }))}
                 onAddToCart={(payload) => {
                   const price = Number(data.product.price) || undefined
-                  const contentId = data.product.sku
+                  const contentId = data.product.id.toString()
+                  const contentName = `${data.product.name} - ${data.color.name}`
 
                   trackFbEvent("AddToCart", {
                     content_ids: [contentId],
                     content_type: "product",
+                    content_name: contentName,
                     currency: "BDT",
                     value: price,
                     contents: [{
@@ -220,10 +222,13 @@ export default function ProductByColorPage() {
                 }}
                 onBuyNow={(payload) => {
                   const price = Number(data.product.price) || undefined
-                  const contentId = data.product.sku
+                  const contentId = data.product.id.toString()
+                  const contentName = `${data.product.name} - ${data.color.name}`
+
                   trackFbEvent("InitiateCheckout", {
                     content_ids: [contentId],
                     content_type: "product",
+                    content_name: contentName,
                     currency: "BDT",
                     value: price ? price * payload.quantity : undefined,
                     contents: [{

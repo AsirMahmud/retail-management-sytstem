@@ -9,7 +9,7 @@ import { ProductGrid } from "@/components/product-grid"
 import { NewsletterSection } from "@/components/newsletter-section"
 import { SiteFooter } from "@/components/site-footer"
 import { ecommerceApi, ProductByColorEntry } from "@/lib/api"
-import { sendGTMEvent } from "@/lib/gtm"
+import { sendGTMEvent, normalizeProductId } from "@/lib/gtm"
 import { StructuredData } from "@/components/structured-data"
 import { generateBreadcrumbStructuredData } from "@/lib/seo"
 import { useLoading } from "@/hooks/useLoading"
@@ -73,7 +73,7 @@ export default function CategoryPage() {
       sendGTMEvent('view_item_list', {
         currency: 'BDT',
         items: products.map((p, index) => ({
-          item_id: `${p.product_id}`,
+          item_id: normalizeProductId(p.product_id),
           item_name: p.product_name,
           price: parseFloat(p.product_price),
           item_list_name: categoryName,

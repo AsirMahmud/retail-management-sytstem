@@ -65,20 +65,20 @@ export function generateMetadata(config: SEOConfig): Metadata {
     },
     robots: noindex
       ? {
-          index: false,
-          follow: false,
-        }
+        index: false,
+        follow: false,
+      }
       : {
+        index: true,
+        follow: true,
+        googleBot: {
           index: true,
           follow: true,
-          googleBot: {
-            index: true,
-            follow: true,
-            "max-video-preview": -1,
-            "max-image-preview": "large",
-            "max-snippet": -1,
-          },
+          "max-video-preview": -1,
+          "max-image-preview": "large",
+          "max-snippet": -1,
         },
+      },
   }
 }
 
@@ -92,8 +92,8 @@ export function generateProductMetadata(
   const productName = `${product.product.name} - ${product.color.name}`
   const productPrice = `৳${Number(product.product.price).toLocaleString()}`
   const productDescription = `Shop ${productName} at Raw Stitch. Premium quality ${product.product.category || "fashion"} available in ${product.color.name}. Price: ${productPrice}. Free shipping available.`
-  
-  const productImage = product.images.length > 0 
+
+  const productImage = product.images.length > 0
     ? (product.images[0].url.startsWith("http") ? product.images[0].url : `${baseUrl}${product.images[0].url}`)
     : `${baseUrl}/og-image.jpg`
 
@@ -150,7 +150,7 @@ export function generateProductStructuredData(
   const productId = product.product.id.toString()
   const productUrl = `${baseUrl}/product/${product.product.id}/${product.color.slug}`
   const priceNumber = Number(product.product.price)
-  const productImage = product.images.length > 0 
+  const productImage = product.images.length > 0
     ? (product.images[0].url.startsWith("http") ? product.images[0].url : `${baseUrl}${product.images[0].url}`)
     : `${baseUrl}/og-image.jpg`
 
@@ -162,7 +162,7 @@ export function generateProductStructuredData(
     sku: productId,
     name: `${product.product.name} - ${product.color.name}`,
     description: `Premium ${product.product.category || "fashion"} from Raw Stitch in ${product.color.name}`,
-    image: product.images.map(img => 
+    image: product.images.map(img =>
       img.url.startsWith("http") ? img.url : `${baseUrl}${img.url}`
     ),
     brand: {
@@ -175,8 +175,8 @@ export function generateProductStructuredData(
       priceCurrency: "BDT",
       price: priceNumber,
       sku: productId,
-      availability: product.total_stock_for_color > 0 
-        ? "https://schema.org/InStock" 
+      availability: product.total_stock_for_color > 0
+        ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",
       itemCondition: "https://schema.org/NewCondition",
     },

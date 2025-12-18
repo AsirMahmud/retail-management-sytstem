@@ -70,7 +70,6 @@ export interface ProductDetailByColorResponse {
   product: {
     id: number;
     name: string;
-    sku: string;
     price: string;
     category?: string | null;
   };
