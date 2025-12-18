@@ -8,7 +8,7 @@ import Link from "next/link"
 import { useCartStore } from "@/hooks/useCartStore"
 import { ecommerceApi } from "@/lib/api"
 import { useLoading } from "@/hooks/useLoading"
-import { sendGTMEvent } from "@/lib/gtm"
+import { sendGTMEvent, normalizeProductId } from "@/lib/gtm"
 
 interface CartPricing {
   subtotal: number
@@ -25,14 +25,6 @@ interface CartPricing {
     quantity: number;
     variant?: { color?: string | null; size?: string | null };
   }>
-  products: Array<{
-    id: number;
-    sku: string;
-    name: string;
-    selling_price: string;
-    original_price?: string | null;
-    discount?: number | null;
-  }>;
 }
 
 export function CartSummary() {
@@ -87,15 +79,7 @@ export function CartSummary() {
             outside_dhaka_charge: Number(response.delivery.outside_dhaka_charge) || 0,
             updated_at: response.delivery.updated_at || ""
           },
-          items: response.items,
-          products: response.products.map(p => ({
-            id: p.id,
-            sku: p.sku,
-            name: p.name,
-            selling_price: p.selling_price,
-            original_price: p.original_price,
-            discount: p.discount
-          }))
+          items: response.items
         })
       } catch (error) {
         console.error("Failed to fetch cart pricing:", error)
@@ -132,14 +116,16 @@ export function CartSummary() {
     // FB InitiateCheckout
     if (typeof window !== "undefined" && (window as any).fbq) {
       (window as any).fbq('track', 'InitiateCheckout', {
-        content_ids: cartPricing.products.map(p => p.sku),
+        content_ids: cartPricing.items.map(i => normalizeProductId(i.productId)),
         content_type: 'product',
+        content_name: cartPricing.items.map(i => i.name).join(', '),
         currency: 'BDT',
         value: total,
         contents: cartPricing.items.map(i => ({
-          id: cartPricing.products.find(p => p.id === i.productId)?.sku || String(i.productId),
+          id: normalizeProductId(i.productId),
           quantity: i.quantity,
           item_price: i.unit_price,
+          name: i.name,
           color: i.variant?.color,
           size: i.variant?.size,
         })),
@@ -152,7 +138,7 @@ export function CartSummary() {
       currency: 'BDT',
       value: total,
       items: cartPricing.items.map(i => ({
-        item_id: String(i.productId),
+        item_id: normalizeProductId(i.productId),
         item_name: i.name,
         price: i.unit_price,
         quantity: i.quantity,
@@ -173,52 +159,6 @@ export function CartSummary() {
   return (
     <div className="border rounded-lg p-6 bg-card">
       <h2 className="text-xl font-bold mb-6">Cart summary</h2>
-
-      {/* Cart Items */}
-      {cartPricing && cartPricing.items.length > 0 && (
-        <div className="mb-6 space-y-3 max-h-64 overflow-y-auto pb-4 border-b">
-          {cartPricing.items.map((item, idx) => {
-            const product = cartPricing.products.find(p => p.id === item.productId)
-            const originalPrice = product?.original_price ? Number(product.original_price) : null
-            const discount = product?.discount || null
-
-            // Calculate discounted price
-            let displayPrice = item.unit_price
-            if (originalPrice && discount && discount > 0) {
-              displayPrice = originalPrice * (1 - discount / 100)
-            }
-
-            return (
-              <div key={`${item.productId}-${idx}`} className="flex justify-between items-start gap-3 text-sm">
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium line-clamp-2">{item.name}</p>
-                  {(item.variant?.color || item.variant?.size) && (
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {item.variant?.color && <span>{item.variant.color}</span>}
-                      {item.variant?.color && item.variant?.size && <span> • </span>}
-                      {item.variant?.size && <span>{item.variant.size}</span>}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-2 mt-1">
-                    {originalPrice && originalPrice > displayPrice && (
-                      <span className="text-xs text-muted-foreground line-through">
-                        ৳{originalPrice.toFixed(2)}
-                      </span>
-                    )}
-                    <span className="font-semibold">৳{displayPrice.toFixed(2)}</span>
-                    {discount && discount > 0 && (
-                      <span className="text-xs text-destructive font-medium">-{discount}%</span>
-                    )}
-                  </div>
-                </div>
-                <div className="text-sm text-muted-foreground flex-shrink-0">
-                  x{item.quantity}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
 
       {/* Delivery Options */}
       <div className="mb-6">

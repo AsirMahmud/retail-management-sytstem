@@ -9,7 +9,7 @@ import { SiteFooter } from "@/components/site-footer"
 import { useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { ecommerceApi } from "@/lib/api"
-import { sendGTMEvent } from "@/lib/gtm"
+import { sendGTMEvent, normalizeProductId } from "@/lib/gtm"
 
 interface OnlinePreorder {
   id: number;
@@ -19,7 +19,6 @@ interface OnlinePreorder {
   items: Array<{
     product_id: number;
     product_name?: string; // Added field
-    product_sku?: string; // Added field for FB Pixel
     size: string;
     color: string;
     quantity: number;
@@ -68,14 +67,13 @@ export default function OrderCompletePage() {
           const validItems = cartItemsForPricing.filter(i => i.productId);
           if (validItems.length > 0) {
             const pricingData = await ecommerceApi.priceCart(validItems);
-            // Map names and SKUs back to orderData items
+            // Map names back to orderData items
             orderData.items = orderData.items.map(item => {
-              const priced = pricingData.items.find(pi => pi.productId === item.product_id);
-              const product = pricingData.products.find(p => p.id === item.product_id);
+              const priced = pricingData.items.find(pi => pi.productId === item.product_id); // Simple match by ID
+              // Note: Matching by variant would be more precise but name is usually same for variants
               return {
                 ...item,
-                product_name: priced?.name || undefined,
-                product_sku: product?.sku || undefined
+                product_name: priced?.name || undefined
               };
             });
           }
@@ -117,14 +115,16 @@ export default function OrderCompletePage() {
       // Facebook Pixel Purchase
       if (typeof window !== "undefined" && (window as any).fbq) {
         (window as any).fbq('track', 'Purchase', {
-          content_ids: order.items.map(item => item.product_sku || String(item.product_id)),
+          content_ids: order.items.map(item => normalizeProductId(item.product_id)),
           content_type: 'product',
+          content_name: order.items.map(item => item.product_name).filter(Boolean).join(', '),
           currency: 'BDT',
           value: order.total_amount,
           contents: order.items.map(item => ({
-            id: item.product_sku || String(item.product_id),
+            id: normalizeProductId(item.product_id),
             quantity: item.quantity,
             item_price: item.unit_price,
+            name: item.product_name,
             color: item.color,
             size: item.size
           })),

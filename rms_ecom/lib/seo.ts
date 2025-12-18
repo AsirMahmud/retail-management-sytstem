@@ -97,7 +97,7 @@ export function generateProductMetadata(
     ? (product.images[0].url.startsWith("http") ? product.images[0].url : `${baseUrl}${product.images[0].url}`)
     : `${baseUrl}/og-image.jpg`
 
-  const metadata = generateMetadata({
+  return generateMetadata({
     title: productName,
     description: productDescription,
     image: productImage,
@@ -113,22 +113,6 @@ export function generateProductMetadata(
       "clothing",
     ],
   })
-
-  // Add Facebook Product Meta Tags
-  const otherMetadata: Record<string, string | number | (string | number)[]> = {
-    ...(metadata.other as Record<string, string | number | (string | number)[]> || {}),
-    "product:retailer_item_id": product.product.sku,
-    "product:brand": SITE_NAME,
-    "product:availability": product.total_stock_for_color > 0 ? "in stock" : "out of stock",
-    "product:condition": "new",
-    "product:price:amount": product.product.price,
-    "product:price:currency": "BDT",
-  }
-
-  return {
-    ...metadata,
-    other: otherMetadata
-  }
 }
 
 /**
