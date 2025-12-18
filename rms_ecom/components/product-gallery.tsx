@@ -3,6 +3,8 @@
 import { useState } from "react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
+import { ImageZoomModal } from "@/components/image-zoom-modal"
+import { Maximize2 } from "lucide-react"
 
 interface ProductGalleryProps {
   images: string[]
@@ -10,6 +12,7 @@ interface ProductGalleryProps {
 
 export function ProductGallery({ images }: ProductGalleryProps) {
   const [selectedImage, setSelectedImage] = useState(0)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   return (
     <div className="flex flex-col lg:flex-row gap-3 lg:gap-4">
@@ -30,17 +33,32 @@ export function ProductGallery({ images }: ProductGalleryProps) {
       </div>
 
       {/* Main image display */}
-      <div className="relative overflow-hidden rounded-2xl bg-muted order-1 lg:order-2 flex-1">
+      <div
+        className="relative overflow-hidden rounded-2xl bg-muted order-1 lg:order-2 flex-1 cursor-zoom-in group"
+        onClick={() => setIsModalOpen(true)}
+      >
         <div className="aspect-square">
           <Image
             src={images[selectedImage] || "/placeholder.svg"}
             alt="Product image"
             fill
-            className="object-cover"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
             priority
           />
         </div>
+
+        {/* Zoom indicator overlay */}
+        <div className="absolute bottom-4 right-4 bg-black/50 backdrop-blur-sm text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <Maximize2 className="h-5 w-5" />
+        </div>
       </div>
+
+      <ImageZoomModal
+        images={images}
+        initialIndex={selectedImage}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   )
 }
