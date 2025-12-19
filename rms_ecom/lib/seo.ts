@@ -14,6 +14,7 @@ export interface SEOConfig {
   type?: "website" | "article"
   noindex?: boolean
   keywords?: string[]
+  other?: Record<string, string | number | (string | number)[]>
 }
 
 /**
@@ -39,6 +40,7 @@ export function generateMetadata(config: SEOConfig): Metadata {
     title: fullTitle,
     description: fullDescription,
     keywords: keywords.length > 0 ? keywords : undefined,
+    other: config.other,
     openGraph: {
       type,
       url: pageUrl,
@@ -112,6 +114,9 @@ export function generateProductMetadata(
       "fashion",
       "clothing",
     ],
+    other: {
+      "product:retailer_item_id": product.product.id.toString(),
+    },
   })
 }
 
