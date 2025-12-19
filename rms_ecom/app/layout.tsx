@@ -107,15 +107,7 @@ export default function RootLayout({
         </noscript>
         {/* Meta Pixel Code */}
 
-        <noscript>
-          <img
-            height="1"
-            width="1"
-            style={{ display: "none" }}
-            src="https://www.facebook.com/tr?id=1172486235071828&ev=PageView&noscript=1"
-            alt=""
-          />
-        </noscript>
+
         <LoadingProviderWrapper>
           <DiscountInitializer />
           <Suspense fallback={null}>{children}</Suspense>
