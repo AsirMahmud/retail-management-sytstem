@@ -33,6 +33,7 @@ export async function generateMetadata(
       "og:type": "product",
       "product:price:amount": product.product.price,
       "product:price:currency": "BDT",
+      "product:retailer_item_id": product.product.id.toString(),
     },
   }
 }
