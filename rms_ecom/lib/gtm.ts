@@ -27,8 +27,10 @@ export const sendGTMEvent = (event: GTMEvent, params: GTMParams) => {
     console.log(`[GTM] ${event}`, params);
 
     if (typeof window !== 'undefined' && (window as any).dataLayer) {
+        const firstItemId = params.items && params.items.length > 0 ? params.items[0].item_id : undefined;
         (window as any).dataLayer.push({
             event,
+            item_id: firstItemId, // Add at root for convenience
             ecommerce: params,
         });
     } else {
