@@ -162,7 +162,7 @@ export function generateProductStructuredData(
   return {
     "@context": "https://schema.org",
     "@type": "Product",
-    "@id": productUrl,
+    "@id": `${baseUrl}/product-id/${productId}`,
     productID: productId,
     sku: productId,
     name: `${product.product.name} - ${product.color.name}`,
