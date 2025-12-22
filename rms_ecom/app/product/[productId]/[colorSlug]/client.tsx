@@ -96,7 +96,7 @@ export default function ProductByColorPage() {
     useEffect(() => {
         if (!data) return
         const price = Number(data.product.price) || undefined
-        const contentId = data.product.id.toString()
+        const contentId = `${data.product.id}-${data.color.slug}`
         trackFbEvent("ViewContent", {
             content_ids: [contentId],
             content_type: "product",
@@ -183,12 +183,12 @@ export default function ProductByColorPage() {
                         <ProductGallery images={galleryImages} />
                         <div className="flex flex-col gap-4 lg:gap-5">
                             <ProductInfo
-                                productId={data.product.id}
+                                productId={`${data.product.id}/${data.color.slug}`}
                                 product={productInfo}
                                 colorLinks={colorToggler.map(c => ({ name: c.name, value: c.hex, href: c.href, active: c.active, oos: c.oos }))}
                                 onAddToCart={(payload) => {
                                     const price = Number(data.product.price) || undefined
-                                    const contentId = data.product.id.toString()
+                                    const contentId = `${data.product.id}-${data.color.slug}`
                                     const contentName = `${data.product.name} - ${data.color.name}`
 
                                     trackFbEvent("AddToCart", {
@@ -222,7 +222,7 @@ export default function ProductByColorPage() {
                                 }}
                                 onBuyNow={(payload) => {
                                     const price = Number(data.product.price) || undefined
-                                    const contentId = data.product.id.toString()
+                                    const contentId = `${data.product.id}-${data.color.slug}`
                                     const contentName = `${data.product.name} - ${data.color.name}`
 
                                     trackFbEvent("InitiateCheckout", {

@@ -159,39 +159,82 @@ export default function ProductsPage() {
       // Base URL for links - should ideally come from env
       const ecomBaseUrl = "https://www.rawstitch.com.bd";
 
-      // Use product.id as the ID to match Meta Pixel content_id tracking
-      const row = [
-        product.id.toString(), // id
-        product.name, // title
-        product.description || "", // description
-        product.stock_quantity > 0 ? "in stock" : "out of stock", // availability
-        "new", // condition
-        `${product.selling_price} BDT`, // price
-        `${ecomBaseUrl}/product/${product.id}`, // link
-        getImageUrl(product.image), // image_link
-        "Raw Stitch", // brand
-        "", // google_product_category
-        "", // fb_product_category
-        product.stock_quantity.toString(), // quantity_to_sell_on_facebook
-        "", // sale_price
-        "", // sale_price_effective_date
-        product.sku, // item_group_id
-        product.gender || "unisex", // gender
-        "", // color
-        "", // size
-        "adult", // age_group
-        "", // material
-        "", // pattern
-        "", // shipping
-        "", // shipping_weight
-        "", // video[0].url
-        "", // video[0].tag[0]
-        "", // gtin
-        "", // product_tags[0]
-        "", // product_tags[1]
-        "", // style[0]
-      ];
-      rows.push(row.map(val => `"${val?.toString().replace(/"/g, '""') || ""}"`));
+      // If the product has galleries (color variants), create a row for each
+      if (product.galleries && product.galleries.length > 0) {
+        product.galleries.forEach((gallery) => {
+          const colorSlug = gallery.color ? slugify(gallery.color) : "";
+          const variantId = colorSlug ? `${product.id}-${colorSlug}` : product.id.toString();
+          const variantTitle = gallery.color ? `${product.name} - ${gallery.color}` : product.name;
+          const variantImage = gallery.images?.[0]?.image || product.first_variation_image || product.image;
+
+          const row = [
+            variantId, // id
+            variantTitle, // title
+            product.description || "Premium quality clothing from Raw Stitch. Designed for style and comfort.", // description
+            product.stock_quantity > 0 ? "in stock" : "out of stock", // availability
+            "new", // condition
+            `${product.selling_price} BDT`, // price
+            `${ecomBaseUrl}/product/${product.id}${colorSlug ? `/${colorSlug}` : ""}`, // link
+            getImageUrl(variantImage), // image_link
+            "Raw Stitch", // brand
+            product.online_category?.name || product.category?.name || "", // google_product_category
+            product.online_category?.name || product.category?.name || "", // fb_product_category
+            product.stock_quantity.toString(), // quantity_to_sell_on_facebook
+            product.discount_percentage && product.discount_percentage > 0 ? `${product.sale_price} BDT` : "", // sale_price
+            product.discount_end_date || "", // sale_price_effective_date
+            product.sku, // item_group_id
+            product.gender || "unisex", // gender
+            gallery.color || "", // color
+            product.first_variation_size || "", // size
+            "adult", // age_group
+            product.material_composition_string || "", // material
+            "", // pattern
+            "", // shipping
+            "", // shipping_weight
+            "", // video[0].url
+            "", // video[0].tag[0]
+            "", // gtin
+            "", // product_tags[0]
+            "", // product_tags[1]
+            "", // style[0]
+          ];
+          rows.push(row.map(val => `"${val?.toString().replace(/"/g, '""') || ""}"`));
+        });
+      } else {
+        // Fallback for products without galleries
+        const row = [
+          product.id.toString(), // id
+          product.name || "Raw Stitch Product", // title
+          product.description || "Premium quality clothing from Raw Stitch. Designed for style and comfort.", // description
+          product.stock_quantity > 0 ? "in stock" : "out of stock", // availability
+          "new", // condition
+          `${product.selling_price} BDT`, // price
+          `${ecomBaseUrl}/product/${product.id}`, // link
+          getImageUrl(product.first_variation_image || product.image), // image_link
+          "Raw Stitch", // brand
+          product.online_category?.name || product.category?.name || "", // google_product_category
+          product.online_category?.name || product.category?.name || "", // fb_product_category
+          product.stock_quantity.toString(), // quantity_to_sell_on_facebook
+          product.discount_percentage && product.discount_percentage > 0 ? `${product.sale_price} BDT` : "", // sale_price
+          product.discount_end_date || "", // sale_price_effective_date
+          product.sku, // item_group_id
+          product.gender || "unisex", // gender
+          product.first_variation_color || "", // color
+          product.first_variation_size || "", // size
+          "adult", // age_group
+          product.material_composition_string || "", // material
+          "", // pattern
+          "", // shipping
+          "", // shipping_weight
+          "", // video[0].url
+          "", // video[0].tag[0]
+          "", // gtin
+          "", // product_tags[0]
+          "", // product_tags[1]
+          "", // style[0]
+        ];
+        rows.push(row.map(val => `"${val?.toString().replace(/"/g, '""') || ""}"`));
+      }
     });
 
     const csvContent = [
@@ -790,9 +833,11 @@ export default function ProductsPage() {
                   <TableRow>
                     <TableHead>Product</TableHead>
                     <TableHead>Category</TableHead>
+                    <TableHead>Online Cat.</TableHead>
                     <TableHead>Stock</TableHead>
-                    <TableHead>Cost Price</TableHead>
-                    <TableHead>Selling Price</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Sale Price</TableHead>
+                    <TableHead>Material</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Online</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -862,6 +907,9 @@ export default function ProductsPage() {
                         <TableCell className="font-medium">
                           {product.category?.name || "Uncategorized"}
                         </TableCell>
+                        <TableCell className="font-medium text-blue-600">
+                          {product.online_category?.name || "-"}
+                        </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <span>{product.stock_quantity}</span>
@@ -872,8 +920,20 @@ export default function ProductsPage() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>${product.cost_price}</TableCell>
                         <TableCell>${product.selling_price}</TableCell>
+                        <TableCell>
+                          {product.discount_percentage && product.discount_percentage > 0 ? (
+                            <div className="flex flex-col">
+                              <span className="font-bold text-green-600">${product.sale_price}</span>
+                              <span className="text-[10px] text-muted-foreground line-through">${product.selling_price}</span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="max-w-[150px] truncate">
+                          <span className="text-xs">{product.material_composition_string || "-"}</span>
+                        </TableCell>
                         <TableCell>
                           <Badge
                             variant={product.is_active ? "default" : "secondary"}

@@ -52,8 +52,15 @@ export interface Product {
     variations?: ProductVariation[];
     galleries?: Gallery[];
     material_composition?: MeterialComposition[];
+    material_composition_string?: string;
     who_is_this_for?: WhoIsThisFor[];
     features?: FeatureItem[];
+    discount_percentage?: number;
+    discount_end_date?: string | null;
+    sale_price?: number;
+    first_variation_color?: string | null;
+    first_variation_size?: string | null;
+    first_variation_image?: string | null;
 }
 
 export interface ProductVariation {

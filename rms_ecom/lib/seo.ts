@@ -115,7 +115,7 @@ export function generateProductMetadata(
       "clothing",
     ],
     other: {
-      "product:retailer_item_id": product.product.id.toString(),
+      "product:retailer_item_id": `${product.product.id}-${product.color.slug}`,
     },
   })
 }
@@ -152,7 +152,7 @@ export function generateProductStructuredData(
   product: ProductDetailByColorResponse,
   baseUrl: string = SITE_URL
 ): object {
-  const productId = product.product.id.toString()
+  const productId = `${product.product.id}-${product.color.slug}`
   const productUrl = `${baseUrl}/product/${product.product.id}/${product.color.slug}`
   const priceNumber = Number(product.product.price)
   const productImage = product.images.length > 0
