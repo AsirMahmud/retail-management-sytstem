@@ -88,9 +88,9 @@ export function ProductInfo({ productId, product, colorLinks, onAddToCart, onBuy
   }, [selectedColor, availableSizesWithStock])
 
   return (
-    <div className="flex flex-col gap-4 lg:gap-5">
+    <div className="flex flex-col gap-3 lg:gap-5">
       <div>
-        <h1 className="font-serif text-3xl lg:text-[40px] font-bold mb-3 leading-tight">{toTitleCase(product.name)}</h1>
+        <h1 className="font-serif text-2xl lg:text-[40px] font-bold mb-2 lg:mb-3 leading-tight">{toTitleCase(product.name)}</h1>
 
         {/* Stock Information Badge */}
 
@@ -108,7 +108,7 @@ export function ProductInfo({ productId, product, colorLinks, onAddToCart, onBuy
         )}
 
         <div className="flex items-center gap-3 mb-5">
-          <span className="text-3xl lg:text-[32px] font-bold">৳{Math.round(discounted)}</span>
+          <span className="text-2xl lg:text-[32px] font-bold">৳{Math.round(discounted)}</span>
           {showDiscount && (
             <>
               <span className="text-2xl lg:text-[28px] text-muted-foreground/60 line-through">
@@ -126,8 +126,8 @@ export function ProductInfo({ productId, product, colorLinks, onAddToCart, onBuy
       <div className="h-px bg-border" />
 
       <div>
-        <h3 className="mb-4 text-muted-foreground">Select Colors</h3>
-        <div className="flex gap-4 flex-wrap">
+        <h3 className="mb-3 text-muted-foreground text-sm lg:text-base">Select Colors</h3>
+        <div className="flex gap-2 lg:gap-4 flex-wrap">
           {(colorLinks && colorLinks.length > 0 ? colorLinks : product.colors.map((c, idx) => ({ name: c.name, value: c.value, href: "", active: idx === selectedColor }))).map((color, index) => {
             const swatch = (
               <span
@@ -165,8 +165,8 @@ export function ProductInfo({ productId, product, colorLinks, onAddToCart, onBuy
       <div className="h-px bg-border" />
 
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-muted-foreground">Choose Size</h3>
+        <div className="flex items-center justify-between mb-3 lg:mb-4">
+          <h3 className="text-muted-foreground text-sm lg:text-base">Choose Size</h3>
         </div>
         {selectedSizeStock > 0 && (
           <div className="mb-4">
@@ -180,7 +180,7 @@ export function ProductInfo({ productId, product, colorLinks, onAddToCart, onBuy
             </Badge>
           </div>
         )}
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2 lg:gap-3">
           {availableSizesWithStock.map((sizeInfo) => (
             <button
               key={sizeInfo.size}

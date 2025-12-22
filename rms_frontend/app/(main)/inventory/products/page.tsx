@@ -56,8 +56,10 @@ import {
   ShoppingCart,
   Globe,
   Globe2,
+  Download,
 } from "lucide-react";
 import Link from "next/link";
+import { saveAs } from "file-saver";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import type { Product } from "@/types/inventory";
@@ -72,7 +74,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { getImageUrl } from "@/lib/utils";
+import { getImageUrl, slugify } from "@/lib/utils";
 
 export default function ProductsPage() {
   const router = useRouter();
@@ -109,6 +111,97 @@ export default function ProductsPage() {
       toast.error("Failed to toggle online assignment");
       console.error("Error toggling online assignment:", error);
     }
+  };
+
+  const handleDownloadCatalog = () => {
+    const onlineProducts = products.filter((p: Product) => p.assign_to_online);
+
+    if (onlineProducts.length === 0) {
+      toast.error("No online products found to download");
+      return;
+    }
+
+    const headers = [
+      "id",
+      "title",
+      "description",
+      "availability",
+      "condition",
+      "price",
+      "link",
+      "image_link",
+      "brand",
+      "google_product_category",
+      "fb_product_category",
+      "quantity_to_sell_on_facebook",
+      "sale_price",
+      "sale_price_effective_date",
+      "item_group_id",
+      "gender",
+      "color",
+      "size",
+      "age_group",
+      "material",
+      "pattern",
+      "shipping",
+      "shipping_weight",
+      "video[0].url",
+      "video[0].tag[0]",
+      "gtin",
+      "product_tags[0]",
+      "product_tags[1]",
+      "style[0]",
+    ];
+
+    const rows: string[][] = [];
+
+    onlineProducts.forEach((product: Product) => {
+      // Base URL for links - should ideally come from env
+      const ecomBaseUrl = "https://www.rawstitch.com.bd";
+
+      // Use product.id as the ID to match Meta Pixel content_id tracking
+      const row = [
+        product.id.toString(), // id
+        product.name, // title
+        product.description || "", // description
+        product.stock_quantity > 0 ? "in stock" : "out of stock", // availability
+        "new", // condition
+        `${product.selling_price} BDT`, // price
+        `${ecomBaseUrl}/product/${product.id}`, // link
+        getImageUrl(product.image), // image_link
+        "Raw Stitch", // brand
+        "", // google_product_category
+        "", // fb_product_category
+        product.stock_quantity.toString(), // quantity_to_sell_on_facebook
+        "", // sale_price
+        "", // sale_price_effective_date
+        product.sku, // item_group_id
+        product.gender || "unisex", // gender
+        "", // color
+        "", // size
+        "adult", // age_group
+        "", // material
+        "", // pattern
+        "", // shipping
+        "", // shipping_weight
+        "", // video[0].url
+        "", // video[0].tag[0]
+        "", // gtin
+        "", // product_tags[0]
+        "", // product_tags[1]
+        "", // style[0]
+      ];
+      rows.push(row.map(val => `"${val?.toString().replace(/"/g, '""') || ""}"`));
+    });
+
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    saveAs(blob, "catalog_products.csv");
+    toast.success("Catalog downloaded successfully");
   };
 
   // Filter products based on search and filters
@@ -236,217 +329,216 @@ export default function ProductsPage() {
                     <Barcode className="h-3 w-3" />
                     {product.sku}
                   </div>
-                {(product.size_type ||
-                  product.size_category ||
-                  product.gender) && (
-                  <div className="flex gap-1 mt-1">
-                    {product.size_type && (
-                      <Badge variant="outline" className="text-xs bg-blue-100">
-                        {product.size_type}
-                      </Badge>
+                  {(product.size_type ||
+                    product.size_category ||
+                    product.gender) && (
+                      <div className="flex gap-1 mt-1">
+                        {product.size_type && (
+                          <Badge variant="outline" className="text-xs bg-blue-100">
+                            {product.size_type}
+                          </Badge>
+                        )}
+                        {product.size_category && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs bg-emerald-200"
+                          >
+                            {product.size_category}
+                          </Badge>
+                        )}
+                        {product.gender && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs bg-red-600 text-white"
+                          >
+                            {product.gender}
+                          </Badge>
+                        )}
+                      </div>
                     )}
-                    {product.size_category && (
-                      <Badge
-                        variant="outline"
-                        className="text-xs bg-emerald-200"
-                      >
-                        {product.size_category}
-                      </Badge>
-                    )}
-                    {product.gender && (
-                      <Badge
-                        variant="outline"
-                        className="text-xs bg-red-600 text-white"
-                      >
-                        {product.gender}
-                      </Badge>
-                    )}
-                  </div>
+                </div>
+              </div>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link href={`/inventory/products/${product.id}`}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Details
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link href={`/inventory/edit-product/${product.id}`}>
+                    <Edit3 className="mr-2 h-4 w-4" />
+                    Edit Product
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive cursor-pointer"
+                  onClick={() => setProductToDelete(product)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Product
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Tag className="h-3 w-3 text-muted-foreground" />
+                <span className="text-muted-foreground">Category</span>
+              </div>
+              <p className="font-medium">
+                {product.category?.name || "Uncategorized"}
+              </p>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-3 w-3 text-muted-foreground" />
+                <span className="text-muted-foreground">Supplier</span>
+              </div>
+              <p className="font-medium">
+                {product.supplier?.company_name || "No Supplier"}
+              </p>
+            </div>
+          </div>
+
+          {/* Gallery Preview */}
+          {product.galleries && product.galleries.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">Available Colors</p>
+              <div className="flex gap-2 flex-wrap">
+                {product.galleries.map((gallery, index) => {
+                  const firstImage = gallery.images?.[0];
+                  const imageUrl = getImageUrl(firstImage?.image);
+                  return (
+                    <div
+                      key={index}
+                      className="relative group"
+                      title={`${gallery.color} (${gallery.images?.length || 0} images)`}
+                    >
+                      <div className="w-8 h-8 rounded-full border-2 border-gray-300 overflow-hidden">
+                        {imageUrl ? (
+                          <img
+                            src={imageUrl}
+                            alt={gallery.color}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div
+                            className="w-full h-full"
+                            style={{ backgroundColor: gallery.color_hax || '#000000' }}
+                          />
+                        )}
+                      </div>
+                      <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                        {gallery.color}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Cost Price</p>
+              <p className="text-lg font-bold text-red-600">
+                ${product.cost_price}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Selling Price</p>
+              <p className="text-lg font-bold text-green-600">
+                ${product.selling_price}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Total Value</p>
+              <p className="text-lg font-bold text-blue-600">
+                ${(product.cost_price * product.stock_quantity).toLocaleString()}
+              </p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Potential Profit</p>
+              <p className="text-lg font-bold text-green-600">
+                $
+                {(
+                  (product.selling_price - product.cost_price) *
+                  product.stock_quantity
+                ).toLocaleString()}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Stock Level</p>
+              <div className="flex items-center gap-2">
+                <p className="text-lg font-bold">{product.stock_quantity}</p>
+                {product.stock_quantity <= product.minimum_stock && (
+                  <Badge variant="destructive" className="text-xs">
+                    Low Stock
+                  </Badge>
                 )}
               </div>
             </div>
+            <Badge
+              variant={product.is_active ? "default" : "secondary"}
+              className="ml-auto"
+            >
+              {product.is_active ? "Active" : "Inactive"}
+            </Badge>
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem asChild className="cursor-pointer">
-                <Link href={`/inventory/products/${product.id}`}>
-                  <Eye className="mr-2 h-4 w-4" />
-                  View Details
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild className="cursor-pointer">
-                <Link href={`/inventory/edit-product/${product.id}`}>
-                  <Edit3 className="mr-2 h-4 w-4" />
-                  Edit Product
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-destructive cursor-pointer"
-                onClick={() => setProductToDelete(product)}
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete Product
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Tag className="h-3 w-3 text-muted-foreground" />
-              <span className="text-muted-foreground">Category</span>
+
+          <div className="flex items-center justify-between pt-2 border-t">
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">Online Status</p>
+              <p className="text-sm font-medium">
+                {product.assign_to_online ? "Online" : "Offline"}
+              </p>
             </div>
-            <p className="font-medium">
-              {product.category?.name || "Uncategorized"}
-            </p>
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-3 w-3 text-muted-foreground" />
-              <span className="text-muted-foreground">Supplier</span>
-            </div>
-            <p className="font-medium">
-              {product.supplier?.company_name || "No Supplier"}
-            </p>
-          </div>
-        </div>
-
-        {/* Gallery Preview */}
-        {product.galleries && product.galleries.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">Available Colors</p>
-            <div className="flex gap-2 flex-wrap">
-              {product.galleries.map((gallery, index) => {
-                const firstImage = gallery.images?.[0];
-                const imageUrl = getImageUrl(firstImage?.image);
-                return (
-                  <div
-                    key={index}
-                    className="relative group"
-                    title={`${gallery.color} (${gallery.images?.length || 0} images)`}
-                  >
-                    <div className="w-8 h-8 rounded-full border-2 border-gray-300 overflow-hidden">
-                      {imageUrl ? (
-                        <img
-                          src={imageUrl}
-                          alt={gallery.color}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div
-                          className="w-full h-full"
-                          style={{ backgroundColor: gallery.color_hax || '#000000' }}
-                        />
-                      )}
-                    </div>
-                    <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-1 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                      {gallery.color}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Cost Price</p>
-            <p className="text-lg font-bold text-red-600">
-              ${product.cost_price}
-            </p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Selling Price</p>
-            <p className="text-lg font-bold text-green-600">
-              ${product.selling_price}
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Total Value</p>
-            <p className="text-lg font-bold text-blue-600">
-              ${(product.cost_price * product.stock_quantity).toLocaleString()}
-            </p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Potential Profit</p>
-            <p className="text-lg font-bold text-green-600">
-              $
-              {(
-                (product.selling_price - product.cost_price) *
-                product.stock_quantity
-              ).toLocaleString()}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Stock Level</p>
-            <div className="flex items-center gap-2">
-              <p className="text-lg font-bold">{product.stock_quantity}</p>
-              {product.stock_quantity <= product.minimum_stock && (
-                <Badge variant="destructive" className="text-xs">
-                  Low Stock
-                </Badge>
-              )}
-            </div>
-          </div>
-          <Badge
-            variant={product.is_active ? "default" : "secondary"}
-            className="ml-auto"
-          >
-            {product.is_active ? "Active" : "Inactive"}
-          </Badge>
-        </div>
-
-        <div className="flex items-center justify-between pt-2 border-t">
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">Online Status</p>
-            <p className="text-sm font-medium">
-              {product.assign_to_online ? "Online" : "Offline"}
-            </p>
-          </div>
-          <Button
-            variant={product.assign_to_online ? "default" : "outline"}
-            size="sm"
-            onClick={() => handleToggleOnlineAssignment(product)}
-            className={`flex items-center gap-2 ${
-              product.assign_to_online 
-                ? "bg-green-600 hover:bg-green-700 text-white" 
+            <Button
+              variant={product.assign_to_online ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleToggleOnlineAssignment(product)}
+              className={`flex items-center gap-2 ${product.assign_to_online
+                ? "bg-green-600 hover:bg-green-700 text-white"
                 : "border-gray-300 hover:bg-gray-50"
-            }`}
-          >
-            {product.assign_to_online ? (
-              <>
-                <Globe className="h-3 w-3" />
-                Online
-              </>
-            ) : (
-              <>
-                <Globe2 className="h-3 w-3" />
-                Offline
-              </>
-            )}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+                }`}
+            >
+              {product.assign_to_online ? (
+                <>
+                  <Globe className="h-3 w-3" />
+                  Online
+                </>
+              ) : (
+                <>
+                  <Globe2 className="h-3 w-3" />
+                  Offline
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     );
   };
 
@@ -468,7 +560,15 @@ export default function ProductsPage() {
               </p>
             </div>
           </div>
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-3">
+            <Button
+              variant="outline"
+              onClick={handleDownloadCatalog}
+              className="border-blue-200 hover:bg-blue-50 text-blue-700 shadow-sm"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download Catalog (CSV)
+            </Button>
             <Button
               onClick={() => router.push("/inventory/add-product")}
               className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg"
@@ -726,129 +826,128 @@ export default function ProductsPage() {
                               <p className="text-sm text-muted-foreground">
                                 {product.sku}
                               </p>
-                            {(product.size_type ||
-                              product.size_category ||
-                              product.gender) && (
-                              <div className="flex gap-1 mt-1">
-                                {product.size_type && (
-                                  <Badge
-                                    variant="outline"
-                                    className="text-xs bg-blue-100"
-                                  >
-                                    {product.size_type}
-                                  </Badge>
+                              {(product.size_type ||
+                                product.size_category ||
+                                product.gender) && (
+                                  <div className="flex gap-1 mt-1">
+                                    {product.size_type && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs bg-blue-100"
+                                      >
+                                        {product.size_type}
+                                      </Badge>
+                                    )}
+                                    {product.size_category && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs bg-emerald-200"
+                                      >
+                                        {product.size_category}
+                                      </Badge>
+                                    )}
+                                    {product.gender && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs bg-red-600 text-white"
+                                      >
+                                        {product.gender}
+                                      </Badge>
+                                    )}
+                                  </div>
                                 )}
-                                {product.size_category && (
-                                  <Badge
-                                    variant="outline"
-                                    className="text-xs bg-emerald-200"
-                                  >
-                                    {product.size_category}
-                                  </Badge>
-                                )}
-                                {product.gender && (
-                                  <Badge
-                                    variant="outline"
-                                    className="text-xs bg-red-600 text-white"
-                                  >
-                                    {product.gender}
-                                  </Badge>
-                                )}
-                              </div>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {product.category?.name || "Uncategorized"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span>{product.stock_quantity}</span>
+                            {product.stock_quantity <= product.minimum_stock && (
+                              <Badge variant="destructive" className="text-xs">
+                                Low Stock
+                              </Badge>
                             )}
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {product.category?.name || "Uncategorized"}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span>{product.stock_quantity}</span>
-                          {product.stock_quantity <= product.minimum_stock && (
-                            <Badge variant="destructive" className="text-xs">
-                              Low Stock
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>${product.cost_price}</TableCell>
-                      <TableCell>${product.selling_price}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={product.is_active ? "default" : "secondary"}
-                        >
-                          {product.is_active ? "Active" : "Inactive"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant={product.assign_to_online ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => handleToggleOnlineAssignment(product)}
-                          className={`flex items-center gap-2 ${
-                            product.assign_to_online 
-                              ? "bg-green-600 hover:bg-green-700 text-white" 
+                        </TableCell>
+                        <TableCell>${product.cost_price}</TableCell>
+                        <TableCell>${product.selling_price}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={product.is_active ? "default" : "secondary"}
+                          >
+                            {product.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant={product.assign_to_online ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handleToggleOnlineAssignment(product)}
+                            className={`flex items-center gap-2 ${product.assign_to_online
+                              ? "bg-green-600 hover:bg-green-700 text-white"
                               : "border-gray-300 hover:bg-gray-50"
-                          }`}
-                        >
-                          {product.assign_to_online ? (
-                            <>
-                              <Globe className="h-3 w-3" />
-                              Online
-                            </>
-                          ) : (
-                            <>
-                              <Globe2 className="h-3 w-3" />
-                              Offline
-                            </>
-                          )}
-                        </Button>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 w-8 p-0"
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem
-                              asChild
-                              className="cursor-pointer"
-                            >
-                              <Link href={`/inventory/products/${product.id}`}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Details
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              asChild
-                              className="cursor-pointer"
-                            >
-                              <Link
-                                href={`/inventory/edit-product/${product.id}`}
+                              }`}
+                          >
+                            {product.assign_to_online ? (
+                              <>
+                                <Globe className="h-3 w-3" />
+                                Online
+                              </>
+                            ) : (
+                              <>
+                                <Globe2 className="h-3 w-3" />
+                                Offline
+                              </>
+                            )}
+                          </Button>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 w-8 p-0"
                               >
-                                <Edit3 className="mr-2 h-4 w-4" />
-                                Edit Product
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-destructive cursor-pointer"
-                              onClick={() => setProductToDelete(product)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete Product
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuItem
+                                asChild
+                                className="cursor-pointer"
+                              >
+                                <Link href={`/inventory/products/${product.id}`}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View Details
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                asChild
+                                className="cursor-pointer"
+                              >
+                                <Link
+                                  href={`/inventory/edit-product/${product.id}`}
+                                >
+                                  <Edit3 className="mr-2 h-4 w-4" />
+                                  Edit Product
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive cursor-pointer"
+                                onClick={() => setProductToDelete(product)}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete Product
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
                 </TableBody>

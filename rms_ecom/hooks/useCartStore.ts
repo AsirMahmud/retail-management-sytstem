@@ -17,6 +17,7 @@ type CartActions = {
 }
 
 import { sendGTMEvent, normalizeProductId } from "@/lib/gtm"
+import { toast } from "sonner"
 
 function computeTotalItems(items: CartItem[]): number {
     return items.reduce((sum, it) => sum + (Number.isFinite(it.quantity) ? it.quantity : 0), 0)
@@ -35,6 +36,23 @@ export const useCartStore = create<CartState & CartActions>((set, get) => ({
         addItemToCart(input)
         const items = getCart()
         set({ items, totalItems: computeTotalItems(items) })
+
+        // Toast Notification
+        if (input.productDetails) {
+            toast.success(`${input.productDetails.name} added to cart!`, {
+                description: input.variations ? Object.values(input.variations).join(' / ') : undefined,
+                className: "bg-primary text-primary-foreground border-none",
+                descriptionClassName: "text-primary-foreground/80",
+                action: {
+                    label: 'View Cart',
+                    onClick: () => window.location.href = '/cart'
+                }
+            })
+        } else {
+            toast.success("Item added to cart!", {
+                className: "bg-primary text-primary-foreground border-none",
+            })
+        }
 
         // GTM Event
         if (input.productDetails) {
