@@ -1,24 +1,12 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { useState, useEffect } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
@@ -26,23 +14,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-
-} from "@/components/ui/table";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import { Switch } from "@/components/ui/switch";
+} from "@/components/ui/dialog"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Switch } from "@/components/ui/switch"
 import {
   ImageIcon,
   Plus,
@@ -57,19 +32,11 @@ import {
   Smartphone,
   Maximize2,
   X,
-} from "lucide-react";
+} from "lucide-react"
 
-import { useToast } from "@/hooks/use-toast";
-import {
-  useHeroSlides,
-  useCreateHeroSlide,
-  useUpdateHeroSlide,
-  useDeleteHeroSlide,
-} from "@/hooks/queries/useEcommerce";
-import {
-  HeroSlide,
-  CreateHeroSlideDTO,
-} from "@/lib/api/ecommerce";
+import { useToast } from "@/hooks/use-toast"
+import { useHeroSlides, useCreateHeroSlide, useUpdateHeroSlide, useDeleteHeroSlide } from "@/hooks/queries/useEcommerce"
+import type { HeroSlide, CreateHeroSlideDTO } from "@/lib/api/ecommerce"
 
 const LAYOUT_OPTIONS = [
   { value: "clean-left", label: "Clean Left" },
@@ -77,7 +44,7 @@ const LAYOUT_OPTIONS = [
   { value: "split-clean", label: "Split Clean" },
   { value: "image-showcase", label: "Image Showcase" },
   { value: "bold-left", label: "Bold Left" },
-];
+]
 
 const BG_COLOR_OPTIONS = [
   { value: "bg-slate-950", label: "Slate 950", color: "#020617" },
@@ -88,20 +55,20 @@ const BG_COLOR_OPTIONS = [
   { value: "bg-blue-950", label: "Blue 950", color: "#172554" },
   { value: "bg-red-950", label: "Red 950", color: "#450a0a" },
   { value: "bg-green-950", label: "Green 950", color: "#022c22" },
-];
+]
 
 const TITLE_SIZE_OPTIONS = [
   { value: "extra-large", label: "Extra Large", class: "text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl" },
   { value: "large", label: "Large", class: "text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl" },
   { value: "medium", label: "Medium", class: "text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl" },
   { value: "small", label: "Small", class: "text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl" },
-];
+]
 
 const SUBTITLE_SIZE_OPTIONS = [
   { value: "large", label: "Large", class: "text-base sm:text-lg md:text-xl" },
   { value: "medium", label: "Medium", class: "text-sm sm:text-base md:text-lg" },
   { value: "small", label: "Small", class: "text-xs sm:text-sm md:text-base" },
-];
+]
 
 const HERO_PRESETS = [
   {
@@ -284,46 +251,443 @@ const HERO_PRESETS = [
       { value: "Runway", label: "Pieces" },
     ],
   },
-];
+  // NEW PRESETS START HERE
+  {
+    key: "luxury-timepieces",
+    name: "Luxury Timepieces",
+    description: "Premium watch collection showcase",
+    layout: "image-showcase",
+    bg_color: "bg-slate-950",
+    title: "TIME\nELEGANCE",
+    subtitle: "Swiss craftsmanship meets timeless design in our curated collection",
+    button_text: "Explore Watches",
+    stats: [
+      { value: "Since", label: "1890" },
+      { value: "Swiss", label: "Made" },
+    ],
+  },
+  {
+    key: "vintage-treasures",
+    name: "Vintage Treasures",
+    description: "Retro fashion revival",
+    layout: "split-clean",
+    bg_color: "bg-orange-950",
+    title: "VINTAGE\nVIBE",
+    subtitle: "Timeless classics from past decades reimagined for today",
+    button_text: "Shop Vintage",
+    stats: [
+      { value: "60s-90s", label: "Era" },
+      { value: "Authentic", label: "Pieces" },
+    ],
+  },
+  {
+    key: "kids-paradise",
+    name: "Kids Paradise",
+    description: "Fun children's collection",
+    layout: "centered-clean",
+    bg_color: "bg-blue-950",
+    title: "KIDS\nDREAMS",
+    subtitle: "Playful, comfortable, and durable fashion for your little ones",
+    button_text: "Shop Kids",
+    stats: [
+      { value: "0-12", label: "Years" },
+      { value: "Safe", label: "Materials" },
+    ],
+  },
+  {
+    key: "bridal-elegance",
+    name: "Bridal Elegance",
+    description: "Wedding and bridal collection",
+    layout: "image-showcase",
+    bg_color: "bg-slate-950",
+    title: "YOUR\nMOMENT",
+    subtitle: "Exquisite bridal gowns and accessories for your special day",
+    button_text: "Book Fitting",
+    stats: [
+      { value: "Custom", label: "Made" },
+      { value: "Luxury", label: "Fabrics" },
+    ],
+  },
+  {
+    key: "denim-revolution",
+    name: "Denim Revolution",
+    description: "Premium denim showcase",
+    layout: "bold-left",
+    bg_color: "bg-blue-950",
+    title: "DENIM\nREBORN",
+    subtitle: "Premium selvedge denim crafted by master artisans",
+    button_text: "Shop Denim",
+    stats: [
+      { value: "Raw", label: "Selvedge" },
+      { value: "Japan", label: "Fabric" },
+      { value: "Hand", label: "Crafted" },
+    ],
+  },
+  {
+    key: "accessory-heaven",
+    name: "Accessory Heaven",
+    description: "Bags, belts, and accessories",
+    layout: "clean-left",
+    bg_color: "bg-red-950",
+    title: "THE\nDETAILS",
+    subtitle: "Complete your look with statement accessories",
+    button_text: "Browse All",
+    stats: [
+      { value: "1000+", label: "Styles" },
+      { value: "New", label: "Daily" },
+    ],
+  },
+  {
+    key: "winter-warmth",
+    name: "Winter Warmth",
+    description: "Cozy winter collection",
+    layout: "centered-clean",
+    bg_color: "bg-slate-900",
+    title: "WINTER\nWARMTH",
+    subtitle: "Stay cozy and stylish through the coldest months",
+    button_text: "Shop Winter",
+    stats: [
+      { value: "Down", label: "Insulated" },
+      { value: "-30°C", label: "Rated" },
+    ],
+  },
+  {
+    key: "resort-escape",
+    name: "Resort Escape",
+    description: "Vacation and resort wear",
+    layout: "split-clean",
+    bg_color: "bg-emerald-950",
+    title: "RESORT\nREADY",
+    subtitle: "Effortless vacation styles for tropical getaways",
+    button_text: "Pack Now",
+    stats: [
+      { value: "Beach", label: "Ready" },
+      { value: "Light", label: "Weight" },
+    ],
+  },
+  {
+    key: "athleisure-fusion",
+    name: "Athleisure Fusion",
+    description: "Gym to street versatile wear",
+    layout: "bold-left",
+    bg_color: "bg-slate-950",
+    title: "MOVE\nFREELY",
+    subtitle: "Where performance meets everyday style seamlessly",
+    button_text: "Shop Range",
+    stats: [
+      { value: "4-Way", label: "Stretch" },
+      { value: "Moisture", label: "Wicking" },
+    ],
+  },
+  {
+    key: "leather-luxury",
+    name: "Leather Luxury",
+    description: "Premium leather goods",
+    layout: "image-showcase",
+    bg_color: "bg-orange-950",
+    title: "LEATHER\nCRAFT",
+    subtitle: "Full-grain leather pieces that age beautifully with time",
+    button_text: "Discover",
+    stats: [
+      { value: "Italian", label: "Leather" },
+      { value: "Hand", label: "Stitched" },
+    ],
+  },
+  {
+    key: "jewelry-sparkle",
+    name: "Jewelry Sparkle",
+    description: "Fine jewelry collection",
+    layout: "centered-clean",
+    bg_color: "bg-purple-950",
+    title: "SHINE\nBRIGHT",
+    subtitle: "Ethically sourced gems set in precious metals",
+    button_text: "View Collection",
+    stats: [
+      { value: "Lab", label: "Grown" },
+      { value: "Conflict", label: "Free" },
+    ],
+  },
+  {
+    key: "formal-power",
+    name: "Formal Power",
+    description: "Business and formal attire",
+    layout: "clean-left",
+    bg_color: "bg-slate-950",
+    title: "POWER\nDRESSED",
+    subtitle: "Impeccably tailored suits and formal wear for the boardroom",
+    button_text: "Shop Suits",
+    stats: [
+      { value: "Bespoke", label: "Tailoring" },
+      { value: "Italian", label: "Wool" },
+      { value: "48HR", label: "Service" },
+    ],
+  },
+  {
+    key: "casual-comfort",
+    name: "Casual Comfort",
+    description: "Relaxed everyday wear",
+    layout: "split-clean",
+    bg_color: "bg-blue-950",
+    title: "EASY\nLIVING",
+    subtitle: "Comfortable essentials for laid-back weekends",
+    button_text: "Shop Casual",
+    stats: [
+      { value: "Soft", label: "Cotton" },
+      { value: "Relaxed", label: "Fit" },
+    ],
+  },
+  {
+    key: "plus-inclusive",
+    name: "Plus Inclusive",
+    description: "Inclusive sizing for all",
+    layout: "bold-left",
+    bg_color: "bg-green-950",
+    title: "ALL\nBODIES",
+    subtitle: "Trendy fashion designed to fit and flatter every curve",
+    button_text: "Find Your Size",
+    stats: [
+      { value: "XS-5XL", label: "Sizes" },
+      { value: "Every", label: "Body" },
+    ],
+  },
+  {
+    key: "outdoor-adventure",
+    name: "Outdoor Adventure",
+    description: "Technical outdoor gear",
+    layout: "image-showcase",
+    bg_color: "bg-emerald-950",
+    title: "WILD\nCALLING",
+    subtitle: "Rugged technical gear for mountain, trail, and backcountry",
+    button_text: "Gear Up",
+    stats: [
+      { value: "Gore-Tex", label: "Certified" },
+      { value: "Trail", label: "Tested" },
+    ],
+  },
+  {
+    key: "maternity-style",
+    name: "Maternity Style",
+    description: "Stylish maternity wear",
+    layout: "centered-clean",
+    bg_color: "bg-slate-900",
+    title: "BUMP\nSTYLE",
+    subtitle: "Comfortable and chic fashion for every trimester",
+    button_text: "Shop Maternity",
+    stats: [
+      { value: "Stretch", label: "Panels" },
+      { value: "Growing", label: "With You" },
+    ],
+  },
+  {
+    key: "streetwear-culture",
+    name: "Streetwear Culture",
+    description: "Urban streetwear drops",
+    layout: "bold-left",
+    bg_color: "bg-red-950",
+    title: "STREET\nCULTURE",
+    subtitle: "Limited drops and collaborations from underground artists",
+    button_text: "Cop Now",
+    stats: [
+      { value: "Weekly", label: "Drops" },
+      { value: "Sold", label: "Out Fast" },
+      { value: "Hype", label: "Collabs" },
+    ],
+  },
+  {
+    key: "minimalist-core",
+    name: "Minimalist Core",
+    description: "Essential minimalist wardrobe",
+    layout: "clean-left",
+    bg_color: "bg-slate-950",
+    title: "CORE\nESSENTIALS",
+    subtitle: "Build your perfect capsule wardrobe with timeless basics",
+    button_text: "Start Simple",
+    stats: [
+      { value: "10", label: "Pieces" },
+      { value: "100", label: "Outfits" },
+    ],
+  },
+  {
+    key: "festival-ready",
+    name: "Festival Ready",
+    description: "Music festival fashion",
+    layout: "split-clean",
+    bg_color: "bg-purple-950",
+    title: "FESTIVAL\nVIBES",
+    subtitle: "Bold, bohemian styles perfect for music festivals",
+    button_text: "Get Festival Ready",
+    stats: [
+      { value: "Boho", label: "Chic" },
+      { value: "Dance", label: "Ready" },
+    ],
+  },
+  {
+    key: "smart-casual",
+    name: "Smart Casual",
+    description: "Business casual perfection",
+    layout: "image-showcase",
+    bg_color: "bg-slate-900",
+    title: "SMART\nCASUAL",
+    subtitle: "The perfect balance between professional and relaxed",
+    button_text: "Shop Style",
+    stats: [
+      { value: "Office", label: "Ready" },
+      { value: "Weekend", label: "Proof" },
+    ],
+  },
+  {
+    key: "heritage-craft",
+    name: "Heritage Craft",
+    description: "Traditional craftsmanship",
+    layout: "centered-clean",
+    bg_color: "bg-orange-950",
+    title: "HERITAGE\nCRAFT",
+    subtitle: "Artisan-made pieces using centuries-old techniques",
+    button_text: "Discover Craft",
+    stats: [
+      { value: "100+", label: "Years" },
+      { value: "Hand", label: "Made" },
+    ],
+  },
+  {
+    key: "gender-neutral",
+    name: "Gender Neutral",
+    description: "Inclusive unisex fashion",
+    layout: "bold-left",
+    bg_color: "bg-slate-950",
+    title: "NO\nLABELS",
+    subtitle: "Fashion without boundaries for everyone to express themselves",
+    button_text: "Shop All",
+    stats: [
+      { value: "For", label: "Everyone" },
+      { value: "Free", label: "Expression" },
+    ],
+  },
+  {
+    key: "beach-lifestyle",
+    name: "Beach Lifestyle",
+    description: "Coastal living fashion",
+    layout: "split-clean",
+    bg_color: "bg-blue-950",
+    title: "BEACH\nLIFE",
+    subtitle: "Effortless coastal style for sun, sand, and sea",
+    button_text: "Shop Beach",
+    stats: [
+      { value: "UV", label: "Protected" },
+      { value: "Quick", label: "Dry" },
+    ],
+  },
+  {
+    key: "gothic-edge",
+    name: "Gothic Edge",
+    description: "Dark alternative fashion",
+    layout: "clean-left",
+    bg_color: "bg-slate-950",
+    title: "DARK\nELEGANCE",
+    subtitle: "Gothic and alternative fashion for those who embrace the darkness",
+    button_text: "Enter",
+    stats: [
+      { value: "Dark", label: "Aesthetic" },
+      { value: "Alt", label: "Culture" },
+    ],
+  },
+  {
+    key: "business-travel",
+    name: "Business Travel",
+    description: "Wrinkle-free travel wear",
+    layout: "image-showcase",
+    bg_color: "bg-slate-900",
+    title: "TRAVEL\nSMART",
+    subtitle: "Wrinkle-resistant, packable essentials for business travelers",
+    button_text: "Pack Smart",
+    stats: [
+      { value: "No", label: "Wrinkles" },
+      { value: "Pack", label: "Light" },
+    ],
+  },
+  {
+    key: "sneaker-culture",
+    name: "Sneaker Culture",
+    description: "Exclusive sneaker drops",
+    layout: "centered-clean",
+    bg_color: "bg-red-950",
+    title: "SNEAKER\nHEADS",
+    subtitle: "Limited edition drops and rare collaborations",
+    button_text: "Enter Raffle",
+    stats: [
+      { value: "Limited", label: "Edition" },
+      { value: "Instant", label: "Classics" },
+    ],
+  },
+  {
+    key: "preppy-classic",
+    name: "Preppy Classic",
+    description: "Timeless preppy style",
+    layout: "bold-left",
+    bg_color: "bg-blue-950",
+    title: "PREPPY\nCLASSIC",
+    subtitle: "Ivy League inspired classics with modern refinement",
+    button_text: "Shop Prep",
+    stats: [
+      { value: "Ivy", label: "League" },
+      { value: "Timeless", label: "Style" },
+    ],
+  },
+  {
+    key: "loungewear-luxe",
+    name: "Loungewear Luxe",
+    description: "Premium comfort wear",
+    layout: "split-clean",
+    bg_color: "bg-purple-950",
+    title: "LUXE\nLOUNGE",
+    subtitle: "Elevated loungewear in the softest fabrics",
+    button_text: "Get Cozy",
+    stats: [
+      { value: "Cashmere", label: "Blend" },
+      { value: "Cloud", label: "Soft" },
+    ],
+  },
+]
 
 const TITLE_WEIGHT_OPTIONS = [
   { value: "black", label: "Black (Boldest)", class: "font-black" },
   { value: "bold", label: "Bold", class: "font-bold" },
   { value: "semibold", label: "Semi Bold", class: "font-semibold" },
-];
+]
 
 const TITLE_LEADING_OPTIONS = [
   { value: "tight", label: "Tight", class: "leading-tight" },
   { value: "normal", label: "Normal", class: "leading-normal" },
   { value: "relaxed", label: "Relaxed", class: "leading-relaxed" },
   { value: "none", label: "None", class: "leading-none" },
-];
+]
 
 // Helper function to generate title class
 const generateTitleClass = (size: string, weight: string, leading: string) => {
-  const sizeClass = TITLE_SIZE_OPTIONS.find(opt => opt.value === size)?.class || TITLE_SIZE_OPTIONS[0].class;
-  const weightClass = TITLE_WEIGHT_OPTIONS.find(opt => opt.value === weight)?.class || TITLE_WEIGHT_OPTIONS[0].class;
-  const leadingClass = TITLE_LEADING_OPTIONS.find(opt => opt.value === leading)?.class || TITLE_LEADING_OPTIONS[0].class;
-  return `${sizeClass} ${weightClass} text-white ${leadingClass} tracking-tighter`;
-};
+  const sizeClass = TITLE_SIZE_OPTIONS.find((opt) => opt.value === size)?.class || TITLE_SIZE_OPTIONS[0].class
+  const weightClass = TITLE_WEIGHT_OPTIONS.find((opt) => opt.value === weight)?.class || TITLE_WEIGHT_OPTIONS[0].class
+  const leadingClass =
+    TITLE_LEADING_OPTIONS.find((opt) => opt.value === leading)?.class || TITLE_LEADING_OPTIONS[0].class
+  return `${sizeClass} ${weightClass} text-white ${leadingClass} tracking-tighter`
+}
 
 // Helper function to generate subtitle class
 const generateSubtitleClass = (size: string) => {
-  const sizeClass = SUBTITLE_SIZE_OPTIONS.find(opt => opt.value === size)?.class || SUBTITLE_SIZE_OPTIONS[1].class;
-  return `${sizeClass} text-white/80 max-w-lg leading-relaxed`;
-};
+  const sizeClass = SUBTITLE_SIZE_OPTIONS.find((opt) => opt.value === size)?.class || SUBTITLE_SIZE_OPTIONS[1].class
+  return `${sizeClass} text-white/80 max-w-lg leading-relaxed`
+}
 
 // Preview Component - Matches hero-section design exactly
 interface HeroSlidePreviewProps {
-  title: string;
-  subtitle?: string;
-  buttonText: string;
-  image: string;
-  bgColor: string;
-  layout: string;
-  titleClass: string;
-  subtitleClass: string;
-  stats: Array<{ value: string; label: string }>;
+  title: string
+  subtitle?: string
+  buttonText: string
+  image: string
+  bgColor: string
+  layout: string
+  titleClass: string
+  subtitleClass: string
+  stats: Array<{ value: string; label: string }>
 }
 
 function HeroSlidePreview({
@@ -363,7 +727,7 @@ function HeroSlidePreview({
             )}
           </div>
         </div>
-      );
+      )
     } else if (layout === "centered-clean") {
       return (
         <div className="container relative z-10 px-4 py-8 sm:py-12 md:py-0 h-full flex flex-col items-center justify-center text-center">
@@ -389,7 +753,7 @@ function HeroSlidePreview({
             )}
           </div>
         </div>
-      );
+      )
     } else if (layout === "split-clean") {
       return (
         <div className="container relative z-10 px-4 py-8 sm:py-12 md:py-0 h-full flex items-center">
@@ -416,25 +780,17 @@ function HeroSlidePreview({
               )}
             </div>
             <div className="relative h-60 sm:h-72 md:h-80 rounded-xl sm:rounded-2xl overflow-hidden">
-              <img
-                src={image}
-                alt={title}
-                className="w-full h-full object-cover"
-              />
+              <img src={image || "/placeholder.svg"} alt={title} className="w-full h-full object-cover" />
             </div>
           </div>
         </div>
-      );
+      )
     } else if (layout === "image-showcase") {
       return (
         <div className="container relative z-10 px-4 py-8 sm:py-12 md:py-0 h-full flex items-center">
           <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 md:gap-12 items-center w-full">
             <div className="relative h-60 sm:h-72 md:h-80 rounded-xl sm:rounded-2xl overflow-hidden order-2">
-              <img
-                src={image}
-                alt={title}
-                className="w-full h-full object-cover"
-              />
+              <img src={image || "/placeholder.svg"} alt={title} className="w-full h-full object-cover" />
             </div>
             <div className="space-y-4 sm:space-y-6 md:space-y-8 order-1 lg:order-2">
               <h1 className={titleClass}>{title}</h1>
@@ -449,10 +805,7 @@ function HeroSlidePreview({
               {stats.length > 0 && (
                 <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4">
                   {stats.map((stat, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-white/10 rounded-lg p-3 sm:p-4"
-                    >
+                    <div key={idx} className="bg-white/10 rounded-lg p-3 sm:p-4">
                       <div className="text-lg sm:text-2xl font-black text-white">{stat.value}</div>
                       <div className="text-white/60 text-xs sm:text-sm mt-1">{stat.label}</div>
                     </div>
@@ -462,7 +815,7 @@ function HeroSlidePreview({
             </div>
           </div>
         </div>
-      );
+      )
     } else if (layout === "bold-left") {
       return (
         <div className="container relative z-10 px-4 py-8 sm:py-12 md:py-0 h-full flex items-center">
@@ -488,33 +841,36 @@ function HeroSlidePreview({
             )}
           </div>
         </div>
-      );
+      )
     }
-    return null;
-  };
+    return null
+  }
 
   return (
-    <div className={`relative w-full h-full overflow-hidden ${bgColor} transition-colors duration-500`} style={{ minHeight: '400px' }}>
+    <div
+      className={`relative w-full h-full overflow-hidden ${bgColor} transition-colors duration-500`}
+      style={{ minHeight: "400px" }}
+    >
       <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/50" />
       <img
-        src={image}
+        src={image || "/placeholder.svg"}
         alt={title}
         className="absolute inset-0 w-full h-full object-cover opacity-40"
       />
       {renderLayout()}
     </div>
-  );
+  )
 }
 
 export default function HeroSlidesPage() {
-  const { toast } = useToast();
-  const { data: slides, isLoading } = useHeroSlides();
-  const createMutation = useCreateHeroSlide();
-  const updateMutation = useUpdateHeroSlide();
-  const deleteMutation = useDeleteHeroSlide();
+  const { toast } = useToast()
+  const { data: slides, isLoading } = useHeroSlides()
+  const createMutation = useCreateHeroSlide()
+  const updateMutation = useUpdateHeroSlide()
+  const deleteMutation = useDeleteHeroSlide()
 
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingSlide, setEditingSlide] = useState<HeroSlide | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [editingSlide, setEditingSlide] = useState<HeroSlide | null>(null)
   const [formData, setFormData] = useState<Partial<CreateHeroSlideDTO>>({
     title: "",
     subtitle: "",
@@ -527,42 +883,42 @@ export default function HeroSlidesPage() {
     stats: [],
     display_order: 0,
     is_active: true,
-  });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [stats, setStats] = useState<Array<{ value: string; label: string }>>([]);
-  const [isFullscreenPreviewOpen, setIsFullscreenPreviewOpen] = useState(false);
-  const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
-  const containerRef = useState<HTMLDivElement | null>(null);
-  const [scale, setScale] = useState(1);
+  })
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [stats, setStats] = useState<Array<{ value: string; label: string }>>([])
+  const [isFullscreenPreviewOpen, setIsFullscreenPreviewOpen] = useState(false)
+  const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop")
+  const containerRef = useState<HTMLDivElement | null>(null)
+  const [scale, setScale] = useState(1)
 
   // Measure container for scaling
-  const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null);
+  const [containerEl, setContainerEl] = useState<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    if (!containerEl) return;
+    if (!containerEl) return
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        const width = entry.contentRect.width;
-        const height = entry.contentRect.height;
+        const width = entry.contentRect.width
+        const height = entry.contentRect.height
         // Calculate scale to fit BOTH width and height (contain)
         // We use 1920x1080 as the reference design size
-        const scaleX = width / 1920;
-        const scaleY = height / 1080;
+        const scaleX = width / 1920
+        const scaleY = height / 1080
 
         // Use the smaller scale to ensure it fits entirely
-        const newScale = Math.min(scaleX, scaleY, 1) * 0.95; // 0.95 for a small margin
-        setScale(newScale);
+        const newScale = Math.min(scaleX, scaleY, 1) * 0.95 // 0.95 for a small margin
+        setScale(newScale)
       }
-    });
-    observer.observe(containerEl);
-    return () => observer.disconnect();
-  }, [containerEl]);
+    })
+    observer.observe(containerEl)
+    return () => observer.disconnect()
+  }, [containerEl])
 
   // User-friendly styling options
-  const [titleSize, setTitleSize] = useState("extra-large");
-  const [titleWeight, setTitleWeight] = useState("black");
-  const [titleLeading, setTitleLeading] = useState("tight");
-  const [subtitleSize, setSubtitleSize] = useState("medium");
+  const [titleSize, setTitleSize] = useState("extra-large")
+  const [titleWeight, setTitleWeight] = useState("black")
+  const [titleLeading, setTitleLeading] = useState("tight")
+  const [subtitleSize, setSubtitleSize] = useState("medium")
 
   const applyPreset = (preset: (typeof HERO_PRESETS)[number]) => {
     setFormData((prev) => ({
@@ -575,25 +931,25 @@ export default function HeroSlidesPage() {
       stats: preset.stats,
       display_order: prev.display_order ?? slides?.length ?? 0,
       is_active: prev.is_active ?? true,
-    }));
-    setStats(preset.stats || []);
+    }))
+    setStats(preset.stats || [])
     // Reset styling to defaults for consistency
-    setTitleSize("extra-large");
-    setTitleWeight("black");
-    setTitleLeading("tight");
-    setSubtitleSize("medium");
-  };
+    setTitleSize("extra-large")
+    setTitleWeight("black")
+    setTitleLeading("tight")
+    setSubtitleSize("medium")
+  }
 
   // Update title and subtitle classes when styling options change
   useEffect(() => {
-    const titleClass = generateTitleClass(titleSize, titleWeight, titleLeading);
-    const subtitleClass = generateSubtitleClass(subtitleSize);
-    setFormData(prev => ({
+    const titleClass = generateTitleClass(titleSize, titleWeight, titleLeading)
+    const subtitleClass = generateSubtitleClass(subtitleSize)
+    setFormData((prev) => ({
       ...prev,
       title_class: titleClass,
       subtitle_class: subtitleClass,
-    }));
-  }, [titleSize, titleWeight, titleLeading, subtitleSize]);
+    }))
+  }, [titleSize, titleWeight, titleLeading, subtitleSize])
 
   const resetForm = () => {
     setFormData({
@@ -608,19 +964,19 @@ export default function HeroSlidesPage() {
       stats: [],
       display_order: slides?.length || 0,
       is_active: true,
-    });
-    setImageFile(null);
-    setStats([]);
-    setEditingSlide(null);
-    setTitleSize("extra-large");
-    setTitleWeight("black");
-    setTitleLeading("tight");
-    setSubtitleSize("medium");
-  };
+    })
+    setImageFile(null)
+    setStats([])
+    setEditingSlide(null)
+    setTitleSize("extra-large")
+    setTitleWeight("black")
+    setTitleLeading("tight")
+    setSubtitleSize("medium")
+  }
 
   const handleOpenDialog = (slide?: HeroSlide) => {
     if (slide) {
-      setEditingSlide(slide);
+      setEditingSlide(slide)
       setFormData({
         title: slide.title,
         subtitle: slide.subtitle || "",
@@ -631,71 +987,71 @@ export default function HeroSlidesPage() {
         subtitle_class: slide.subtitle_class,
         display_order: slide.display_order,
         is_active: slide.is_active,
-      });
-      setStats(slide.stats || []);
-      setImageFile(null);
+      })
+      setStats(slide.stats || [])
+      setImageFile(null)
 
       // Parse existing classes to set user-friendly options
       // Try to detect size, weight, and leading from existing classes
       if (slide.title_class.includes("text-9xl") || slide.title_class.includes("text-8xl")) {
-        setTitleSize("extra-large");
+        setTitleSize("extra-large")
       } else if (slide.title_class.includes("text-7xl") || slide.title_class.includes("text-6xl")) {
-        setTitleSize("large");
+        setTitleSize("large")
       } else if (slide.title_class.includes("text-5xl") || slide.title_class.includes("text-4xl")) {
-        setTitleSize("medium");
+        setTitleSize("medium")
       } else {
-        setTitleSize("small");
+        setTitleSize("small")
       }
 
       if (slide.title_class.includes("font-black")) {
-        setTitleWeight("black");
+        setTitleWeight("black")
       } else if (slide.title_class.includes("font-bold")) {
-        setTitleWeight("bold");
+        setTitleWeight("bold")
       } else {
-        setTitleWeight("semibold");
+        setTitleWeight("semibold")
       }
 
       if (slide.title_class.includes("leading-tight")) {
-        setTitleLeading("tight");
+        setTitleLeading("tight")
       } else if (slide.title_class.includes("leading-normal")) {
-        setTitleLeading("normal");
+        setTitleLeading("normal")
       } else if (slide.title_class.includes("leading-relaxed")) {
-        setTitleLeading("relaxed");
+        setTitleLeading("relaxed")
       } else {
-        setTitleLeading("none");
+        setTitleLeading("none")
       }
 
       if (slide.subtitle_class.includes("text-xl") || slide.subtitle_class.includes("text-lg")) {
-        setSubtitleSize("large");
+        setSubtitleSize("large")
       } else if (slide.subtitle_class.includes("text-base")) {
-        setSubtitleSize("medium");
+        setSubtitleSize("medium")
       } else {
-        setSubtitleSize("small");
+        setSubtitleSize("small")
       }
     } else {
-      resetForm();
+      resetForm()
     }
-    setIsDialogOpen(true);
-  };
+    setIsDialogOpen(true)
+  }
 
   const handleCloseDialog = () => {
-    setIsDialogOpen(false);
-    resetForm();
-  };
+    setIsDialogOpen(false)
+    resetForm()
+  }
 
   const handleAddStat = () => {
-    setStats([...stats, { value: "", label: "" }]);
-  };
+    setStats([...stats, { value: "", label: "" }])
+  }
 
   const handleRemoveStat = (index: number) => {
-    setStats(stats.filter((_, i) => i !== index));
-  };
+    setStats(stats.filter((_, i) => i !== index))
+  }
 
   const handleStatChange = (index: number, field: "value" | "label", value: string) => {
-    const newStats = [...stats];
-    newStats[index] = { ...newStats[index], [field]: value };
-    setStats(newStats);
-  };
+    const newStats = [...stats]
+    newStats[index] = { ...newStats[index], [field]: value }
+    setStats(newStats)
+  }
 
   const handleSubmit = async () => {
     try {
@@ -704,8 +1060,8 @@ export default function HeroSlidesPage() {
           title: "Error",
           description: "Title is required",
           variant: "destructive",
-        });
-        return;
+        })
+        return
       }
 
       const slideData: CreateHeroSlideDTO = {
@@ -720,81 +1076,81 @@ export default function HeroSlidesPage() {
         display_order: formData.display_order,
         is_active: formData.is_active,
         image: imageFile || undefined,
-      };
+      }
 
       if (editingSlide) {
         await updateMutation.mutateAsync({
           id: editingSlide.id,
           ...slideData,
-        });
+        })
         toast({
           title: "Success",
           description: "Hero slide updated successfully!",
-        });
+        })
       } else {
-        await createMutation.mutateAsync(slideData);
+        await createMutation.mutateAsync(slideData)
         toast({
           title: "Success",
           description: "Hero slide created successfully!",
-        });
+        })
       }
 
-      handleCloseDialog();
+      handleCloseDialog()
     } catch (error: any) {
       toast({
         title: "Error",
         description: error?.message || "Failed to save hero slide",
         variant: "destructive",
-      });
+      })
     }
-  };
+  }
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this hero slide?")) return;
+    if (!confirm("Are you sure you want to delete this hero slide?")) return
 
     try {
-      await deleteMutation.mutateAsync(id);
+      await deleteMutation.mutateAsync(id)
       toast({
         title: "Success",
         description: "Hero slide deleted successfully!",
-      });
+      })
     } catch (error: any) {
       toast({
         title: "Error",
         description: error?.message || "Failed to delete hero slide",
         variant: "destructive",
-      });
+      })
     }
-  };
+  }
 
   const handleToggleActive = async (slide: HeroSlide) => {
     try {
       await updateMutation.mutateAsync({
         id: slide.id,
         is_active: !slide.is_active,
-      });
+      })
       toast({
         title: "Success",
         description: `Slide ${slide.is_active ? "deactivated" : "activated"} successfully!`,
-      });
+      })
     } catch (error: any) {
       toast({
         title: "Error",
         description: error?.message || "Failed to update slide",
         variant: "destructive",
-      });
+      })
     }
-  };
+  }
 
   const handleMoveOrder = async (slide: HeroSlide, direction: "up" | "down") => {
-    const currentIndex = slides?.findIndex((s) => s.id === slide.id) ?? -1;
-    if (currentIndex === -1) return;
+    const currentIndex = slides?.findIndex((s) => s.id === slide.id) ?? -1
+    if (currentIndex === -1) return
 
-    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
-    if (newIndex < 0 || newIndex >= (slides?.length || 0)) return;
+    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1
+    if (newIndex < 0 || newIndex >= (slides?.length || 0)) return
 
-    const targetSlide = slides?.[newIndex];
-    if (!targetSlide) return;
+    const targetSlide = slides?.[newIndex]
+    if (!targetSlide) return
 
     try {
       // Swap display orders
@@ -807,19 +1163,19 @@ export default function HeroSlidesPage() {
           id: targetSlide.id,
           display_order: slide.display_order,
         }),
-      ]);
+      ])
       toast({
         title: "Success",
         description: "Slide order updated successfully!",
-      });
+      })
     } catch (error: any) {
       toast({
         title: "Error",
         description: error?.message || "Failed to update slide order",
         variant: "destructive",
-      });
+      })
     }
-  };
+  }
 
   if (isLoading) {
     return (
@@ -829,7 +1185,7 @@ export default function HeroSlidesPage() {
           <p className="mt-4 text-gray-600">Loading hero slides...</p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -845,9 +1201,7 @@ export default function HeroSlidesPage() {
                 <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                   Hero Slides Management
                 </h1>
-                <p className="text-gray-600 mt-1">
-                  Manage your hero section slides
-                </p>
+                <p className="text-gray-600 mt-1">Manage your hero section slides</p>
               </div>
             </div>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -862,16 +1216,12 @@ export default function HeroSlidesPage() {
               </DialogTrigger>
               <DialogContent className="max-w-[95vw] w-full h-[90vh] p-0 overflow-hidden flex flex-col bg-white">
                 <DialogHeader className="p-4">
-                  <DialogTitle>
-                    {editingSlide ? "Edit Hero Slide" : "Create New Hero Slide"}
-                  </DialogTitle>
+                  <DialogTitle>{editingSlide ? "Edit Hero Slide" : "Create New Hero Slide"}</DialogTitle>
                   <DialogDescription>
                     Configure the slide content, image, and styling. See live preview on the right.
                   </DialogDescription>
                 </DialogHeader>
                 <div className="flex-1 overflow-hidden h-full">
-
-
                   <div className="flex w-full h-full">
                     {/* Preview Section */}
                     <div className="flex-1 lg:sticky lg:top-0 h-full overflow-hidden p-4 bg-gray-50/50">
@@ -883,16 +1233,24 @@ export default function HeroSlidesPage() {
                           </div>
 
                           <div className="flex items-center gap-2">
-                            <Tabs value={previewMode} onValueChange={(v) => setPreviewMode(v as any)} className="w-auto">
+                            <Tabs
+                              value={previewMode}
+                              onValueChange={(v) => setPreviewMode(v as any)}
+                              className="w-auto"
+                            >
                               <TabsList className="grid w-full grid-cols-2 h-8">
-                                <TabsTrigger value="desktop" className="px-3"><Monitor className="h-4 w-4" /></TabsTrigger>
-                                <TabsTrigger value="mobile" className="px-3"><Smartphone className="h-4 w-4" /></TabsTrigger>
+                                <TabsTrigger value="desktop" className="px-3">
+                                  <Monitor className="h-4 w-4" />
+                                </TabsTrigger>
+                                <TabsTrigger value="mobile" className="px-3">
+                                  <Smartphone className="h-4 w-4" />
+                                </TabsTrigger>
                               </TabsList>
                             </Tabs>
                             <Button
                               variant="outline"
                               size="icon"
-                              className="h-8 w-8"
+                              className="h-8 w-8 bg-transparent"
                               onClick={() => setIsFullscreenPreviewOpen(true)}
                               title="Fullscreen Preview"
                             >
@@ -901,11 +1259,11 @@ export default function HeroSlidesPage() {
                           </div>
                         </div>
 
-                        <div className={`flex-1 overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-white relative transition-all duration-300 ${previewMode === 'mobile'
-                          ? 'flex justify-center items-center p-4 bg-gray-100'
-                          : ''
-                          }`}>
-                          {previewMode === 'mobile' ? (
+                        <div
+                          className={`flex-1 overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-white relative transition-all duration-300 ${previewMode === "mobile" ? "flex justify-center items-center p-4 bg-gray-100" : ""
+                            }`}
+                        >
+                          {previewMode === "mobile" ? (
                             <div className="relative w-[375px] h-[667px] bg-black rounded-[3rem] shadow-xl overflow-hidden border-[8px] border-gray-900 ring-1 ring-gray-900/5">
                               {/* Notch */}
                               <div className="absolute top-0 inset-x-0 h-6 bg-gray-900 rounded-b-3xl z-50 w-32 mx-auto"></div>
@@ -936,8 +1294,8 @@ export default function HeroSlidesPage() {
                               <div
                                 className="origin-center shadow-2xl transition-transform duration-200 ease-out bg-white"
                                 style={{
-                                  width: '1920px',
-                                  height: '1080px',
+                                  width: "1920px",
+                                  height: "1080px",
                                   transform: `scale(${scale})`,
                                   // Optional: if scale is small, we might want to center differently, but origin-center works for flex center
                                 }}
@@ -982,11 +1340,16 @@ export default function HeroSlidesPage() {
                               <div className="flex items-center justify-between">
                                 <div className="space-y-0.5">
                                   <div className="text-xs font-semibold">{preset.name}</div>
-                                  <div className="text-[10px] text-muted-foreground line-clamp-1">{preset.description}</div>
+                                  <div className="text-[10px] text-muted-foreground line-clamp-1">
+                                    {preset.description}
+                                  </div>
                                 </div>
                                 <div
                                   className="w-6 h-6 rounded-md border shrink-0"
-                                  style={{ backgroundColor: (BG_COLOR_OPTIONS.find((c) => c.value === preset.bg_color)?.color) || "#0f172a" }}
+                                  style={{
+                                    backgroundColor:
+                                      BG_COLOR_OPTIONS.find((c) => c.value === preset.bg_color)?.color || "#0f172a",
+                                  }}
                                 />
                               </div>
                             </button>
@@ -997,30 +1360,26 @@ export default function HeroSlidesPage() {
                       {/* Inputs Section - Scrollable */}
                       <div className="p-4 flex-1 overflow-y-auto space-y-6 pr-2 hover:pr-4 transition-all [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-primary/50 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-primary">
                         <div className="space-y-4">
-                          <Label className="text-base font-semibold sticky top-0 bg-white z-10 py-1 block">Settings</Label>
+                          <Label className="text-base font-semibold sticky top-0 bg-white z-10 py-1 block">
+                            Settings
+                          </Label>
                           <div className="space-y-2">
                             <Label htmlFor="title">Title *</Label>
                             <Input
                               id="title"
                               value={formData.title}
-                              onChange={(e) =>
-                                setFormData({ ...formData, title: e.target.value })
-                              }
+                              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                               placeholder="FIND YOUR\nSTYLE"
                               className="h-8 text-sm"
                             />
-                            <p className="text-[10px] text-gray-500">
-                              Use \n for line breaks
-                            </p>
+                            <p className="text-[10px] text-gray-500">Use \n for line breaks</p>
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="button_text">Button Text</Label>
                             <Input
                               id="button_text"
                               value={formData.button_text}
-                              onChange={(e) =>
-                                setFormData({ ...formData, button_text: e.target.value })
-                              }
+                              onChange={(e) => setFormData({ ...formData, button_text: e.target.value })}
                               placeholder="Shop Now"
                               className="h-8 text-sm"
                             />
@@ -1032,9 +1391,7 @@ export default function HeroSlidesPage() {
                           <Textarea
                             id="subtitle"
                             value={formData.subtitle}
-                            onChange={(e) =>
-                              setFormData({ ...formData, subtitle: e.target.value })
-                            }
+                            onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
                             placeholder="Discover meticulously crafted garments..."
                             rows={3}
                           />
@@ -1045,9 +1402,7 @@ export default function HeroSlidesPage() {
                             <Label htmlFor="layout">Layout</Label>
                             <Select
                               value={formData.layout}
-                              onValueChange={(value: any) =>
-                                setFormData({ ...formData, layout: value })
-                              }
+                              onValueChange={(value: any) => setFormData({ ...formData, layout: value })}
                             >
                               <SelectTrigger className="h-8 text-sm">
                                 <SelectValue />
@@ -1065,9 +1420,7 @@ export default function HeroSlidesPage() {
                             <Label htmlFor="bg_color">Background Color</Label>
                             <Select
                               value={formData.bg_color}
-                              onValueChange={(value) =>
-                                setFormData({ ...formData, bg_color: value })
-                              }
+                              onValueChange={(value) => setFormData({ ...formData, bg_color: value })}
                             >
                               <SelectTrigger className="h-8 text-sm">
                                 <SelectValue />
@@ -1093,14 +1446,14 @@ export default function HeroSlidesPage() {
                           <Label htmlFor="image">Image *</Label>
                           {editingSlide?.image_url && !imageFile && (
                             <img
-                              src={editingSlide.image_url}
+                              src={editingSlide.image_url || "/placeholder.svg"}
                               alt="Current"
                               className="w-full h-48 object-cover mb-2 border rounded"
                             />
                           )}
                           {imageFile && (
                             <img
-                              src={URL.createObjectURL(imageFile)}
+                              src={URL.createObjectURL(imageFile) || "/placeholder.svg"}
                               alt="Preview"
                               className="w-full h-48 object-cover mb-2 border rounded"
                             />
@@ -1109,9 +1462,7 @@ export default function HeroSlidesPage() {
                             id="image"
                             type="file"
                             accept="image/*"
-                            onChange={(e) =>
-                              setImageFile(e.target.files?.[0] || null)
-                            }
+                            onChange={(e) => setImageFile(e.target.files?.[0] || null)}
                           />
                         </div>
 
@@ -1121,10 +1472,7 @@ export default function HeroSlidesPage() {
                           <div className="grid grid-cols-1 gap-4">
                             <div className="space-y-2">
                               <Label htmlFor="title_size">Title Size</Label>
-                              <Select
-                                value={titleSize}
-                                onValueChange={setTitleSize}
-                              >
+                              <Select value={titleSize} onValueChange={setTitleSize}>
                                 <SelectTrigger id="title_size">
                                   <SelectValue />
                                 </SelectTrigger>
@@ -1139,10 +1487,7 @@ export default function HeroSlidesPage() {
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="title_weight">Title Weight</Label>
-                              <Select
-                                value={titleWeight}
-                                onValueChange={setTitleWeight}
-                              >
+                              <Select value={titleWeight} onValueChange={setTitleWeight}>
                                 <SelectTrigger id="title_weight">
                                   <SelectValue />
                                 </SelectTrigger>
@@ -1157,10 +1502,7 @@ export default function HeroSlidesPage() {
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="title_leading">Title Line Height</Label>
-                              <Select
-                                value={titleLeading}
-                                onValueChange={setTitleLeading}
-                              >
+                              <Select value={titleLeading} onValueChange={setTitleLeading}>
                                 <SelectTrigger id="title_leading">
                                   <SelectValue />
                                 </SelectTrigger>
@@ -1181,10 +1523,7 @@ export default function HeroSlidesPage() {
                           <Label className="text-base font-semibold">Subtitle Styling</Label>
                           <div className="space-y-2">
                             <Label htmlFor="subtitle_size">Subtitle Size</Label>
-                            <Select
-                              value={subtitleSize}
-                              onValueChange={setSubtitleSize}
-                            >
+                            <Select value={subtitleSize} onValueChange={setSubtitleSize}>
                               <SelectTrigger id="subtitle_size">
                                 <SelectValue />
                               </SelectTrigger>
@@ -1202,12 +1541,7 @@ export default function HeroSlidesPage() {
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <Label>Stats</Label>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={handleAddStat}
-                            >
+                            <Button type="button" variant="outline" size="sm" onClick={handleAddStat}>
                               <Plus className="h-4 w-4 mr-1" />
                               Add Stat
                             </Button>
@@ -1217,23 +1551,14 @@ export default function HeroSlidesPage() {
                               <Input
                                 placeholder="Value (e.g., 200+)"
                                 value={stat.value}
-                                onChange={(e) =>
-                                  handleStatChange(index, "value", e.target.value)
-                                }
+                                onChange={(e) => handleStatChange(index, "value", e.target.value)}
                               />
                               <Input
                                 placeholder="Label (e.g., Brands)"
                                 value={stat.label}
-                                onChange={(e) =>
-                                  handleStatChange(index, "label", e.target.value)
-                                }
+                                onChange={(e) => handleStatChange(index, "label", e.target.value)}
                               />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleRemoveStat(index)}
-                              >
+                              <Button type="button" variant="outline" size="sm" onClick={() => handleRemoveStat(index)}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
@@ -1250,7 +1575,7 @@ export default function HeroSlidesPage() {
                               onChange={(e) =>
                                 setFormData({
                                   ...formData,
-                                  display_order: parseInt(e.target.value) || 0,
+                                  display_order: Number.parseInt(e.target.value) || 0,
                                 })
                               }
                               className="h-8 text-sm"
@@ -1261,9 +1586,7 @@ export default function HeroSlidesPage() {
                             <Switch
                               id="is_active"
                               checked={formData.is_active}
-                              onCheckedChange={(checked) =>
-                                setFormData({ ...formData, is_active: checked })
-                              }
+                              onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
                             />
                           </div>
                         </div>
@@ -1279,25 +1602,17 @@ export default function HeroSlidesPage() {
                         </div>
                       </div>
                     </div>
-
-
                   </div>
                 </div>
-
-
               </DialogContent>
             </Dialog>
           </div>
-        </div >
+        </div>
 
         <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-2xl font-bold text-gray-900">
-              Hero Slides
-            </CardTitle>
-            <CardDescription>
-              Manage all hero section slides. Drag to reorder or click edit to modify.
-            </CardDescription>
+            <CardTitle className="text-2xl font-bold text-gray-900">Hero Slides</CardTitle>
+            <CardDescription>Manage all hero section slides. Drag to reorder or click edit to modify.</CardDescription>
           </CardHeader>
           <CardContent>
             {slides && slides.length > 0 ? (
@@ -1339,7 +1654,7 @@ export default function HeroSlidesPage() {
                       <TableCell>
                         {slide.image_url ? (
                           <img
-                            src={slide.image_url}
+                            src={slide.image_url || "/placeholder.svg"}
                             alt={slide.title}
                             className="w-20 h-20 object-cover rounded"
                           />
@@ -1353,38 +1668,24 @@ export default function HeroSlidesPage() {
                         <div>
                           <div className="font-medium">{slide.title}</div>
                           {slide.subtitle && (
-                            <div className="text-sm text-gray-500 truncate max-w-xs">
-                              {slide.subtitle}
-                            </div>
+                            <div className="text-sm text-gray-500 truncate max-w-xs">{slide.subtitle}</div>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
                         <span className="text-sm">
-                          {LAYOUT_OPTIONS.find((o) => o.value === slide.layout)?.label ||
-                            slide.layout}
+                          {LAYOUT_OPTIONS.find((o) => o.value === slide.layout)?.label || slide.layout}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <Switch
-                          checked={slide.is_active}
-                          onCheckedChange={() => handleToggleActive(slide)}
-                        />
+                        <Switch checked={slide.is_active} onCheckedChange={() => handleToggleActive(slide)} />
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleOpenDialog(slide)}
-                          >
+                          <Button variant="outline" size="sm" onClick={() => handleOpenDialog(slide)}>
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDelete(slide.id)}
-                          >
+                          <Button variant="outline" size="sm" onClick={() => handleDelete(slide.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -1397,10 +1698,7 @@ export default function HeroSlidesPage() {
               <div className="text-center py-12">
                 <ImageIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <p className="text-gray-600">No hero slides yet</p>
-                <Button
-                  className="mt-4"
-                  onClick={() => handleOpenDialog()}
-                >
+                <Button className="mt-4" onClick={() => handleOpenDialog()}>
                   <Plus className="mr-2 h-4 w-4" />
                   Create First Slide
                 </Button>
@@ -1408,10 +1706,10 @@ export default function HeroSlidesPage() {
             )}
           </CardContent>
         </Card>
-      </div >
+      </div>
 
       {/* Fullscreen Preview Modal */}
-      < Dialog open={isFullscreenPreviewOpen} onOpenChange={setIsFullscreenPreviewOpen} >
+      <Dialog open={isFullscreenPreviewOpen} onOpenChange={setIsFullscreenPreviewOpen}>
         <DialogContent className="max-w-[100vw] h-[100vh] p-0 border-0 rounded-none bg-black">
           <div className="relative w-full h-full">
             <Button
@@ -1422,8 +1720,10 @@ export default function HeroSlidesPage() {
             >
               <X className="h-6 w-6" />
             </Button>
-            <div className={`w-full h-full overflow-y-auto ${previewMode === 'mobile' ? 'flex justify-center items-center bg-gray-900' : ''}`}>
-              {previewMode === 'mobile' ? (
+            <div
+              className={`w-full h-full overflow-y-auto ${previewMode === "mobile" ? "flex justify-center items-center bg-gray-900" : ""}`}
+            >
+              {previewMode === "mobile" ? (
                 <div className="relative w-[375px] h-[667px] bg-black rounded-[3rem] shadow-xl overflow-hidden border-[8px] border-gray-800 ring-1 ring-gray-700/50 scale-125">
                   {/* Notch */}
                   <div className="absolute top-0 inset-x-0 h-6 bg-gray-800 rounded-b-3xl z-50 w-32 mx-auto"></div>
@@ -1469,15 +1769,24 @@ export default function HeroSlidesPage() {
             <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-black/50 backdrop-blur-md rounded-full px-6 py-3 flex gap-4 z-50">
               <Tabs value={previewMode} onValueChange={(v) => setPreviewMode(v as any)} className="w-auto">
                 <TabsList className="bg-white/10 text-white">
-                  <TabsTrigger value="desktop" className="px-4 data-[state=active]:bg-white data-[state=active]:text-black"><Monitor className="h-4 w-4 mr-2" /> Desktop</TabsTrigger>
-                  <TabsTrigger value="mobile" className="px-4 data-[state=active]:bg-white data-[state=active]:text-black"><Smartphone className="h-4 w-4 mr-2" /> Mobile</TabsTrigger>
+                  <TabsTrigger
+                    value="desktop"
+                    className="px-4 data-[state=active]:bg-white data-[state=active]:text-black"
+                  >
+                    <Monitor className="h-4 w-4 mr-2" /> Desktop
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="mobile"
+                    className="px-4 data-[state=active]:bg-white data-[state=active]:text-black"
+                  >
+                    <Smartphone className="h-4 w-4 mr-2" /> Mobile
+                  </TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
           </div>
         </DialogContent>
-      </Dialog >
-    </div >
-  );
+      </Dialog>
+    </div>
+  )
 }
-

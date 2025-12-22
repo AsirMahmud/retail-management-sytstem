@@ -6,19 +6,31 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Package } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Package, Plus, Search, Filter, RefreshCw, User, ShoppingBag, Edit } from "lucide-react";
 import { onlinePreordersApi, type OnlinePreorder } from "@/lib/api/onlinePreorder";
+import { OrderDetailsSheet } from "@/components/online-preorders/order-details-sheet";
+import { ManualOrderForm } from "@/components/online-preorders/manual-order-form";
+import { useDebounce } from "@/hooks/use-debounce";
+import { format } from "date-fns";
 
 export default function OnlinePreordersPage() {
+  const [activeTab, setActiveTab] = useState("orders");
   const [status, setStatus] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<OnlinePreorder[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<OnlinePreorder | null>(null);
+  const [editingOrder, setEditingOrder] = useState<OnlinePreorder | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+  const debouncedSearch = useDebounce(search, 500);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const res = await onlinePreordersApi.getAll(status, search);
+      const res = await onlinePreordersApi.getAll(status, debouncedSearch);
       const data = Array.isArray(res.data) ? res.data : (res.data.results ?? []);
       setRows(data as OnlinePreorder[]);
     } finally {
@@ -26,101 +38,215 @@ export default function OnlinePreordersPage() {
     }
   };
 
+  const handleEdit = (order: OnlinePreorder) => {
+    setEditingOrder(order);
+    setIsSheetOpen(false);
+    setActiveTab("manual");
+  };
+
+  const clearEditing = () => {
+    setEditingOrder(null);
+    setActiveTab("orders");
+  };
+
   useEffect(() => {
     void loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status]);
+  }, [status, debouncedSearch]);
+
+  const getStatusBadge = (s: string) => {
+    const config: any = {
+      PENDING: "bg-yellow-100 text-yellow-800",
+      CONFIRMED: "bg-blue-100 text-blue-800",
+      DELIVERED: "bg-indigo-100 text-indigo-800",
+      COMPLETED: "bg-green-100 text-green-800",
+      CANCELLED: "bg-red-100 text-red-800",
+    };
+    return <Badge className={`${config[s] || "bg-gray-100"} border-none capitalize`}>{s.toLowerCase()}</Badge>;
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="mb-8">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-              <Package className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                Online Preorders
-              </h1>
-              <p className="text-gray-600 mt-1">Orders created from ecommerce (COD)</p>
-            </div>
-          </div>
+    <div className="min-h-screen space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">Online Preorders</h1>
+          <p className="text-slate-500 mt-2 font-medium">Manage and track your ecommerce COD orders from one place.</p>
         </div>
-
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <CardTitle className="text-2xl font-bold text-gray-900">Online Preorders</CardTitle>
-                <CardDescription>Manage online orders and track their status</CardDescription>
-              </div>
-              <div className="flex gap-3">
-                <Input placeholder="Search by name or phone" value={search} onChange={(e)=>setSearch(e.target.value)} className="w-56" />
-                <Select value={status} onValueChange={setStatus}>
-                  <SelectTrigger className="w-44"><SelectValue placeholder="Status" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="PENDING">Pending</SelectItem>
-                    <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                    <SelectItem value="DELIVERED">Delivered</SelectItem>
-                    <SelectItem value="COMPLETED">Completed</SelectItem>
-                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button onClick={loadData}>Refresh</Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            ) : (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Items</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Date</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {rows.map((o)=> (
-                      <TableRow key={o.id}>
-                        <TableCell>
-                          <div className="font-medium">{o.customer_name}</div>
-                          <div className="text-sm text-gray-500">{o.customer_phone}</div>
-                          {o.customer_email && <div className="text-sm text-gray-500">{o.customer_email}</div>}
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm text-gray-600">
-                            {o.items?.map((it, idx)=> (
-                              <div key={idx}>#{it.product_id} {it.size}/{it.color} × {it.quantity}</div>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell>{Number(o.total_amount).toLocaleString()}</TableCell>
-                        <TableCell>{o.status}</TableCell>
-                        <TableCell>{new Date(o.created_at).toLocaleDateString()}</TableCell>
-                      </TableRow>
-                    ))}
-                    {rows.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8 text-gray-500">No online preorders found</TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" className="bg-white" onClick={loadData}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button className="bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200" onClick={() => { setEditingOrder(null); setActiveTab("manual"); }}>
+            <Plus className="w-4 h-4 mr-2" />
+            Create Order
+          </Button>
+        </div>
       </div>
+
+      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); if (v !== "manual") setEditingOrder(null); }} className="w-full">
+        <TabsList className="bg-white border p-1 h-12 shadow-sm rounded-xl mb-6">
+          <TabsTrigger value="orders" className="rounded-lg data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-600 px-6 font-semibold transition-all">
+            <ShoppingBag className="w-4 h-4 mr-2" />
+            Orders
+          </TabsTrigger>
+          <TabsTrigger value="manual" className="rounded-lg data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-600 px-6 font-semibold transition-all">
+            {editingOrder ? <Edit className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+            {editingOrder ? "Edit Order" : "Manual Order"}
+          </TabsTrigger>
+          <TabsTrigger value="customers" className="rounded-lg data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-600 px-6 font-semibold transition-all">
+            <User className="w-4 h-4 mr-2" />
+            Customers
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="orders">
+          <Card className="border-none shadow-xl bg-white overflow-hidden">
+            <CardHeader className="border-b bg-slate-50/50 pb-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                  <Input
+                    placeholder="Search by customer, phone..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-10 h-10 bg-white border-slate-200"
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
+                    <Filter className="w-4 h-4" />
+                    Status:
+                  </div>
+                  <Select value={status} onValueChange={setStatus}>
+                    <SelectTrigger className="w-44 bg-white"><SelectValue placeholder="All Status" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Orders</SelectItem>
+                      <SelectItem value="PENDING">Pending</SelectItem>
+                      <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                      <SelectItem value="DELIVERED">Delivered</SelectItem>
+                      <SelectItem value="COMPLETED">Completed</SelectItem>
+                      <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {loading && rows.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-24 gap-4">
+                  <div className="animate-spin rounded-full h-10 w-10 border-4 border-indigo-600 border-t-transparent shadow-md"></div>
+                  <p className="text-slate-500 font-medium">Loading orders...</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader className="bg-slate-50/50">
+                      <TableRow>
+                        <TableHead className="font-bold text-slate-700 w-16">Preview</TableHead>
+                        <TableHead className="font-bold text-slate-700">Order ID</TableHead>
+                        <TableHead className="font-bold text-slate-700">Customer</TableHead>
+                        <TableHead className="font-bold text-slate-700 text-center">Items</TableHead>
+                        <TableHead className="font-bold text-slate-700">Total Price</TableHead>
+                        <TableHead className="font-bold text-slate-700">Discount</TableHead>
+                        <TableHead className="font-bold text-slate-700">Status</TableHead>
+                        <TableHead className="font-bold text-slate-700">Date</TableHead>
+                        <TableHead className="font-bold text-slate-700 text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {rows.map((o) => {
+                        const totalDiscount = o.items?.reduce((sum, item) => sum + (Number(item.discount) || 0), 0) || 0;
+                        const firstItemImage = o.items?.[0]?.product_image;
+
+                        return (
+                          <TableRow key={o.id} className="cursor-pointer hover:bg-slate-50/80 transition-colors" onClick={() => { setSelectedOrder(o); setIsSheetOpen(true); }}>
+                            <TableCell>
+                              <div className="w-10 h-10 rounded-md border bg-white overflow-hidden flex items-center justify-center">
+                                {firstItemImage ? (
+                                  <img src={firstItemImage} alt="Order preview" className="w-full h-full object-cover" />
+                                ) : (
+                                  <Package className="w-5 h-5 text-slate-300" />
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-bold text-indigo-600">#{o.id}</TableCell>
+                            <TableCell>
+                              <div className="font-bold text-slate-900">{o.customer_name}</div>
+                              <div className="text-xs text-slate-500 font-medium mt-0.5">{o.customer_phone}</div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant="secondary" className="bg-slate-100 text-slate-600 font-bold border-none">
+                                {o.items?.length || 0}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-extrabold text-slate-900">৳{Number(o.total_amount).toLocaleString()}</TableCell>
+                            <TableCell>
+                              {totalDiscount > 0 ? (
+                                <span className="text-red-500 font-bold text-sm">৳{totalDiscount.toLocaleString()}</span>
+                              ) : (
+                                <span className="text-slate-400 text-xs">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>{getStatusBadge(o.status)}</TableCell>
+                            <TableCell className="text-slate-500 font-medium whitespace-nowrap">
+                              {format(new Date(o.created_at), "MMM dd, yyyy")}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="ghost" size="sm" className="text-indigo-600 hover:text-indigo-700 font-bold hover:bg-indigo-50">View Details</Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {rows.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-20">
+                            <div className="flex flex-col items-center justify-center gap-2 opacity-30">
+                              <ShoppingBag className="w-16 h-16" />
+                              <p className="font-bold text-lg">No online preorders found</p>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="manual">
+          <ManualOrderForm
+            initialData={editingOrder || undefined}
+            onSuccess={() => { clearEditing(); void loadData(); }}
+            onCancel={clearEditing}
+          />
+        </TabsContent>
+
+        <TabsContent value="customers">
+          <Card className="border-none shadow-xl bg-white min-h-[400px]">
+            <CardHeader>
+              <CardTitle>Frequent Online Customers</CardTitle>
+              <CardDescription>View customers who frequently place online orders</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center justify-center py-24 gap-4 opacity-40">
+                <User className="w-16 h-16" />
+                <p className="font-bold text-lg">Customer history will appear here</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <OrderDetailsSheet
+        order={selectedOrder}
+        isOpen={isSheetOpen}
+        onClose={() => setIsSheetOpen(false)}
+        onRefresh={() => { void loadData(); setIsSheetOpen(false); }}
+        onEdit={handleEdit}
+      />
     </div>
   );
 }

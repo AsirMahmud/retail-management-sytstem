@@ -1,12 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { ArrowRight } from "lucide-react"
 import { ecommerceApi } from "@/lib/api"
-import Image from "next/image"
-import Link from "next/link"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { HeroSlide } from "./hero-slide"
 import {
   Carousel,
@@ -16,6 +11,11 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel"
 import Autoplay from "embla-carousel-autoplay"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { ArrowRight } from "lucide-react"
+import Image from "next/image"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 
 // Helper to ensure image URLs are absolute
 const getAbsoluteImageUrl = (url: string | null | undefined, fallback: string = "/fashion-models-wearing-modern-streetwear.jpg"): string => {

@@ -46,6 +46,8 @@ export function SiteHeader() {
   const [searchLoading, setSearchLoading] = useState(false)
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
+  const [shouldAnimateCart, setShouldAnimateCart] = useState(false)
+  const prevTotalItems = useRef(totalItems)
 
   // Fetch online categories for desktop navigation
   useEffect(() => {
@@ -100,6 +102,16 @@ export function SiteHeader() {
       }
     }
   }, [])
+
+  // Animate cart icon when totalItems increases
+  useEffect(() => {
+    if (totalItems > prevTotalItems.current) {
+      setShouldAnimateCart(true)
+      const timer = setTimeout(() => setShouldAnimateCart(false), 500)
+      return () => clearTimeout(timer)
+    }
+    prevTotalItems.current = totalItems
+  }, [totalItems])
 
   const handleOpenSearch = () => {
     setIsSearchOpen(true)
@@ -258,10 +270,13 @@ export function SiteHeader() {
               <span className="sr-only">Search</span>
             </Button>
             <Link href="/cart">
-              <Button variant="ghost" size="icon" className="relative">
-                <ShoppingCart className="h-5 w-5" />
+              <Button variant="ghost" size="icon" className={cn("relative transition-transform duration-300", shouldAnimateCart && "scale-125 text-primary")}>
+                <ShoppingCart className={cn("h-5 w-5", shouldAnimateCart && "animate-bounce")} />
                 {totalItems > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-4 h-4 rounded-full bg-primary text-[10px] font-medium text-primary-foreground flex items-center justify-center px-1">
+                  <span className={cn(
+                    "absolute -top-1 -right-1 min-w-4 h-4 rounded-full bg-primary text-[10px] font-medium text-primary-foreground flex items-center justify-center px-1 transition-all duration-300",
+                    shouldAnimateCart && "scale-125"
+                  )}>
                     {totalItems}
                   </span>
                 )}
@@ -430,7 +445,7 @@ function MobileNavigationSheet() {
               </Button>
               <h2 className="text-xl font-bold capitalize">{selectedGender} Categories</h2>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto">
               {loading ? (
                 <div className="flex items-center justify-center py-8">
@@ -448,7 +463,7 @@ function MobileNavigationSheet() {
                   {organizedCategories.map((category) => {
                     const hasChildren = category.children && category.children.length > 0
                     const isExpanded = expandedCategories.has(category.id)
-                    
+
                     return (
                       <div key={category.id} className="space-y-0.5">
                         {/* Parent Category */}
@@ -460,11 +475,11 @@ function MobileNavigationSheet() {
                               onClick={() => toggleCategoryExpand(category.id)}
                               className="h-8 w-8 flex-shrink-0"
                             >
-                              <ChevronRight 
+                              <ChevronRight
                                 className={cn(
                                   "h-4 w-4 transition-transform text-muted-foreground",
                                   isExpanded && "rotate-90"
-                                )} 
+                                )}
                               />
                             </Button>
                           )}
@@ -476,7 +491,7 @@ function MobileNavigationSheet() {
                             {category.name}
                           </Link>
                         </div>
-                        
+
                         {/* Subcategories */}
                         {hasChildren && isExpanded && (
                           <div className="ml-10 space-y-0.5 border-l-2 border-secondary/30 pl-4 py-1">
@@ -502,7 +517,7 @@ function MobileNavigationSheet() {
           // Main Navigation View
           <div className="flex flex-col h-full">
             <h2 className="text-xl font-bold mb-6">Menu</h2>
-            
+
             {/* Filter Section - Moved to top */}
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-4">Filter by Category</h3>

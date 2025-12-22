@@ -36,4 +36,28 @@ class OnlinePreorderSerializer(serializers.ModelSerializer):
         model = OnlinePreorder
         fields = '__all__'
 
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        items = ret.get('items', [])
+        if isinstance(items, list):
+            enriched_items = []
+            from apps.inventory.models import Product
+            for item in items:
+                pid = item.get('product_id')
+                if pid:
+                    try:
+                        product = Product.objects.get(id=pid)
+                        item['product_name'] = product.name
+                        if product.image:
+                            request = self.context.get('request')
+                            if request:
+                                item['product_image'] = request.build_absolute_uri(product.image.url)
+                            else:
+                                item['product_image'] = product.image.url
+                    except Product.DoesNotExist:
+                        pass
+                enriched_items.append(item)
+            ret['items'] = enriched_items
+        return ret
+
 

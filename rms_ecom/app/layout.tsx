@@ -9,6 +9,7 @@ import "./globals.css"
 import { Suspense } from "react"
 import { DiscountInitializer } from "@/components/discount-initializer"
 import { LoadingProviderWrapper } from "@/components/loading-provider-wrapper"
+import { Toaster } from "sonner"
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://rawstitch.com.bd'),
@@ -109,6 +110,12 @@ export default function RootLayout({
 
 
         <LoadingProviderWrapper>
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              className: "bg-primary text-primary-foreground border-none shadow-lg",
+            }}
+          />
           <DiscountInitializer />
           <Suspense fallback={null}>{children}</Suspense>
           <Analytics />

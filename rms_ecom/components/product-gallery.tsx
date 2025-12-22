@@ -17,7 +17,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
   return (
     <div className="flex flex-col lg:flex-row gap-3 lg:gap-4">
       {/* Thumbnail gallery - vertical on desktop, horizontal on mobile */}
-      <div className="flex lg:flex-col gap-3 order-2 lg:order-1 overflow-x-auto lg:overflow-visible">
+      <div className="flex lg:flex-col gap-3 order-2 lg:order-1 overflow-x-auto lg:overflow-visible px-4 lg:px-0 scrollbar-hide">
         {images.map((image, index) => (
           <button
             key={index}
