@@ -87,13 +87,14 @@ export function CheckoutSummary() {
           let productId: string | number = item.productId
           let variations = item.variations ? { ...item.variations } : {}
 
-          // If productId contains a slash (e.g., "141/blue"), extract the numeric ID and color
-          if (typeof item.productId === 'string' && item.productId.includes('/')) {
-            const parts = item.productId.split('/')
+          // If productId contains a slash or hyphen (e.g., "141/blue" or "141-blue"), extract the numeric ID and color
+          if (typeof item.productId === 'string' && (item.productId.includes('/') || item.productId.includes('-'))) {
+            const separator = item.productId.includes('/') ? '/' : '-'
+            const parts = item.productId.split(separator)
             productId = parts[0] // Get the numeric part
             // If color is not already in variations, extract it from productId
             if (!variations.color && parts.length > 1) {
-              variations.color = parts.slice(1).join('/') // Handle multi-part colors
+              variations.color = parts.slice(1).join(separator) // Handle multi-part colors
             }
           }
 
@@ -128,8 +129,8 @@ export function CheckoutSummary() {
     if (items.length > 0 && products.length > 0 && !hasSentGTM.current) {
       const gtmItems = items.map(it => {
         // Logic to find product details similar to render
-        let numericProductId = typeof it.productId === 'string' && it.productId.includes('/')
-          ? Number(it.productId.split('/')[0])
+        let numericProductId = typeof it.productId === 'string' && (it.productId.includes('/') || it.productId.includes('-'))
+          ? Number(it.productId.split(it.productId.includes('/') ? '/' : '-')[0])
           : Number(it.productId);
 
         const product = products.find(p => p.id === numericProductId);
@@ -182,8 +183,8 @@ export function CheckoutSummary() {
     items.forEach((it) => {
       // Extract numeric product ID
       let numericProductId: number
-      if (typeof it.productId === 'string' && it.productId.includes('/')) {
-        const parts = it.productId.split('/')
+      if (typeof it.productId === 'string' && (it.productId.includes('/') || it.productId.includes('-'))) {
+        const parts = it.productId.split(it.productId.includes('/') ? '/' : '-')
         numericProductId = Number(parts[0]) || 0
       } else {
         numericProductId = Number(it.productId) || 0
@@ -267,8 +268,8 @@ export function CheckoutSummary() {
 
             // Extract numeric product ID from string (handle cases like "141/blue")
             let numericProductId: number
-            if (typeof it.productId === 'string' && it.productId.includes('/')) {
-              const parts = it.productId.split('/')
+            if (typeof it.productId === 'string' && (it.productId.includes('/') || it.productId.includes('-'))) {
+              const parts = it.productId.split(it.productId.includes('/') ? '/' : '-')
               numericProductId = Number(parts[0]) || 0
             } else {
               numericProductId = Number(it.productId) || 0

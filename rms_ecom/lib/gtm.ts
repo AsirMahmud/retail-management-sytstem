@@ -42,7 +42,6 @@ export const sendGTMEvent = (event: GTMEvent, params: GTMParams) => {
  * Normalizes a product ID by extracting the numeric part if it's a composite ID (e.g., "123/color-slug")
  */
 export const normalizeProductId = (id: string | number): string => {
-    if (typeof id === 'number') return String(id);
     if (!id) return '';
-    return id.split('/')[0];
+    return id.toString().replace(/\//g, '-');
 };

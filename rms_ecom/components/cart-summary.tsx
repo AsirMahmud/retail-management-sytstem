@@ -52,13 +52,14 @@ export function CartSummary() {
           let productId: string | number = item.productId
           let variations = item.variations ? { ...item.variations } : {}
 
-          // If productId contains a slash (e.g., "141/blue"), extract the numeric ID and color
-          if (typeof item.productId === 'string' && item.productId.includes('/')) {
-            const parts = item.productId.split('/')
+          // If productId contains a slash or hyphen (e.g., "141/blue" or "141-blue"), extract the numeric ID and color
+          if (typeof item.productId === 'string' && (item.productId.includes('/') || item.productId.includes('-'))) {
+            const separator = item.productId.includes('/') ? '/' : '-'
+            const parts = item.productId.split(separator)
             productId = parts[0] // Get the numeric part
             // If color is not already in variations, extract it from productId
             if (!variations.color && parts.length > 1) {
-              variations.color = parts.slice(1).join('/') // Handle multi-part colors
+              variations.color = parts.slice(1).join(separator) // Handle multi-part colors
             }
           }
 
@@ -116,19 +117,25 @@ export function CartSummary() {
     // FB InitiateCheckout
     if (typeof window !== "undefined" && (window as any).fbq) {
       (window as any).fbq('track', 'InitiateCheckout', {
-        content_ids: cartPricing.items.map(i => normalizeProductId(i.productId)),
+        content_ids: cartPricing.items.map(i => {
+          const colorSlug = (i.variant?.color || '').toLowerCase().replace(/\s+/g, '-');
+          return colorSlug ? `${i.productId}-${colorSlug}` : String(i.productId);
+        }),
         content_type: 'product',
         content_name: cartPricing.items.map(i => i.name).join(', '),
         currency: 'BDT',
         value: total,
-        contents: cartPricing.items.map(i => ({
-          id: normalizeProductId(i.productId),
-          quantity: i.quantity,
-          item_price: i.unit_price,
-          name: i.name,
-          color: i.variant?.color,
-          size: i.variant?.size,
-        })),
+        contents: cartPricing.items.map(i => {
+          const colorSlug = (i.variant?.color || '').toLowerCase().replace(/\s+/g, '-');
+          return {
+            id: colorSlug ? `${i.productId}-${colorSlug}` : String(i.productId),
+            quantity: i.quantity,
+            item_price: i.unit_price,
+            name: i.name,
+            color: i.variant?.color,
+            size: i.variant?.size,
+          };
+        }),
         num_items: itemCount
       })
     }
@@ -137,13 +144,16 @@ export function CartSummary() {
     sendGTMEvent('begin_checkout', {
       currency: 'BDT',
       value: total,
-      items: cartPricing.items.map(i => ({
-        item_id: normalizeProductId(i.productId),
-        item_name: i.name,
-        price: i.unit_price,
-        quantity: i.quantity,
-        item_variant: `${i.variant?.color || ''} ${i.variant?.size || ''}`.trim()
-      }))
+      items: cartPricing.items.map(i => {
+        const colorSlug = (i.variant?.color || '').toLowerCase().replace(/\s+/g, '-');
+        return {
+          item_id: colorSlug ? `${i.productId}-${colorSlug}` : String(i.productId),
+          item_name: i.name,
+          price: i.unit_price,
+          quantity: i.quantity,
+          item_variant: `${i.variant?.color || ''} ${i.variant?.size || ''}`.trim()
+        };
+      })
     })
   }
 

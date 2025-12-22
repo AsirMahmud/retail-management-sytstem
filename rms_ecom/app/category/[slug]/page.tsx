@@ -73,7 +73,7 @@ export default function CategoryPage() {
       sendGTMEvent('view_item_list', {
         currency: 'BDT',
         items: products.map((p, index) => ({
-          item_id: normalizeProductId(p.product_id),
+          item_id: normalizeProductId(`${p.product_id}/${p.color_slug}`),
           item_name: p.product_name,
           price: parseFloat(p.product_price),
           item_list_name: categoryName,

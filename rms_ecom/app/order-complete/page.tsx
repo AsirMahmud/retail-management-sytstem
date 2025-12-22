@@ -102,32 +102,41 @@ export default function OrderCompletePage() {
         tax: 0,
         shipping: order.delivery_charge,
         currency: 'BDT',
-        items: order.items.map(item => ({
-          item_id: String(item.product_id),
-          item_name: item.product_name || `Product ${item.product_id}`,
-          price: item.unit_price,
-          quantity: item.quantity,
-          discount: item.discount,
-          item_variant: `${item.color || ''} ${item.size || ''}`.trim()
-        }))
+        items: order.items.map(item => {
+          const colorSlug = (item.color || '').toLowerCase().replace(/\s+/g, '-');
+          return {
+            item_id: colorSlug ? `${item.product_id}-${colorSlug}` : String(item.product_id),
+            item_name: item.product_name || `Product ${item.product_id}`,
+            price: item.unit_price,
+            quantity: item.quantity,
+            discount: item.discount,
+            item_variant: `${item.color || ''} ${item.size || ''}`.trim()
+          };
+        })
       })
 
       // Facebook Pixel Purchase
       if (typeof window !== "undefined" && (window as any).fbq) {
         (window as any).fbq('track', 'Purchase', {
-          content_ids: order.items.map(item => normalizeProductId(item.product_id)),
+          content_ids: order.items.map(item => {
+            const colorSlug = (item.color || '').toLowerCase().replace(/\s+/g, '-');
+            return colorSlug ? `${item.product_id}-${colorSlug}` : String(item.product_id);
+          }),
           content_type: 'product',
           content_name: order.items.map(item => item.product_name).filter(Boolean).join(', '),
           currency: 'BDT',
           value: order.total_amount,
-          contents: order.items.map(item => ({
-            id: normalizeProductId(item.product_id),
-            quantity: item.quantity,
-            item_price: item.unit_price,
-            name: item.product_name,
-            color: item.color,
-            size: item.size
-          })),
+          contents: order.items.map(item => {
+            const colorSlug = (item.color || '').toLowerCase().replace(/\s+/g, '-');
+            return {
+              id: colorSlug ? `${item.product_id}-${colorSlug}` : String(item.product_id),
+              quantity: item.quantity,
+              item_price: item.unit_price,
+              name: item.product_name,
+              color: item.color,
+              size: item.size
+            };
+          }),
           num_items: order.items.reduce((sum, item) => sum + item.quantity, 0)
         })
       }
