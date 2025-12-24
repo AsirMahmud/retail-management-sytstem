@@ -451,9 +451,17 @@ class ProductSerializer(serializers.ModelSerializer):
     supplier_name = serializers.CharField(source='supplier.company_name', read_only=True, allow_null=True)
     total_stock = serializers.SerializerMethodField()
     material_composition = serializers.SerializerMethodField()
+    material_composition_string = serializers.SerializerMethodField()
     who_is_this_for = serializers.SerializerMethodField()
     features = serializers.SerializerMethodField()
     color_galleries = serializers.SerializerMethodField()
+    discount_percentage = serializers.SerializerMethodField()
+    discount_end_date = serializers.SerializerMethodField()
+    sale_price = serializers.SerializerMethodField()
+    first_variation_color = serializers.SerializerMethodField()
+    first_variation_size = serializers.SerializerMethodField()
+    first_variation_image = serializers.SerializerMethodField()
+    first_variation_color_slug = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -464,7 +472,11 @@ class ProductSerializer(serializers.ModelSerializer):
             'minimum_stock', 'image', 'is_active', 'size_type', 'size_category', 'gender', 'assign_to_online', 
             'is_new_arrival', 'is_trending', 'is_featured',
             'variations', 
-            'galleries', 'color_galleries', 'material_composition', 'who_is_this_for', 'features', 'total_stock', 'created_at', 'updated_at'
+            'galleries', 'color_galleries', 
+            'material_composition', 'material_composition_string',
+            'who_is_this_for', 'features', 'total_stock', 
+            'first_variation_color', 'first_variation_size', 'first_variation_image', 'first_variation_color_slug',
+            'created_at', 'updated_at'
         ]
         extra_kwargs = {
             'category': {'required': False, 'allow_null': True},
@@ -527,6 +539,79 @@ class ProductSerializer(serializers.ModelSerializer):
     def get_color_galleries(self, obj):
         qs = obj.galleries.all()
         return GallerySerializer(qs, many=True).data
+
+    def get_material_composition_string(self, obj):
+        materials = obj.material_compositions.all()
+        return ", ".join([f"{m.percentige}% {m.title}" for m in materials if m.title])
+
+    def _get_active_discount(self, obj):
+        from apps.ecommerce.models import Discount
+        from django.utils import timezone
+        now = timezone.now()
+        
+        # 1. Product Discount
+        discount = Discount.objects.filter(
+            product=obj, is_active=True, status='ACTIVE',
+            start_date__lte=now, end_date__gte=now
+        ).first()
+        if discount: return discount
+        
+        # 2. Category Discount
+        if obj.online_category:
+            discount = Discount.objects.filter(
+                online_category=obj.online_category, discount_type='CATEGORY',
+                is_active=True, status='ACTIVE',
+                start_date__lte=now, end_date__gte=now
+            ).first()
+            if discount: return discount
+        
+        # 3. App-Wide Discount
+        discount = Discount.objects.filter(
+            discount_type='APP_WIDE', is_active=True, status='ACTIVE',
+            start_date__lte=now, end_date__gte=now
+        ).first()
+        return discount
+
+    def get_discount_percentage(self, obj):
+        discount = self._get_active_discount(obj)
+        return float(discount.value) if discount else 0
+
+    def get_discount_end_date(self, obj):
+        discount = self._get_active_discount(obj)
+        return discount.end_date.isoformat() if discount else None
+
+    def get_sale_price(self, obj):
+        discount = self._get_active_discount(obj)
+        if discount:
+            discounted_amount = (float(obj.selling_price) * float(discount.value)) / 100
+            return float(obj.selling_price) - discounted_amount
+        return float(obj.selling_price)
+
+    def get_first_variation_color(self, obj):
+        first_variant = obj.variations.first()
+        return first_variant.color if first_variant else None
+
+    def get_first_variation_size(self, obj):
+        first_variant = obj.variations.first()
+        return first_variant.size if first_variant else None
+
+    def get_first_variation_image(self, obj):
+        first_variant = obj.variations.first()
+        if first_variant:
+            gallery = Gallery.objects.filter(product=obj, color=first_variant.color).first()
+            if gallery:
+                primary_img = gallery.images.filter(imageType='PRIMARY').first()
+                if primary_img:
+                    request = self.context.get('request')
+                    if request:
+                        return request.build_absolute_uri(primary_img.image.url)
+                    return primary_img.image.url
+        return obj.image.url if obj.image else None
+
+    def get_first_variation_color_slug(self, obj):
+        first_variant = obj.variations.first()
+        return slugify(first_variant.color) if first_variant and first_variant.color else None
+
 
 
 class ProductCreateSerializer(serializers.ModelSerializer):
