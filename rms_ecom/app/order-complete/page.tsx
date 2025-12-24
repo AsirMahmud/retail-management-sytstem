@@ -11,21 +11,29 @@ import { useSearchParams } from "next/navigation"
 import { ecommerceApi } from "@/lib/api"
 import { sendGTMEvent, normalizeProductId } from "@/lib/gtm"
 
+interface OrderItem {
+  product_id: number;
+  product_name?: string;
+  product_image?: string;
+  size: string;
+  color: string;
+  quantity: number;
+  unit_price: number;
+  discount?: number;
+}
+
 interface OnlinePreorder {
   id: number;
   customer_name: string;
   customer_phone: string;
   customer_email?: string;
-  items: Array<{
-    product_id: number;
-    product_name?: string; // Added field
-    size: string;
-    color: string;
-    quantity: number;
-    unit_price: number;
-    discount?: number;
-  }>;
-  shipping_address?: Record<string, unknown>;
+  items: OrderItem[];
+  shipping_address?: {
+    address?: string;
+    city?: string;
+    area?: string;
+    instructions?: string;
+  };
   delivery_charge: number;
   delivery_method?: string;
   total_amount: number;
@@ -68,12 +76,13 @@ export default function OrderCompletePage() {
           if (validItems.length > 0) {
             const pricingData = await ecommerceApi.priceCart(validItems);
             // Map names back to orderData items
-            orderData.items = orderData.items.map(item => {
+            orderData.items = orderData.items.map((item: OrderItem) => {
               const priced = pricingData.items.find(pi => pi.productId === item.product_id); // Simple match by ID
               // Note: Matching by variant would be more precise but name is usually same for variants
               return {
                 ...item,
-                product_name: priced?.name || undefined
+                product_name: item.product_name || priced?.name || undefined,
+                product_image: item.product_image || (priced?.image_url ? priced.image_url : undefined)
               };
             });
           }
@@ -197,123 +206,203 @@ export default function OrderCompletePage() {
     )
   }
 
+  const subtotal = order.items.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0)
+  const totalDiscount = order.items.reduce((sum, item) => sum + (Number(item.discount) || 0), 0)
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background">
       <SiteHeader />
 
       <main className="flex-1">
-        <div className="container px-4 py-8">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-6">Order Complete</h1>
-            <CheckoutProgress currentStep={3} />
+        <div className="container px-4 py-12 max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="mb-6 flex justify-center">
+              <div className="relative">
+                <div className="absolute inset-0 animate-ping rounded-full bg-green-500/20" />
+                <div className="relative w-24 h-24 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
+                  <CheckCircle2 className="w-12 h-12 text-green-600 dark:text-green-500" />
+                </div>
+              </div>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              Order Complete!
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-md mx-auto">
+              Thank you for your purchase. Your order <span className="text-foreground font-semibold">#{order.id}</span> has been confirmed.
+            </p>
+            <div className="mt-8">
+              <CheckoutProgress currentStep={3} />
+            </div>
           </div>
 
-          <div className="max-w-2xl mx-auto text-center py-12">
-            <div className="mb-6 flex justify-center">
-              <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center">
-                <CheckCircle2 className="w-12 h-12 text-green-600 dark:text-green-500" />
-              </div>
-            </div>
-
-            <h2 className="text-3xl font-bold mb-4">Order Complete!</h2>
-            <p className="text-lg text-muted-foreground mb-2">Thank you for your purchase</p>
-            <p className="text-muted-foreground mb-8">
-              Your order <span className="font-semibold">#{order.id}</span> has been placed successfully.
-            </p>
-
-            <div className="bg-muted/50 rounded-lg p-6 mb-8 text-left">
-              <h3 className="font-semibold mb-4">Order Details</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Order Number:</span>
-                  <span className="font-medium">#{order.id}</span>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+            {/* Left Column: Order Info & Items */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Items Section */}
+              <div className="bg-card border rounded-2xl shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b bg-muted/30">
+                  <h3 className="font-bold text-lg">Order Items ({order.items.length})</h3>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Order Date:</span>
-                  <span className="font-medium">{formatDate(order.created_at)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Customer Name:</span>
-                  <span className="font-medium">{order.customer_name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Phone:</span>
-                  <span className="font-medium">{order.customer_phone}</span>
-                </div>
-                {order.customer_email && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Email:</span>
-                    <span className="font-medium">{order.customer_email}</span>
-                  </div>
-                )}
-                {order.delivery_method && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Delivery Method:</span>
-                    <span className="font-medium">{order.delivery_method}</span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Delivery Charge:</span>
-                  <span className="font-medium">৳{formatPrice(order.delivery_charge)}</span>
-                </div>
-                <div className="flex justify-between pt-2 border-t">
-                  <span className="text-muted-foreground font-semibold">Total Amount:</span>
-                  <span className="font-bold text-lg">৳{formatPrice(order.total_amount)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Status:</span>
-                  <span className="font-medium capitalize">{order.status.toLowerCase()}</span>
-                </div>
-              </div>
-            </div>
-
-            {order.items && order.items.length > 0 && (
-              <div className="bg-muted/50 rounded-lg p-6 mb-8 text-left">
-                <h3 className="font-semibold mb-4">Order Items</h3>
-                <div className="space-y-3">
+                <div className="divide-y">
                   {order.items.map((item, index) => (
-                    <div key={index} className="flex justify-between items-start pb-3 border-b last:border-0">
-                      <div className="flex-1">
-                        <p className="font-medium">{item.product_name || `Product ID: ${item.product_id}`}</p>
-                        <div className="text-sm text-muted-foreground mt-1">
-                          {item.color && <span>Color: {item.color}</span>}
-                          {item.color && item.size && <span className="mx-2">•</span>}
-                          {item.size && <span>Size: {item.size}</span>}
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">Quantity: {item.quantity}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium">৳{formatPrice(item.unit_price)}</p>
-                        {item.discount && item.discount > 0 && (
-                          <p className="text-sm text-muted-foreground">Discount: ৳{formatPrice(item.discount)}</p>
+                    <div key={index} className="p-6 flex gap-6 hover:bg-muted/10 transition-colors">
+                      <div className="w-20 h-24 flex-shrink-0 bg-muted rounded-lg overflow-hidden border">
+                        {item.product_image ? (
+                          <img
+                            src={item.product_image}
+                            alt={item.product_name || "Product"}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                            <CheckCircle2 className="w-8 h-8 opacity-20" />
+                          </div>
                         )}
-                        <p className="text-sm text-muted-foreground">
-                          Total: ৳{formatPrice((item.unit_price * item.quantity) - (item.discount || 0))}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-lg truncate mb-1">
+                          {item.product_name || `Product ID: ${item.product_id}`}
+                        </h4>
+                        <div className="flex flex-wrap gap-y-1 gap-x-4 text-sm text-muted-foreground">
+                          {item.color && (
+                            <span className="flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full border" style={{ backgroundColor: item.color }} />
+                              Color: {item.color}
+                            </span>
+                          )}
+                          {item.size && <span>Size: {item.size}</span>}
+                          <span>Qty: {item.quantity}</span>
+                        </div>
+                        <div className="mt-2 flex items-baseline gap-2">
+                          <span className="font-bold">৳{formatPrice(item.unit_price)}</span>
+                          {item.discount && item.discount > 0 && (
+                            <span className="text-xs text-green-600 bg-green-50 dark:bg-green-900/20 px-1.5 py-0.5 rounded">
+                              Saved ৳{formatPrice(item.discount)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right flex flex-col justify-end">
+                        <p className="font-bold text-lg">
+                          ৳{formatPrice((item.unit_price * item.quantity) - (item.discount || 0))}
                         </p>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
-            )}
 
-            <p className="text-sm text-muted-foreground mb-8">
-              {order.customer_email
-                ? "A confirmation email has been sent to your email address with order details and tracking information."
-                : "Your order has been placed successfully. We will contact you soon with order updates."}
-            </p>
+              {/* Shipping & Delivery */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-card border rounded-2xl shadow-sm p-6">
+                  <h3 className="font-bold text-lg mb-4">Customer Details</h3>
+                  <div className="space-y-3">
+                    <div className="flex flex-col">
+                      <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Name</span>
+                      <span className="font-medium">{order.customer_name}</span>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Phone</span>
+                      <span className="font-medium">{order.customer_phone}</span>
+                    </div>
+                    {order.customer_email && (
+                      <div className="flex flex-col">
+                        <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Email</span>
+                        <span className="font-medium text-primary decoration-1 underline-offset-4">{order.customer_email}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto bg-transparent">
-                  Continue Shopping
-                </Button>
-              </Link>
-              <Link href="/orders">
-                <Button size="lg" className="w-full sm:w-auto">
-                  View Order Status
-                </Button>
-              </Link>
+                <div className="bg-card border rounded-2xl shadow-sm p-6">
+                  <h3 className="font-bold text-lg mb-4">Shipping Info</h3>
+                  <div className="space-y-4 text-sm">
+                    {order.shipping_address ? (
+                      <div className="bg-muted/30 p-3 rounded-lg border border-dashed">
+                        {order.shipping_address.address && <p className="font-medium">{order.shipping_address.address}</p>}
+                        {(order.shipping_address.area || order.shipping_address.city) && (
+                          <p className="text-muted-foreground">
+                            {order.shipping_address.area}{order.shipping_address.area && order.shipping_address.city ? ', ' : ''}{order.shipping_address.city}
+                          </p>
+                        )}
+                        {order.shipping_address.instructions && (
+                          <p className="mt-2 pt-2 border-t border-muted italic text-xs text-muted-foreground">
+                            Note: {order.shipping_address.instructions}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground italic">Standard Shipping</p>
+                    )}
+                    <div className="flex items-center justify-between pt-2 border-t">
+                      <span className="text-muted-foreground">Method:</span>
+                      <span className="font-semibold">{order.delivery_method || "Standard Delivery"}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Order Summary */}
+            <div className="space-y-6">
+              <div className="bg-card border rounded-2xl shadow-sm p-6 sticky top-24">
+                <h3 className="font-bold text-xl mb-6 flex items-center gap-2">
+                  Order Summary
+                </h3>
+                <div className="space-y-4">
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Subtotal</span>
+                    <span>৳{formatPrice(subtotal)}</span>
+                  </div>
+                  {totalDiscount > 0 && (
+                    <div className="flex justify-between text-green-600 font-medium">
+                      <span>Total Savings</span>
+                      <span>-৳{formatPrice(totalDiscount)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Delivery Charge</span>
+                    <span>৳{formatPrice(order.delivery_charge)}</span>
+                  </div>
+                  <div className="pt-4 border-t">
+                    <div className="flex justify-between items-end">
+                      <span className="text-lg font-bold">Total Amount</span>
+                      <div className="text-right">
+                        <span className="text-2xl font-black text-primary">
+                          ৳{formatPrice(order.total_amount)}
+                        </span>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">
+                          VAT Included
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-8">
+                  <Link href="/" className="block">
+                    <Button size="lg" className="w-full h-12 rounded-xl font-bold group">
+                      Continue Shopping
+                      <CheckCircle2 className="w-4 h-4 ml-2 group-hover:scale-110 transition-transform" />
+                    </Button>
+                  </Link>
+                </div>
+
+                <div className="mt-8 bg-primary/5 p-4 rounded-xl border border-primary/10">
+                  <p className="text-xs text-center text-muted-foreground">
+                    {order.customer_email
+                      ? "A confirmation email has been sent to your inbox. Please check your spam folder if you don't see it."
+                      : "We'll contact you soon via phone/SMS for order verification and delivery updates."}
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick Help */}
+              <div className="p-4 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Need help? <Link href="/contact" className="text-primary font-semibold hover:underline">Contact Support</Link>
+                </p>
+              </div>
             </div>
           </div>
         </div>
