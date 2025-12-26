@@ -25,7 +25,7 @@ const nextConfig = {
           pathname: '/media/**',
         },
       ];
-      
+
       // Allow any backend domain from environment variable
       if (process.env.NEXT_PUBLIC_API_URL) {
         try {
@@ -40,15 +40,12 @@ const nextConfig = {
           // Invalid URL, skip
         }
       }
-      
+
       return patterns;
     })(),
   },
-  // Additional build configurations to handle potential issues
-  experimental: {
-    // Skip type checking during build
-    skipTrailingSlashRedirect: true,
-  },
+  // Skip trailing slash redirect (moved from experimental in Next.js 15+)
+  skipTrailingSlashRedirect: true,
   // Webpack configuration to handle type errors
   webpack: (config, { isServer }) => {
     // Ignore type errors in webpack
@@ -57,7 +54,7 @@ const nextConfig = {
       /Module not found/,
       /Can't resolve/,
     ];
-    
+
     return config;
   },
 }

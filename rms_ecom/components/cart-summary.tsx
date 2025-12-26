@@ -114,33 +114,7 @@ export function CartSummary() {
   const handleCheckout = () => {
     if (!items.length || !cartPricing) return
 
-    // FB InitiateCheckout
-    if (typeof window !== "undefined" && (window as any).fbq) {
-      (window as any).fbq('track', 'InitiateCheckout', {
-        content_ids: cartPricing.items.map(i => {
-          const colorSlug = (i.variant?.color || '').toLowerCase().replace(/\s+/g, '-');
-          return colorSlug ? `${i.productId}-${colorSlug}` : String(i.productId);
-        }),
-        content_type: 'product',
-        content_name: cartPricing.items.map(i => i.name).join(', '),
-        currency: 'BDT',
-        value: total,
-        contents: cartPricing.items.map(i => {
-          const colorSlug = (i.variant?.color || '').toLowerCase().replace(/\s+/g, '-');
-          return {
-            id: colorSlug ? `${i.productId}-${colorSlug}` : String(i.productId),
-            quantity: i.quantity,
-            item_price: i.unit_price,
-            name: i.name,
-            color: i.variant?.color,
-            size: i.variant?.size,
-          };
-        }),
-        num_items: itemCount
-      })
-    }
-
-    // GA4 begin_checkout
+    // GA4 begin_checkout - GTM triggers Facebook Pixel InitiateCheckout
     sendGTMEvent('begin_checkout', {
       currency: 'BDT',
       value: total,

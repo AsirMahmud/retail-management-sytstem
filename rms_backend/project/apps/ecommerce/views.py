@@ -582,7 +582,12 @@ class PublicCartPriceView(APIView):
         normalized = []
         for line in items:
             try:
-                pid = int(line.get('productId'))
+                raw_pid = str(line.get('productId') or '')
+                if '/' in raw_pid:
+                    pid = int(raw_pid.split('/')[0])
+                else:
+                    pid = int(raw_pid)
+                
                 qty = int(line.get('quantity'))
                 if qty <= 0:
                     continue

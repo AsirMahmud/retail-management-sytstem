@@ -123,32 +123,7 @@ export default function OrderCompletePage() {
           };
         })
       })
-
-      // Facebook Pixel Purchase
-      if (typeof window !== "undefined" && (window as any).fbq) {
-        (window as any).fbq('track', 'Purchase', {
-          content_ids: order.items.map(item => {
-            const colorSlug = (item.color || '').toLowerCase().replace(/\s+/g, '-');
-            return colorSlug ? `${item.product_id}-${colorSlug}` : String(item.product_id);
-          }),
-          content_type: 'product',
-          content_name: order.items.map(item => item.product_name).filter(Boolean).join(', '),
-          currency: 'BDT',
-          value: order.total_amount,
-          contents: order.items.map(item => {
-            const colorSlug = (item.color || '').toLowerCase().replace(/\s+/g, '-');
-            return {
-              id: colorSlug ? `${item.product_id}-${colorSlug}` : String(item.product_id),
-              quantity: item.quantity,
-              item_price: item.unit_price,
-              name: item.product_name,
-              color: item.color,
-              size: item.size
-            };
-          }),
-          num_items: order.items.reduce((sum, item) => sum + item.quantity, 0)
-        })
-      }
+      // Facebook Pixel Purchase is triggered via GTM from the purchase event above
     }
   }, [order])
 
