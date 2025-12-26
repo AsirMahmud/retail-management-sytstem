@@ -203,9 +203,7 @@ export function generateOrganizationStructuredData(baseUrl: string = SITE_URL): 
     name: "Raw Stitch",
     url: baseUrl,
     logo: `${baseUrl}/logo.png`,
-    sameAs: [
-      "https://www.facebook.com/p/Raw-Stitch-61576142426189/",
-    ],
+    sameAs: [],
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "Customer Service",

@@ -16,12 +16,6 @@ import { StructuredData } from "@/components/structured-data"
 import { generateProductStructuredData, generateBreadcrumbStructuredData } from "@/lib/seo"
 import { useLoading } from "@/hooks/useLoading"
 
-const trackFbEvent = (event: string, payload: Record<string, unknown>) => {
-    if (typeof window !== "undefined" && (window as any).fbq) {
-        (window as any).fbq("track", event, payload)
-    }
-}
-
 export default function ProductByColorPage() {
     const params = useParams()
     const router = useRouter()
@@ -92,20 +86,13 @@ export default function ProductByColorPage() {
         run()
     }, [productId, colorSlug, router, startLoading, stopLoading])
 
-    // Fire ViewContent once the product data is loaded so Meta Catalog can match items
+    // Fire view_item event for GTM (GTM handles Facebook Pixel via tags)
     useEffect(() => {
         if (!data) return
         const price = Number(data.product.price) || undefined
         const contentId = `${data.product.id}-${data.color.slug}`
-        trackFbEvent("ViewContent", {
-            content_ids: [contentId],
-            content_type: "product",
-            content_name: `${data.product.name} - ${data.color.name}`,
-            currency: "BDT",
-            value: price,
-        })
 
-        // GTM View Item
+        // GTM View Item - GTM triggers Facebook Pixel ViewContent
         sendGTMEvent('view_item', {
             currency: 'BDT',
             value: price,
@@ -189,25 +176,8 @@ export default function ProductByColorPage() {
                                 onAddToCart={(payload) => {
                                     const price = Number(data.product.price) || undefined
                                     const contentId = `${data.product.id}-${data.color.slug}`
-                                    const contentName = `${data.product.name} - ${data.color.name}`
 
-                                    trackFbEvent("AddToCart", {
-                                        content_ids: [contentId],
-                                        content_type: "product",
-                                        content_name: contentName,
-                                        currency: "BDT",
-                                        value: price,
-                                        contents: [{
-                                            id: contentId,
-                                            quantity: payload.quantity,
-                                            item_price: price,
-                                            color: payload.color,
-                                            size: payload.size,
-                                        }],
-                                        num_items: payload.quantity,
-                                    })
-
-                                    // GTM
+                                    // GTM add_to_cart - GTM triggers Facebook Pixel AddToCart
                                     sendGTMEvent('add_to_cart', {
                                         currency: 'BDT',
                                         value: price ? price * payload.quantity : 0,
@@ -223,25 +193,8 @@ export default function ProductByColorPage() {
                                 onBuyNow={(payload) => {
                                     const price = Number(data.product.price) || undefined
                                     const contentId = `${data.product.id}-${data.color.slug}`
-                                    const contentName = `${data.product.name} - ${data.color.name}`
 
-                                    trackFbEvent("InitiateCheckout", {
-                                        content_ids: [contentId],
-                                        content_type: "product",
-                                        content_name: contentName,
-                                        currency: "BDT",
-                                        value: price ? price * payload.quantity : undefined,
-                                        contents: [{
-                                            id: contentId,
-                                            quantity: payload.quantity,
-                                            item_price: price,
-                                            color: payload.color,
-                                            size: payload.size,
-                                        }],
-                                        num_items: payload.quantity,
-                                    })
-
-                                    // GTM
+                                    // GTM begin_checkout - GTM triggers Facebook Pixel InitiateCheckout
                                     sendGTMEvent('begin_checkout', {
                                         currency: 'BDT',
                                         value: price ? price * payload.quantity : 0,
