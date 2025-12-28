@@ -1,14 +1,12 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import Image from "next/image"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { useCartStore } from "@/hooks/useCartStore"
 import Link from "next/link"
 import { useGlobalDiscount } from "@/lib/useGlobalDiscount"
-import { useRouter } from "next/navigation"
-import { setDirectCheckoutItems, type CartItem } from "@/lib/cart"
+import { ProductSizeModal } from "@/components/product-size-modal"
 
 interface ProductCardProps {
   id: string
@@ -20,6 +18,9 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ id, name, price, originalPrice, image, discount }: ProductCardProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [modalActionType, setModalActionType] = useState<"addToCart" | "shopNow">("addToCart")
+
   const globalDiscountValue = useGlobalDiscount((state) => state.discount?.value || 0)
   const finalDiscount = Math.max(globalDiscountValue, discount || 0)
   const showDiscount = finalDiscount > 0
@@ -31,78 +32,79 @@ export function ProductCard({ id, name, price, originalPrice, image, discount }:
   const numericDiscounted = Number.isFinite(discounted) ? Math.round(discounted) : 0
   const numericOriginal = showDiscount ? basePrice : (originalPrice !== undefined ? Number(originalPrice) : undefined)
 
-  const addToCart = useCartStore((s) => s.addItem)
-  const router = useRouter()
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setModalActionType("addToCart")
+    setIsModalOpen(true)
+  }
 
   const handleShopNow = (e: React.MouseEvent) => {
     e.preventDefault()
-    // Use direct checkout instead of adding to cart
-    const directCheckoutItem: CartItem = {
-      productId: id,
-      quantity: 1,
-      addedAt: Date.now(),
-    }
-    setDirectCheckoutItems([directCheckoutItem])
-    router.push("/checkout")
+    e.stopPropagation()
+    setModalActionType("shopNow")
+    setIsModalOpen(true)
   }
 
   return (
-    <Link href={`/product/${id}`} className="block w-full ">
-      <Card className="group cursor-pointer border-0 shadow-none lg:min-h-[420px] w-full">
-        <CardContent className="p-0 w-full">
-          <div className="relative aspect-square overflow-hidden rounded-2xl bg-muted mb-4">
-            {showDiscount && (
-              <div className="absolute left-3 top-3 z-10">
-                <span className="inline-flex items-center rounded-full bg-black/90 px-3 py-1 text-[11px] font-semibold text-white shadow-sm">
-                  SAVE {finalDiscount}%
-                </span>
-              </div>
-            )}
-            <Image
-              src={image || "/placeholder.svg"}
-              alt={name}
-              fill
-              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-              className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
-            />
-          </div>
-          <div className="space-y-3">
-            <h3 className="font-bold text-sm lg:text-base leading-snug line-clamp-2">{toTitleCase(name)}</h3>
-            <div className="flex items-center gap-3">
-              <span className="text-xl lg:text-2xl font-bold">৳{numericDiscounted.toFixed(0)}</span>
-              {showDiscount && numericOriginal !== undefined && (
-                <span className="text-lg lg:text-xl text-muted-foreground/60 line-through">৳{Math.round(numericOriginal).toFixed(0)}</span>
+    <>
+      <Link href={`/product/${id}`} className="block w-full ">
+        <Card className="group cursor-pointer border-0 shadow-none lg:min-h-[420px] w-full">
+          <CardContent className="p-0 w-full">
+            <div className="relative aspect-square overflow-hidden rounded-2xl bg-muted mb-4">
+              {showDiscount && (
+                <div className="absolute left-3 top-3 z-10">
+                  <span className="inline-flex items-center rounded-full bg-black/90 px-3 py-1 text-[11px] font-semibold text-white shadow-sm">
+                    SAVE {finalDiscount}%
+                  </span>
+                </div>
               )}
+              <Image
+                src={image || "/placeholder.svg"}
+                alt={name}
+                fill
+                sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
+              />
             </div>
-            <div className="pt-1 space-y-2">
-              <Button
-                className="w-full rounded-full bg-black text-white hover:bg-black/90"
-                onClick={(e) => {
-                  e.preventDefault();
-                  addToCart({
-                    productId: id,
-                    quantity: 1,
-                    productDetails: {
-                      name,
-                      price: numericDiscounted,
-                      discount: finalDiscount
-                    }
-                  })
-                }}
-              >
-                Add to Cart
-              </Button>
-              <Button
-                className="w-full rounded-full bg-white text-black border-2 border-black hover:bg-black hover:text-white transition-colors"
-                onClick={handleShopNow}
-              >
-                Shop Now
-              </Button>
+            <div className="space-y-3">
+              <h3 className="font-bold text-sm lg:text-base leading-snug line-clamp-2">{toTitleCase(name)}</h3>
+              <div className="flex items-center gap-3">
+                <span className="text-xl lg:text-2xl font-bold">৳{numericDiscounted.toFixed(0)}</span>
+                {showDiscount && numericOriginal !== undefined && (
+                  <span className="text-lg lg:text-xl text-muted-foreground/60 line-through">৳{Math.round(numericOriginal).toFixed(0)}</span>
+                )}
+              </div>
+              <div className="pt-1 space-y-2">
+                <Button
+                  className="w-full rounded-full bg-black text-white hover:bg-black/90"
+                  onClick={handleAddToCart}
+                >
+                  Add to Cart
+                </Button>
+                <Button
+                  className="w-full rounded-full bg-white text-black border-2 border-black hover:bg-black hover:text-white transition-colors"
+                  onClick={handleShopNow}
+                >
+                  Shop Now
+                </Button>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
+          </CardContent>
+        </Card>
+      </Link>
+      <ProductSizeModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        productId={id}
+        productName={name}
+        productImage={image}
+        productPrice={numericDiscounted}
+        productOriginalPrice={numericOriginal}
+        productDiscount={finalDiscount}
+        actionType={modalActionType}
+      />
+    </>
   )
 }
 

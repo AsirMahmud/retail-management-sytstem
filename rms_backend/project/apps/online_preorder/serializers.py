@@ -48,12 +48,32 @@ class OnlinePreorderSerializer(serializers.ModelSerializer):
                     try:
                         product = Product.objects.get(id=pid)
                         item['product_name'] = product.name
-                        if product.image:
+                        
+                        # Logic: "primary photo of first variant of that product"
+                        image_url = None
+                        
+                        from apps.inventory.models import Gallery, Image
+                        
+                        # 1. Try first variant's primary photo
+                        first_variant = product.variations.first()
+                        if first_variant:
+                            gallery = Gallery.objects.filter(product=product, color=first_variant.color).first()
+                            if gallery:
+                                primary_img = Image.objects.filter(gallery=gallery, imageType='PRIMARY').first()
+                                if primary_img and primary_img.image:
+                                    image_url = primary_img.image.url
+                        
+                        # 2. Fallback to main product image
+                        if not image_url and product.image:
+                            image_url = product.image.url
+
+                        if image_url:
                             request = self.context.get('request')
                             if request:
-                                item['product_image'] = request.build_absolute_uri(product.image.url)
+                                item['product_image'] = request.build_absolute_uri(image_url)
                             else:
-                                item['product_image'] = product.image.url
+                                item['product_image'] = image_url
+
                     except Product.DoesNotExist:
                         pass
                 enriched_items.append(item)
