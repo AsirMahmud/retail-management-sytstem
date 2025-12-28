@@ -143,7 +143,7 @@ export default function OnlinePreordersPage() {
                   <Table>
                     <TableHeader className="bg-slate-50/50">
                       <TableRow>
-                        <TableHead className="font-bold text-slate-700 w-16">Preview</TableHead>
+                        <TableHead className="font-bold text-slate-700">Preview</TableHead>
                         <TableHead className="font-bold text-slate-700">Order ID</TableHead>
                         <TableHead className="font-bold text-slate-700">Customer</TableHead>
                         <TableHead className="font-bold text-slate-700 text-center">Items</TableHead>
@@ -157,16 +157,33 @@ export default function OnlinePreordersPage() {
                     <TableBody>
                       {rows.map((o) => {
                         const totalDiscount = o.items?.reduce((sum, item) => sum + (Number(item.discount) || 0), 0) || 0;
-                        const firstItemImage = o.items?.[0]?.product_image;
+                        const images = o.items?.map(i => i.product_image).filter(Boolean) || [];
+                        const displayImages = images.slice(0, 3);
+                        const remainingCount = images.length - 3;
+                        const isMulti = images.length > 1;
 
                         return (
                           <TableRow key={o.id} className="cursor-pointer hover:bg-slate-50/80 transition-colors" onClick={() => { setSelectedOrder(o); setIsSheetOpen(true); }}>
                             <TableCell>
-                              <div className="w-10 h-10 rounded-md border bg-white overflow-hidden flex items-center justify-center">
-                                {firstItemImage ? (
-                                  <img src={firstItemImage} alt="Order preview" className="w-full h-full object-cover" />
+                              <div className="flex gap-2 items-center">
+                                {images.length > 0 ? (
+                                  displayImages.map((img, idx) => (
+                                    <div
+                                      key={idx}
+                                      className={`${isMulti ? 'w-16 h-20' : 'w-20 h-24'} rounded-md border bg-white overflow-hidden flex-shrink-0 relative transition-all`}
+                                    >
+                                      <img src={img} alt="Order preview" className="w-full h-full object-cover" />
+                                      {isMulti && idx === 2 && remainingCount > 0 && (
+                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                          <span className="text-white text-xs font-bold">+{remainingCount}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))
                                 ) : (
-                                  <Package className="w-5 h-5 text-slate-300" />
+                                  <div className="w-20 h-24 rounded-md border bg-white overflow-hidden flex items-center justify-center flex-shrink-0">
+                                    <Package className="w-8 h-8 text-slate-300" />
+                                  </div>
                                 )}
                               </div>
                             </TableCell>

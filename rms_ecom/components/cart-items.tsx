@@ -8,6 +8,18 @@ import { Input } from "@/components/ui/input"
 import { useCartStore } from "@/hooks/useCartStore"
 import { ecommerceApi } from "@/lib/api"
 import { getImageUrl } from "@/lib/utils"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { toast } from "sonner"
 
 interface PricedCartItem {
   productId: number
@@ -46,6 +58,7 @@ export function CartItems() {
   const items = useCartStore((s) => s.items)
   const updateQty = useCartStore((s) => s.updateQuantity)
   const removeLine = useCartStore((s) => s.removeItem)
+  const clearCart = useCartStore((s) => s.clearCart)
   const [pricedItems, setPricedItems] = useState<PricedCartItem[]>([])
   const [products, setProducts] = useState<ProductInfo[]>([])
   const [loading, setLoading] = useState(true)
@@ -117,8 +130,48 @@ export function CartItems() {
     )
   }
 
+  const handleClearCart = () => {
+    clearCart()
+    toast.success("All items removed from cart", {
+      className: "bg-primary text-primary-foreground border-none",
+    })
+  }
+
   return (
     <div className="space-y-4">
+      {/* Remove All Button */}
+      <div className="flex justify-end">
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Remove All
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove all items?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to remove all items from your cart? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleClearCart}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Remove All
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+
       {items.map((it) => {
         // Normalize variation values for comparison
         const normalizeValue = (val: string | null | undefined) => {

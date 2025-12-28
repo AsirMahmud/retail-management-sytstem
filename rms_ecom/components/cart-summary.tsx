@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label"
 import { useMemo, useEffect, useState } from "react"
 import Link from "next/link"
 import { useCartStore } from "@/hooks/useCartStore"
-import { ecommerceApi } from "@/lib/api"
+import { ecommerceApi, EcommerceProduct } from "@/lib/api"
 import { useLoading } from "@/hooks/useLoading"
 import { sendGTMEvent, normalizeProductId } from "@/lib/gtm"
 
@@ -25,6 +25,7 @@ interface CartPricing {
     quantity: number;
     variant?: { color?: string | null; size?: string | null };
   }>
+  products: EcommerceProduct[]
 }
 
 export function CartSummary() {
@@ -80,7 +81,8 @@ export function CartSummary() {
             outside_dhaka_charge: Number(response.delivery.outside_dhaka_charge) || 0,
             updated_at: response.delivery.updated_at || ""
           },
-          items: response.items
+          items: response.items,
+          products: response.products as unknown as EcommerceProduct[]
         })
       } catch (error) {
         console.error("Failed to fetch cart pricing:", error)
@@ -101,6 +103,25 @@ export function CartSummary() {
   }
 
   const subtotal = Number(cartPricing?.subtotal) || 0
+
+  // Calculate discount
+  const discountTotal = useMemo(() => {
+    if (!cartPricing?.items || !cartPricing?.products) return 0
+
+    return cartPricing.items.reduce((total, item) => {
+      const product = cartPricing.products.find(p => p.id === item.productId)
+      const discountPercent = Number(product?.discount) || 0
+
+      if (discountPercent > 0) {
+        // Calculate discount for this line item
+        const itemTotal = item.unit_price * item.quantity
+        const discountAmount = (itemTotal * discountPercent) / 100
+        return total + discountAmount
+      }
+      return total
+    }, 0)
+  }, [cartPricing])
+
   let deliveryCharge = 0
   if (shippingMethod === 'inside') {
     deliveryCharge = Number(cartPricing?.delivery?.inside_dhaka_charge) || 0
@@ -109,7 +130,8 @@ export function CartSummary() {
   } else {
     deliveryCharge = Number(cartPricing?.delivery?.outside_dhaka_charge) || 0
   }
-  const total = subtotal + deliveryCharge
+
+  const total = subtotal - discountTotal + deliveryCharge
 
   const handleCheckout = () => {
     if (!items.length || !cartPricing) return
@@ -202,6 +224,17 @@ export function CartSummary() {
             <span className="font-semibold">৳{formatPrice(subtotal)}</span>
           )}
         </div>
+
+        {discountTotal > 0 && (
+          <div className="flex justify-between text-base text-red-600">
+            <span className="font-medium">Discount</span>
+            {localLoading ? (
+              <span className="font-semibold text-muted-foreground">—</span>
+            ) : (
+              <span className="font-semibold">-৳{formatPrice(discountTotal)}</span>
+            )}
+          </div>
+        )}
 
         <div className="flex justify-between text-base">
           <span className="text-muted-foreground">Delivery</span>
