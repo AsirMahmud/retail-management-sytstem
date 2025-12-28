@@ -17,13 +17,13 @@ export default function CheckoutPage() {
           </div>
 
           <div className="grid lg:grid-cols-3 gap-8 mt-8 max-w-6xl mx-auto">
-            {/* Checkout Form - Takes 2 columns */}
-            <div className="lg:col-span-2">
+            {/* Checkout Form - Takes 2 columns. Order 2 on mobile (after summary), Order 1 on desktop (before summary) */}
+            <div className="lg:col-span-2 order-2 lg:order-1">
               <CheckoutForm />
             </div>
 
-            {/* Order Summary - Takes 1 column */}
-            <div className="lg:col-span-1">
+            {/* Order Summary - Takes 1 column. Order 1 on mobile (before form), Order 2 on desktop (after form) */}
+            <div className="lg:col-span-1 order-1 lg:order-2">
               <CheckoutSummary />
             </div>
           </div>
