@@ -869,4 +869,15 @@ class CreateOnlinePreorderView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         online_preorder = serializer.save()
+        
+        # Send notification alerts
+        try:
+            from apps.online_preorder.email_utils import send_admin_order_notification, send_customer_order_received
+            send_admin_order_notification(online_preorder.id)
+            send_customer_order_received(online_preorder.id)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to trigger notifications in ecommerce view: {str(e)}")
+            
         return Response(OnlinePreorderSerializer(online_preorder).data, status=status.HTTP_201_CREATED)

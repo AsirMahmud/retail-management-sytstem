@@ -18,6 +18,12 @@ class PublicCreateOnlinePreorderView(APIView):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         online_preorder = serializer.save()
+        
+        # Send notifications
+        from .email_utils import send_admin_order_notification, send_customer_order_received
+        send_admin_order_notification(online_preorder.id)
+        send_customer_order_received(online_preorder.id)
+        
         return Response(OnlinePreorderSerializer(online_preorder).data, status=status.HTTP_201_CREATED)
 
 
@@ -42,5 +48,30 @@ class OnlinePreorderViewSet(mixins.ListModelMixin,
         if search:
             qs = qs.filter(models.Q(customer_name__icontains=search) | models.Q(customer_phone__icontains=search))
         return qs.order_by('-created_at')
+
+    def perform_update(self, serializer):
+        instance = serializer.instance
+        old_status = instance.status
+        updated_instance = serializer.save()
+        new_status = updated_instance.status
+
+        # Check for status changes
+        if old_status != 'CONFIRMED' and new_status == 'CONFIRMED':
+            try:
+                from .email_utils import send_customer_order_confirmation
+                send_customer_order_confirmation(updated_instance.id)
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Error sending confirmation notification for order {updated_instance.id}: {str(e)}")
+
+        elif old_status != 'DELIVERED' and new_status == 'DELIVERED':
+            try:
+                from .email_utils import send_delivery_notification
+                send_delivery_notification(updated_instance.id)
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Error sending delivery notification for order {updated_instance.id}: {str(e)}")
 
 
