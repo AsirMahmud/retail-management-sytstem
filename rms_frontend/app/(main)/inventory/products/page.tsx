@@ -837,7 +837,6 @@ export default function ProductsPage() {
                     <TableHead>Stock</TableHead>
                     <TableHead>Price</TableHead>
                     <TableHead>Sale Price</TableHead>
-                    <TableHead>Material</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Online</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -930,9 +929,6 @@ export default function ProductsPage() {
                           ) : (
                             <span className="text-muted-foreground">-</span>
                           )}
-                        </TableCell>
-                        <TableCell className="max-w-[150px] truncate">
-                          <span className="text-xs">{product.material_composition_string || "-"}</span>
                         </TableCell>
                         <TableCell>
                           <Badge
