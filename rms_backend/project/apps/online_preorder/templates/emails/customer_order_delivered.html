@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #eee;
+            border-radius: 10px;
+        }
+
+        .header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f8f8f8;
+        }
+
+        .content {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .order-info {
+            background-color: #f8f8f8;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 0.8em;
+            color: #888;
+        }
+
+        .brand {
+            color: #ff4500;
+            font-weight: bold;
+            font-size: 1.5em;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            background-color: #4caf50;
+            color: white;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="brand">Raw Stitch</div>
+            <h2>Order Delivered!</h2>
+        </div>
+
+        <div class="content">
+            <div class="status-badge">DELIVERED</div>
+            <p>Hi {{ customer_name }},</p>
+            <p>Great news! Your order <strong>#{{ order_id }}</strong> has been delivered.</p>
+            <p>We hope you enjoy your purchase! If you have any feedback or concerns, please don't hesitate to reach
+                out.</p>
+        </div>
+
+        <div class="order-info">
+            <p><strong>Order ID:</strong> #{{ order_id }}</p>
+            <p><strong>Delivered Date:</strong> {{ date }}</p>
+            <p><strong>Total Amount:</strong> {{ total_amount }} TK</p>
+        </div>
+
+        <div class="footer">
+            <p>Thank you for shopping with Raw Stitch!</p>
+            <p>Contact us: {{ support_email }}</p>
+            <p>&copy; 2024 Raw Stitch. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+
+</html>

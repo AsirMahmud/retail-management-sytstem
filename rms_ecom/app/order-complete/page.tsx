@@ -200,10 +200,10 @@ export default function OrderCompletePage() {
               </div>
             </div>
             <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-              Order Complete!
+              Order Received!
             </h1>
             <p className="text-lg text-muted-foreground max-w-md mx-auto">
-              Thank you for your purchase. Your order <span className="text-foreground font-semibold">#{order.id}</span> has been confirmed.
+              Thank you for your purchase. Your order <span className="text-foreground font-semibold">#{order.id}</span> has been received and is currently pending confirmation.
             </p>
             <div className="mt-8">
               <CheckoutProgress currentStep={3} />
@@ -366,8 +366,8 @@ export default function OrderCompletePage() {
                 <div className="mt-8 bg-primary/5 p-4 rounded-xl border border-primary/10">
                   <p className="text-xs text-center text-muted-foreground">
                     {order.customer_email
-                      ? "A confirmation email has been sent to your inbox. Please check your spam folder if you don't see it."
-                      : "We'll contact you soon via phone/SMS for order verification and delivery updates."}
+                      ? "We have received your order. A confirmation email will be sent to your inbox once our team confirms your order. Please check your spam folder if you don't see it then."
+                      : "We'll contact you soon via phone/SMS for order verification and confirmation."}
                   </p>
                 </div>
               </div>

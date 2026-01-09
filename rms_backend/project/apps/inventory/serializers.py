@@ -476,6 +476,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'material_composition', 'material_composition_string',
             'who_is_this_for', 'features', 'total_stock', 
             'first_variation_color', 'first_variation_size', 'first_variation_image', 'first_variation_color_slug',
+            'discount_percentage', 'discount_end_date', 'sale_price',
             'created_at', 'updated_at'
         ]
         extra_kwargs = {
