@@ -13,7 +13,7 @@ interface ProductDetailsSectionProps {
   features?: Array<{ title: string; description: string }>
 }
 
-export function ProductDetailsSection({ sizeChart, materials, whoIsThisFor, features }: ProductDetailsSectionProps) {
+export function ProductDetailsSection({ description, sizeChart, materials, whoIsThisFor, features }: ProductDetailsSectionProps) {
   // Process size chart: deduplicate and sort by size (S > M > L > XL > XXL, etc.)
   const sizeChartData = useMemo(() => {
     return processSizeChart(sizeChart || []);
@@ -24,6 +24,18 @@ export function ProductDetailsSection({ sizeChart, materials, whoIsThisFor, feat
   const featuresData = features || []
   return (
     <div className="grid gap-8 lg:gap-12">
+      {/* Product Description Section */}
+      {description && (
+        <div>
+          <h2 className="text-xl lg:text-2xl font-bold mb-4">Description</h2>
+          <div className="prose prose-sm max-w-none">
+            <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+              {description}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Size Chart Section */}
       <div>
         <div className="flex items-center gap-3 mb-6">
