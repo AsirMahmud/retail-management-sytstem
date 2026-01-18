@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { ProductCard } from "@/components/product-card"
 import Link from "next/link"
+import { DiscountInfo } from "@/lib/api"
 
 interface Product {
   id: string
@@ -10,6 +11,7 @@ interface Product {
   rating: number
   image: string
   discount?: number
+  discountInfo?: DiscountInfo | null
 }
 
 interface ProductSectionProps {

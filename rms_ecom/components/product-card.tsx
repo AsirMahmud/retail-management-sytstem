@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { useGlobalDiscount } from "@/lib/useGlobalDiscount"
 import { ProductSizeModal } from "@/components/product-size-modal"
+import { DiscountInfo } from "@/lib/api"
 
 interface ProductCardProps {
   id: string
@@ -15,21 +16,31 @@ interface ProductCardProps {
   originalPrice?: number
   image: string
   discount?: number
+  discountInfo?: DiscountInfo | null  // Priority-based discount from backend
 }
 
-export function ProductCard({ id, name, price, originalPrice, image, discount }: ProductCardProps) {
+export function ProductCard({ id, name, price, originalPrice, image, discount, discountInfo }: ProductCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalActionType, setModalActionType] = useState<"addToCart" | "shopNow">("addToCart")
 
+  // Global discount as fallback
   const globalDiscountValue = useGlobalDiscount((state) => state.discount?.value || 0)
-  const finalDiscount = Math.max(globalDiscountValue, discount || 0)
+
+  // Priority: Use backend discount_info if available, otherwise use global discount
+  // Backend already applies priority (Product > Category > Global)
+  const hasBackendDiscount = !!discountInfo?.discount_type
+  const finalDiscount = hasBackendDiscount
+    ? discountInfo.discount_value
+    : Math.max(globalDiscountValue, discount || 0)
   const showDiscount = finalDiscount > 0
 
-  // Use originalPrice as base if provided, otherwise fall back to current price
+  // Calculate prices - use backend final_price if available
   const basePrice = originalPrice !== undefined ? Number(originalPrice) : Number(price)
-  const discounted = showDiscount ? basePrice * (1 - finalDiscount / 100) : basePrice
+  const discountedPrice = hasBackendDiscount
+    ? discountInfo.final_price
+    : (showDiscount ? basePrice * (1 - finalDiscount / 100) : basePrice)
 
-  const numericDiscounted = Number.isFinite(discounted) ? Math.round(discounted) : 0
+  const numericDiscounted = Number.isFinite(discountedPrice) ? Math.round(discountedPrice) : 0
   const numericOriginal = showDiscount ? basePrice : (originalPrice !== undefined ? Number(originalPrice) : undefined)
 
   const handleAddToCart = (e: React.MouseEvent) => {
@@ -55,7 +66,7 @@ export function ProductCard({ id, name, price, originalPrice, image, discount }:
               {showDiscount && (
                 <div className="absolute left-3 top-3 z-10">
                   <span className="inline-flex items-center rounded-full bg-black/90 px-3 py-1 text-[11px] font-semibold text-white shadow-sm">
-                    SAVE {finalDiscount}%
+                    SAVE {Math.round(finalDiscount)}%
                   </span>
                 </div>
               )}
