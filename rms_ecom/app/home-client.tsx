@@ -56,6 +56,7 @@ export default function HomePageClient() {
     price: Number(entry.product_price),
     rating: 4.5,
     image: entry.cover_image_url || "/placeholder.jpg",
+    discountInfo: entry.discount_info,  // Pass backend discount info
   })
 
   return (
@@ -100,7 +101,7 @@ export default function HomePageClient() {
   )
 }
 
-function ColorSection({ title, baseProducts, toCard }: { title: string; baseProducts: EcommerceProduct[]; toCard: (e: ProductByColorEntry)=>{id:string;name:string;price:number;rating:number;image:string} }) {
+function ColorSection({ title, baseProducts, toCard }: { title: string; baseProducts: EcommerceProduct[]; toCard: (e: ProductByColorEntry) => { id: string; name: string; price: number; rating: number; image: string } }) {
   const [entries, setEntries] = useState<ProductByColorEntry[]>([])
   useEffect(() => {
     const load = async () => {

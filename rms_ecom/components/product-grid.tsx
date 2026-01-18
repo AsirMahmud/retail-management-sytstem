@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { CategoryFilters } from "@/components/category-filters"
 import { useEffect } from "react"
+import { DiscountInfo } from "@/lib/api"
 
 const products = [
   {
@@ -91,6 +92,7 @@ interface Product {
   rating: number;
   image: string;
   discount?: number;
+  discountInfo?: DiscountInfo | null;
 }
 
 interface ProductGridProps {
@@ -135,7 +137,7 @@ export function ProductGrid({ category, products: propProducts, totalCount, page
       pages.push(1)
     }
 
-  if (currentPage > 2) {
+    if (currentPage > 2) {
       pages.push(2)
     }
 

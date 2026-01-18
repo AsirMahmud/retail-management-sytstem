@@ -18,6 +18,7 @@ from apps.online_preorder.models import OnlinePreorder
 from apps.online_preorder.serializers import OnlinePreorderSerializer, OnlinePreorderCreateSerializer
 from django.db.models import Sum
 from decimal import Decimal
+from .discount_utils import calculate_discounted_price
 
 
 class DiscountViewSet(viewsets.ModelViewSet):
@@ -290,7 +291,7 @@ class PublicProductsByColorView(APIView):
         wanted_sizes = {s.strip().lower() for s in sizes_csv.split(',') if s.strip()} if sizes_csv else None
 
         # Only return products explicitly assigned to online and active
-        products = Product.objects.filter(is_active=True, assign_to_online=True)
+        products = Product.objects.filter(is_active=True, assign_to_online=True).select_related('category', 'online_category')
         if search:
             products = products.filter(name__icontains=search)
         if category_slug:
@@ -391,10 +392,13 @@ class PublicProductsByColorView(APIView):
                     ).filter(size__in=list(wanted_sizes)).exists()
                     if not has_size:
                         continue
+                # Calculate priority-based discount for this product
+                discount_info = calculate_discounted_price(product)
                 item = {
                     'product_id': product.id,
                     'product_name': product.name,
                     'product_price': str(product.selling_price),
+                    'discount_info': discount_info if discount_info['discount_type'] else None,
                     'color_name': color_name,
                     'color_slug': slugify(color_name),
                     'total_stock': total_stock,
@@ -437,7 +441,7 @@ class PublicProductDetailByColorView(APIView):
     def get(self, request, product_id: int, color_slug: str):
         try:
             # Only return products explicitly assigned to online and active
-            product = Product.objects.get(id=product_id, is_active=True, assign_to_online=True)
+            product = Product.objects.select_related('category', 'online_category').get(id=product_id, is_active=True, assign_to_online=True)
         except Product.DoesNotExist:
             return Response({'detail': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -491,6 +495,9 @@ class PublicProductDetailByColorView(APIView):
                 'in_stock': v.stock > 0,
             })
 
+        # Calculate priority-based discount
+        discount_info = calculate_discounted_price(product)
+        
         data = {
             'product': {
                 'id': product.id,
@@ -498,6 +505,7 @@ class PublicProductDetailByColorView(APIView):
                 'price': str(product.selling_price),
                 'category': product.category.name if product.category else None,
             },
+            'discount_info': discount_info if discount_info['discount_type'] else None,
             'color': {
                 'name': current_color_name,
                 'slug': color_slug,
@@ -620,7 +628,11 @@ class PublicCartPriceView(APIView):
             p = prod_map.get(line['product_id'])
             if not p:
                 continue
-            unit_price = float(p.selling_price)
+            
+            # Apply priority-based discount (Product > Category > Global)
+            discount_info = calculate_discounted_price(p)
+            unit_price = discount_info['final_price']
+            original_price = discount_info['original_price']
 
             # Determine available stock based on requested variant
             max_stock = 0
@@ -665,6 +677,8 @@ class PublicCartPriceView(APIView):
                 'name': p.name,
                 'image_url': image_url,
                 'unit_price': unit_price,
+                'original_price': original_price,
+                'discount_info': discount_info if discount_info['discount_type'] else None,
                 'quantity': line['quantity'],
                 'max_stock': max_stock,
                 'variant': {

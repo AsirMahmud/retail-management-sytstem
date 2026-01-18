@@ -47,11 +47,22 @@ export interface EcommerceProductDetail extends EcommerceProduct {
   }>;
 }
 
+// Discount info returned from backend for priority-based discounts
+export interface DiscountInfo {
+  original_price: number;
+  discount_value: number;      // percentage, e.g., 15 for 15%
+  discount_amount: number;
+  final_price: number;
+  discount_type: 'PRODUCT' | 'CATEGORY' | 'APP_WIDE' | null;
+  discount_name: string | null;
+}
+
 // Public per-color listing entry
 export interface ProductByColorEntry {
   product_id: number;
   product_name: string;
   product_price: string;
+  discount_info?: DiscountInfo | null;  // Priority-based discount from backend
   color_name: string;
   color_slug: string;
   total_stock: number;

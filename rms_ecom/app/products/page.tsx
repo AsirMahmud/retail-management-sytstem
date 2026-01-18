@@ -69,7 +69,7 @@ export default function AllProductsPage() {
   }
 
   const breadcrumbItems = [
-    { label: "Home", href: "/" }, 
+    { label: "Home", href: "/" },
     { label: "All Products", href: "/products" }
   ]
 
@@ -128,7 +128,7 @@ export default function AllProductsPage() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-full sm:w-[400px] overflow-y-auto">
-                <CategoryFilters 
+                <CategoryFilters
                   onCategoryChange={handleCategoryChange}
                   onGenderChange={handleGenderChange}
                   selectedGender={selectedGender}
@@ -141,7 +141,7 @@ export default function AllProductsPage() {
           <div className="flex gap-6">
             {/* Desktop Sidebar */}
             <aside className="hidden lg:block w-64 flex-shrink-0">
-              <CategoryFilters 
+              <CategoryFilters
                 onCategoryChange={handleCategoryChange}
                 onGenderChange={handleGenderChange}
                 selectedGender={selectedGender}
@@ -157,8 +157,8 @@ export default function AllProductsPage() {
                     {searchTerm ? "No products found matching your search." : "No products available."}
                   </p>
                   {searchTerm && (
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => setSearchTerm("")}
                       className="mt-4"
                     >
@@ -175,6 +175,7 @@ export default function AllProductsPage() {
                     price: Number(item.product_price),
                     rating: 4.5,
                     image: item.cover_image_url || "/placeholder.jpg",
+                    discountInfo: item.discount_info,
                   }))}
                   totalCount={totalCount}
                   page={page}
