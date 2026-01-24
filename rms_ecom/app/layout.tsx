@@ -10,6 +10,7 @@ import { Suspense } from "react"
 import { DiscountInitializer } from "@/components/discount-initializer"
 import { LoadingProviderWrapper } from "@/components/loading-provider-wrapper"
 import { Toaster } from "sonner"
+import { WhatsAppButton } from "@/components/whatsapp-button"
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://rawstitch.com.bd'),
@@ -117,6 +118,7 @@ export default function RootLayout({
             }}
           />
           <DiscountInitializer />
+          <WhatsAppButton />
           <Suspense fallback={null}>{children}</Suspense>
           <Analytics />
         </LoadingProviderWrapper>
