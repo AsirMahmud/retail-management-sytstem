@@ -21,7 +21,7 @@ export default function CategoryPage() {
   const slug = (params?.slug as string) || ""
   const genderParam = searchParams.get("gender")
   const [products, setProducts] = useState<ProductByColorEntry[]>([])
-  const { startLoading, stopLoading } = useLoading()
+  const { isLoading, startLoading, stopLoading } = useLoading()
   const [page, setPage] = useState(1)
   const [pageSize] = useState(24)
   const [totalCount, setTotalCount] = useState(0)
@@ -159,6 +159,11 @@ export default function CategoryPage() {
                   rating: 4.5,
                   image: product.cover_image_url || "/placeholder.jpg",
                 }))}
+                isLoading={isLoading}
+                pageSize={pageSize}
+                totalCount={totalCount}
+                page={page}
+                onPageChange={setPage}
               />
             </div>
           </div>

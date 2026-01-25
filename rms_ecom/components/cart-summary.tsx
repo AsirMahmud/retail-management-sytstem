@@ -73,6 +73,7 @@ export function CartSummary() {
 
         const response = await ecommerceApi.priceCart(normalizedItems)
         // Convert all values to numbers to ensure proper type handling
+        // Note: subtotal from backend is already discounted (sum of final prices)
         setCartPricing({
           subtotal: Number(response.subtotal) || 0,
           delivery: {
@@ -82,7 +83,7 @@ export function CartSummary() {
             updated_at: response.delivery.updated_at || ""
           },
           items: response.items,
-          products: response.products as unknown as EcommerceProduct[]
+          products: (response.products || []) as unknown as EcommerceProduct[]
         })
       } catch (error) {
         console.error("Failed to fetch cart pricing:", error)
@@ -104,20 +105,29 @@ export function CartSummary() {
 
   const subtotal = Number(cartPricing?.subtotal) || 0
 
-  // Calculate discount
+  // Calculate discount - unit_price is already discounted, so we need to calculate
+  // the difference between original price and discounted price
   const discountTotal = useMemo(() => {
     if (!cartPricing?.items || !cartPricing?.products) return 0
 
     return cartPricing.items.reduce((total, item) => {
       const product = cartPricing.products.find(p => p.id === item.productId)
-      const discountPercent = Number(product?.discount) || 0
+      if (!product) return total
 
-      if (discountPercent > 0) {
-        // Calculate discount for this line item
-        const itemTotal = item.unit_price * item.quantity
-        const discountAmount = (itemTotal * discountPercent) / 100
+      // Get original price (use original_price if available, otherwise selling_price)
+      const originalPrice = product.original_price 
+        ? Number(product.original_price) 
+        : Number(product.selling_price) || 0
+      
+      // unit_price is already the discounted/final price
+      const discountedPrice = item.unit_price
+      
+      // Calculate discount amount: (original - discounted) * quantity
+      if (originalPrice > discountedPrice) {
+        const discountAmount = (originalPrice - discountedPrice) * item.quantity
         return total + discountAmount
       }
+      
       return total
     }, 0)
   }, [cartPricing])
@@ -131,7 +141,8 @@ export function CartSummary() {
     deliveryCharge = Number(cartPricing?.delivery?.outside_dhaka_charge) || 0
   }
 
-  const total = subtotal - discountTotal + deliveryCharge
+  // subtotal is already discounted from backend
+  const total = subtotal + deliveryCharge
 
   const handleCheckout = () => {
     if (!items.length || !cartPricing) return

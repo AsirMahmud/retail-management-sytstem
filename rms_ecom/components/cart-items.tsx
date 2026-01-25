@@ -222,16 +222,8 @@ export function CartItems() {
         const originalPrice = productInfo?.original_price ? Number(productInfo.original_price) : null
         const discount = productInfo?.discount || null
 
-        // Calculate unit price with discount applied
+        // Use authoritative unit price from backend (already discounted)
         let unitPrice = pricedItem?.unit_price || Number(productInfo?.selling_price) || 0
-
-        // If we have original price and discount, calculate discounted price
-        if (originalPrice && discount && discount > 0) {
-          const discountedPrice = originalPrice * (1 - discount / 100)
-          unitPrice = discountedPrice
-        } else if (originalPrice && originalPrice > unitPrice) {
-          unitPrice = unitPrice > 0 ? unitPrice : originalPrice
-        }
 
         return (
           <div key={`${it.productId}-${JSON.stringify(it.variations || {})}`} className="flex gap-4 p-4 border rounded-lg bg-card">

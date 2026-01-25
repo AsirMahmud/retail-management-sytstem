@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react"
-import { ProductCard } from "@/components/product-card"
+import { ProductCard, ProductCardSkeleton } from "@/components/product-card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -102,9 +102,10 @@ interface ProductGridProps {
   page?: number;
   pageSize?: number;
   onPageChange?: (page: number) => void;
+  isLoading?: boolean;
 }
 
-export function ProductGrid({ category, products: propProducts, totalCount, page, pageSize, onPageChange }: ProductGridProps) {
+export function ProductGrid({ category, products: propProducts, totalCount, page, pageSize, onPageChange, isLoading = false }: ProductGridProps) {
   const isServerPaginated = typeof totalCount === 'number' && typeof page === 'number' && typeof pageSize === 'number' && typeof onPageChange === 'function'
   const [currentPage, setCurrentPage] = useState(1)
   const effectivePage = isServerPaginated ? (page as number) : currentPage
@@ -131,45 +132,29 @@ export function ProductGrid({ category, products: propProducts, totalCount, page
   }, [productsToUse.length])
 
   const renderPageNumbers = () => {
-    const pages = []
+    const pages: (number | string)[] = []
+    const range = 2 // Numbers to show around current page
 
-    if (currentPage > 1) {
-      pages.push(1)
+    for (let i = 1; i <= totalPages; i++) {
+      if (
+        i === 1 || // Always show first page
+        i === totalPages || // Always show last page
+        (i >= effectivePage - range && i <= effectivePage + range) // Show numbers around current page
+      ) {
+        pages.push(i)
+      } else if (
+        (i === effectivePage - range - 1 && i > 1) ||
+        (i === effectivePage + range + 1 && i < totalPages)
+      ) {
+        pages.push("...")
+      }
     }
 
-    if (currentPage > 2) {
-      pages.push(2)
-    }
-
-    if (currentPage > 3) {
-      pages.push(3)
-    }
-
-    if (currentPage > 4) {
-      pages.push("...")
-    }
-
-    if (currentPage > 3 && currentPage < totalPages - 2) {
-      pages.push(currentPage)
-    }
-
-    if (currentPage < totalPages - 3) {
-      pages.push("...")
-    }
-
-    if (currentPage < totalPages - 2) {
-      pages.push(totalPages - 2)
-    }
-
-    if (currentPage < totalPages - 1) {
-      pages.push(totalPages - 1)
-    }
-
-    if (currentPage < totalPages) {
-      pages.push(totalPages)
-    }
-
-    return pages
+    // Filter out consecutive ellipses (shouldn't happen with above logic but just in case)
+    return pages.filter((item, index) => {
+      if (item === "..." && pages[index - 1] === "...") return false
+      return true
+    })
   }
 
   return (
@@ -215,9 +200,13 @@ export function ProductGrid({ category, products: propProducts, totalCount, page
 
       {/* Product Grid */}
       <div className="grid  grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-        {paginatedProducts.map((product) => (
-          <ProductCard key={product.id} {...product} id={String(product.id)} />
-        ))}
+        {isLoading
+          ? Array.from({ length: productsPerPage }).map((_, i) => (
+            <ProductCardSkeleton key={i} />
+          ))
+          : paginatedProducts.map((product) => (
+            <ProductCard key={product.id} {...product} id={String(product.id)} />
+          ))}
       </div>
 
       {/* Pagination */}

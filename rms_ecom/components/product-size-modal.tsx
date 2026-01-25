@@ -49,12 +49,33 @@ export function ProductSizeModal({
   const addToCart = useCartStore((s) => s.addItem)
   const router = useRouter()
 
-  // Global or product discount
+  // Strict Discount Priority Logic:
+  // 1. Backend Discount Info (passed as productDiscount which should contain the backend value if valid)
+  // 2. Global Discount (frontend fallback only if backend info is strictly N/A)
+  // Note: For ProductSizeModal, we rely on the passed props. If productDiscount is passed, we assume it's the correct final discount.
+  // However, to be safe and consistent with other components, we should check if we have explicit backend info.
+  // Since ProductSizeModal props are simpler, we assume if productDiscount is provided > 0, it MIGHT be from backend or global.
+  // Ideally, this component should also receive a full discountInfo object, but for now we'll enforce that 
+  // if specific discount is passed, use it over global unless necessary. 
+
+  // Actually, to be strictly consistent, we should use the same pattern. 
+  // Let's assume productDiscount PASSED IN effectively acts as "backend/calculated discount".
+  // If we want to support global fallback correctly, we need to know if productDiscount is "real".
+
   const globalDiscountValue = useGlobalDiscount((state) => state.discount?.value || 0)
-  const finalDiscount = Math.max(globalDiscountValue, productDiscount || 0)
+
+  // Logic: productDiscount prop usually comes from the card/page which already did the calc.
+  // So we should trust it primarily.
+  const finalDiscount = productDiscount !== undefined
+    ? productDiscount
+    : globalDiscountValue
+
   const showDiscount = finalDiscount > 0
   const basePrice = productOriginalPrice !== undefined ? Number(productOriginalPrice) : Number(productPrice)
-  const discounted = showDiscount ? basePrice * (1 - finalDiscount / 100) : basePrice
+
+  // Use passed price as discounted price if available (it should already be calculated)
+  // Otherwise calculate it
+  const discounted = productPrice !== undefined ? Number(productPrice) : (showDiscount ? basePrice * (1 - finalDiscount / 100) : basePrice)
 
   // Extract numeric product ID from string (handles formats like "123" or "123/blue")
   const getNumericProductId = (id: string | number): number | null => {
@@ -77,7 +98,7 @@ export function ProductSizeModal({
         setLoading(false)
         return
       }
-      
+
       setLoading(true)
       ecommerceApi
         .getProductDetail(numericId)

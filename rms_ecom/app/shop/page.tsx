@@ -11,15 +11,22 @@ import { ecommerceApi, EcommerceProduct } from "@/lib/api"
 import { useLoading } from "@/hooks/useLoading"
 
 export default function ShopPage() {
-  const [products, setProducts] = useState<EcommerceProduct[]>([])
+  const [products, setProducts] = useState<any[]>([])
   const { startLoading, stopLoading } = useLoading()
+  const [page, setPage] = useState(1)
+  const [pageSize] = useState(24)
+  const [totalCount, setTotalCount] = useState(0)
 
   useEffect(() => {
     const fetchAll = async () => {
       try {
         startLoading()
-        const data = await ecommerceApi.getAllProducts()
-        setProducts(data.products)
+        const data = await ecommerceApi.getProductsByColorPaginated({
+          page,
+          page_size: pageSize
+        })
+        setProducts(data.results)
+        setTotalCount(data.count)
       } catch (e) {
         console.error('Failed to fetch products', e)
       } finally {
@@ -27,7 +34,7 @@ export default function ShopPage() {
       }
     }
     fetchAll()
-  }, [startLoading, stopLoading])
+  }, [page, pageSize, startLoading, stopLoading])
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -43,15 +50,19 @@ export default function ShopPage() {
 
             <div className="flex-1">
               <ProductGrid
-                  category="All"
-                  products={products.map(p => ({
-                    id: p.id,
-                    name: p.name,
-                    price: p.selling_price,
-                    rating: 4.5,
-                    image: p.primary_image || p.image_url || p.image || "/placeholder.jpg",
-                  }))}
-                />
+                category="All"
+                products={products.map(p => ({
+                  id: `${p.product_id}/${p.color_slug}`,
+                  name: `${p.product_name} - ${p.color_name}`,
+                  price: Number(p.product_price),
+                  rating: 4.5,
+                  image: p.cover_image_url || "/placeholder.jpg",
+                }))}
+                totalCount={totalCount}
+                page={page}
+                pageSize={pageSize}
+                onPageChange={setPage}
+              />
             </div>
           </div>
         </div>

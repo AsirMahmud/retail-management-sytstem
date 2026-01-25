@@ -27,21 +27,33 @@ interface ProductInfoProps {
   colorLinks?: Array<{ name: string; value: string; href: string; active?: boolean; oos?: boolean }>
   onAddToCart?: (payload: { quantity: number; size?: string; color?: string }) => void
   onBuyNow?: (payload: { quantity: number; size?: string; color?: string }) => void
+  discountInfo?: any // Using any to avoid complex import circular deps, but logically matching DiscountInfo
 }
 
-export function ProductInfo({ productId, product, colorLinks, onAddToCart, onBuyNow }: ProductInfoProps) {
+export function ProductInfo({ productId, product, colorLinks, onAddToCart, onBuyNow, discountInfo }: ProductInfoProps) {
   const [selectedColor, setSelectedColor] = useState(0)
   const [selectedSize, setSelectedSize] = useState(0)
   const [quantity, setQuantity] = useState(1)
   const addToCart = useCartStore((s) => s.addItem)
   const router = useRouter()
 
-  // Global or product discount
+  // Strict Discount Priority Logic:
+  // 1. Backend Discount Info (Product > Category > Global calculated by backend)
+  // 2. Global Discount (frontend fallback only if backend info is strictly null/undefined)
   const globalDiscountValue = useGlobalDiscount((state) => state.discount?.value || 0)
-  const finalDiscount = Math.max(globalDiscountValue, product.discount || 0)
+
+  const hasBackendInfo = discountInfo !== null && discountInfo !== undefined
+  const finalDiscount = hasBackendInfo
+    ? discountInfo!.discount_value
+    : Math.max(globalDiscountValue, product.discount || 0)
+
   const showDiscount = finalDiscount > 0
   const basePrice = product.originalPrice !== undefined ? Number(product.originalPrice) : Number(product.price)
-  const discounted = showDiscount ? basePrice * (1 - finalDiscount / 100) : basePrice
+
+  // Use backend final price if available to avoid client-side math discrepancies
+  const discounted = hasBackendInfo
+    ? discountInfo!.final_price
+    : (showDiscount ? basePrice * (1 - finalDiscount / 100) : basePrice)
 
   // Get current color
   const currentColor = product.colors[selectedColor]
@@ -128,7 +140,7 @@ export function ProductInfo({ productId, product, colorLinks, onAddToCart, onBuy
       <div>
         <h3 className="mb-3 text-muted-foreground text-sm lg:text-base">Select Colors</h3>
         <div className="flex gap-2 lg:gap-4 flex-wrap">
-          {(colorLinks && colorLinks.length > 0 ? colorLinks : product.colors.map((c, idx) => ({ name: c.name, value: c.value, href: "", active: idx === selectedColor }))).map((color, index) => {
+          {(colorLinks && colorLinks.length > 0 ? colorLinks : product.colors.map((c, idx) => ({ name: c.name, value: c.value, href: "", active: idx === selectedColor, oos: false }))).map((color, index) => {
             const swatch = (
               <span
                 className={cn(

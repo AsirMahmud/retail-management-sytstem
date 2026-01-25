@@ -22,103 +22,103 @@ import {
 
 // Product Analytics Types
 export interface ProductAnalytics {
-  product_info: {
-    id: number;
-    name: string;
-    sku: string;
-    current_stock: number;
-    cost_price: number;
-    selling_price: number;
-    profit_margin_percentage: number;
-  };
-  stock_analytics: {
-    total_stock_in: number;
-    total_stock_out: number;
-    stock_in_movements: number;
-    stock_out_movements: number;
-    net_stock_change: number;
-  };
-  sales_analytics: {
-    total_quantity_sold: number;
-    total_revenue: number;
-    total_profit: number;
-    total_loss: number;
-    average_price: number;
-    total_sales: number;
-    profit_margin: number;
-    net_profit: number;
-  };
-  charts: {
-    monthly_stock: Array<{
-      month: string;
-      stock_in: number;
-      stock_out: number;
-      net_change: number;
-    }>;
-    monthly_sales: Array<{
-      month: string;
-      quantity_sold: number;
-      revenue: number;
-      profit: number;
-      loss: number;
-    }>;
-  };
-  recent_activity: {
-    stock_movements: Array<{
-      id: number;
-      movement_type: string;
-      quantity: number;
-      reference_number: string;
-      notes: string;
-      created_at: string;
-    }>;
-    sales: Array<{
-      id: number;
-      sale_id: number;
-      invoice_number: string;
-      quantity: number;
-      unit_price: number;
-      total: number;
-      profit: number;
-      loss: number;
-      sale_date: string;
-      customer_name: string;
-      payment_method: string;
-    }>;
-  };
+    product_info: {
+        id: number;
+        name: string;
+        sku: string;
+        current_stock: number;
+        cost_price: number;
+        selling_price: number;
+        profit_margin_percentage: number;
+    };
+    stock_analytics: {
+        total_stock_in: number;
+        total_stock_out: number;
+        stock_in_movements: number;
+        stock_out_movements: number;
+        net_stock_change: number;
+    };
+    sales_analytics: {
+        total_quantity_sold: number;
+        total_revenue: number;
+        total_profit: number;
+        total_loss: number;
+        average_price: number;
+        total_sales: number;
+        profit_margin: number;
+        net_profit: number;
+    };
+    charts: {
+        monthly_stock: Array<{
+            month: string;
+            stock_in: number;
+            stock_out: number;
+            net_change: number;
+        }>;
+        monthly_sales: Array<{
+            month: string;
+            quantity_sold: number;
+            revenue: number;
+            profit: number;
+            loss: number;
+        }>;
+    };
+    recent_activity: {
+        stock_movements: Array<{
+            id: number;
+            movement_type: string;
+            quantity: number;
+            reference_number: string;
+            notes: string;
+            created_at: string;
+        }>;
+        sales: Array<{
+            id: number;
+            sale_id: number;
+            invoice_number: string;
+            quantity: number;
+            unit_price: number;
+            total: number;
+            profit: number;
+            loss: number;
+            sale_date: string;
+            customer_name: string;
+            payment_method: string;
+        }>;
+    };
 }
 
 export interface StockMovement {
-  id: number;
-  movement_type: string;
-  quantity: number;
-  reference_number: string;
-  notes: string;
-  created_at: string;
-  variation_info: string;
+    id: number;
+    movement_type: string;
+    quantity: number;
+    reference_number: string;
+    notes: string;
+    created_at: string;
+    variation_info: string;
 }
 
 export interface SalesHistory {
-  id: number;
-  sale_id: number;
-  invoice_number: string;
-  quantity: number;
-  size: string;
-  color: string;
-  unit_price: number;
-  discount: number;
-  total: number;
-  profit: number;
-  loss: number;
-  sale_date: string;
-  customer_name: string;
-  payment_method: string;
+    id: number;
+    sale_id: number;
+    invoice_number: string;
+    quantity: number;
+    size: string;
+    color: string;
+    unit_price: number;
+    discount: number;
+    total: number;
+    profit: number;
+    loss: number;
+    sale_date: string;
+    customer_name: string;
+    payment_method: string;
 }
 
 // Categories API
 export const categoriesApi = {
     getAll: async (): Promise<Category[]> => {
-        const { data } = await axiosInstance.get('/inventory/categories/');
+        const { data } = await axiosInstance.get('/inventory/categories/?page_size=1000');
         return data;
     },
 
@@ -160,7 +160,7 @@ export const categoriesApi = {
 // Online Categories API
 export const onlineCategoriesApi = {
     getAll: async (): Promise<Category[]> => {
-        const { data } = await axiosInstance.get('/inventory/online-categories/');
+        const { data } = await axiosInstance.get('/inventory/online-categories/?page_size=1000');
         return data;
     },
 
@@ -192,7 +192,7 @@ export const onlineCategoriesApi = {
 // Products API
 export const productsApi = {
     getAll: async (): Promise<Product[]> => {
-        const { data } = await axiosInstance.get('/inventory/products/?expand=category,online_category');
+        const { data } = await axiosInstance.get('/inventory/products/?expand=category,online_category&page_size=1000');
         return data;
     },
 
