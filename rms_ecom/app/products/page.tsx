@@ -19,7 +19,7 @@ import { useLoading } from "@/hooks/useLoading"
 
 export default function AllProductsPage() {
   const [products, setProducts] = useState<ProductByColorEntry[]>([])
-  const { startLoading, stopLoading } = useLoading()
+  const { isLoading, startLoading, stopLoading } = useLoading()
   const [searchTerm, setSearchTerm] = useState("")
   const [sortBy, setSortBy] = useState("popular")
   const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(null)
@@ -38,7 +38,7 @@ export default function AllProductsPage() {
           search: searchTerm || undefined,
           sort: sortBy === 'price-low' ? 'price_asc' : sortBy === 'price-high' ? 'price_desc' : sortBy === 'name' ? 'name' : undefined,
           online_category: selectedCategorySlug || undefined,
-          gender: selectedGender as 'men' | 'women' | 'unisex' | 'MALE' | 'FEMALE' | 'UNISEX' | undefined,
+          gender: selectedGender as 'men' | 'women' | 'MALE' | 'FEMALE' | 'UNISEX' | undefined,
         })
         setProducts(res.results)
         setTotalCount(res.count)
@@ -90,55 +90,58 @@ export default function AllProductsPage() {
           </div>
 
           {/* Search and Filters */}
-          <div className="flex flex-col lg:flex-row gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6">
             {/* Search Bar */}
-            <div className="flex-1 max-w-md">
+            <div className="w-full sm:flex-1 sm:max-w-md">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
                 <Input
                   type="search"
                   placeholder="Search products..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 w-full h-10"
                 />
               </div>
             </div>
 
-            {/* Sort Dropdown */}
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="popular">Most Popular</SelectItem>
-                <SelectItem value="newest">Newest First</SelectItem>
-                <SelectItem value="price-low">Price: Low to High</SelectItem>
-                <SelectItem value="price-high">Price: High to Low</SelectItem>
-                <SelectItem value="name">Name A-Z</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Sort Dropdown and Filters Row */}
+            <div className="flex gap-3 sm:gap-4">
+              {/* Sort Dropdown */}
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-full sm:w-[180px] h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="popular">Most Popular</SelectItem>
+                  <SelectItem value="newest">Newest First</SelectItem>
+                  <SelectItem value="price-low">Price: Low to High</SelectItem>
+                  <SelectItem value="price-high">Price: High to Low</SelectItem>
+                  <SelectItem value="name">Name A-Z</SelectItem>
+                </SelectContent>
+              </Select>
 
-            {/* Mobile Filters */}
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" className="lg:hidden">
-                  <SlidersHorizontal className="h-4 w-4 mr-2" />
-                  Filters
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-full sm:w-[400px] overflow-y-auto">
-                <CategoryFilters
-                  onCategoryChange={handleCategoryChange}
-                  onGenderChange={handleGenderChange}
-                  selectedGender={selectedGender}
-                  onApplyFilters={handleApplyFilters}
-                />
-              </SheetContent>
-            </Sheet>
+              {/* Mobile Filters */}
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" className="lg:hidden h-10 flex-shrink-0">
+                    <SlidersHorizontal className="h-4 w-4 mr-2" />
+                    Filters
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-full sm:w-[400px] overflow-y-auto">
+                  <CategoryFilters
+                    onCategoryChange={handleCategoryChange}
+                    onGenderChange={handleGenderChange}
+                    selectedGender={selectedGender}
+                    onApplyFilters={handleApplyFilters}
+                  />
+                </SheetContent>
+              </Sheet>
+            </div>
           </div>
 
-          <div className="flex gap-6">
+          <div className="flex flex-col lg:flex-row gap-6">
             {/* Desktop Sidebar */}
             <aside className="hidden lg:block w-64 flex-shrink-0">
               <CategoryFilters
@@ -150,8 +153,18 @@ export default function AllProductsPage() {
             </aside>
 
             {/* Main Content */}
-            <div className="flex-1">
-              {products.length === 0 ? (
+            <div className="flex-1 min-w-0">
+              {isLoading ? (
+                <ProductGrid
+                  category={`All Products`}
+                  products={[]}
+                  totalCount={0}
+                  page={page}
+                  pageSize={pageSize}
+                  onPageChange={setPage}
+                  isLoading={true}
+                />
+              ) : products.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-muted-foreground text-lg">
                     {searchTerm ? "No products found matching your search." : "No products available."}
@@ -181,6 +194,7 @@ export default function AllProductsPage() {
                   page={page}
                   pageSize={pageSize}
                   onPageChange={setPage}
+                  isLoading={false}
                 />
               )}
             </div>

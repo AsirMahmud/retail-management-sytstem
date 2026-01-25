@@ -161,11 +161,11 @@ export function SiteHeader() {
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between px-4">
+        <div className="container flex h-16 items-center justify-between px-4 overflow-hidden">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2" aria-label="Go to home">
+          <Link href="/" className="flex items-center space-x-2 flex-shrink-0" aria-label="Go to home">
             {branding.logo_image_url ? (
-              <span className="relative h-10 w-32">
+              <span className="relative h-8 w-24 sm:h-10 sm:w-32">
                 <Image
                   src={branding.logo_image_url}
                   alt={branding.logo_text || "Shop logo"}
@@ -176,7 +176,7 @@ export function SiteHeader() {
                 />
               </span>
             ) : (
-              <span className="text-2xl font-bold tracking-tight">{branding.logo_text || "SHOP.CO"}</span>
+              <span className="text-xl sm:text-2xl font-bold tracking-tight">{branding.logo_text || "SHOP.CO"}</span>
             )}
           </Link>
 
@@ -245,7 +245,7 @@ export function SiteHeader() {
             </Link>
           </nav>
 
-          {/* Search Bar */}
+          {/* Search Bar - Desktop */}
           <div className="hidden md:flex flex-1 max-w-md mx-8">
             <button
               type="button"
@@ -264,14 +264,15 @@ export function SiteHeader() {
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="hidden md:inline-flex" onClick={handleOpenSearch}>
-              <Search className="h-5 w-5" />
+          <div className="flex items-center gap-1 sm:gap-2 md:gap-4 flex-shrink-0">
+            {/* Search Button - Mobile only */}
+            <Button variant="ghost" size="icon" className="md:hidden h-9 w-9" onClick={handleOpenSearch}>
+              <Search className="h-4 w-4" />
               <span className="sr-only">Search</span>
             </Button>
             <Link href="/cart">
-              <Button variant="ghost" size="icon" className={cn("relative transition-transform duration-300", shouldAnimateCart && "scale-125 text-primary")}>
-                <ShoppingCart className={cn("h-5 w-5", shouldAnimateCart && "animate-bounce")} />
+              <Button variant="ghost" size="icon" className={cn("relative transition-transform duration-300 h-9 w-9 sm:h-10 sm:w-10", shouldAnimateCart && "scale-125 text-primary")}>
+                <ShoppingCart className={cn("h-4 w-4 sm:h-5 sm:w-5", shouldAnimateCart && "animate-bounce")} />
                 {totalItems > 0 && (
                   <span className={cn(
                     "absolute -top-1 -right-1 min-w-4 h-4 rounded-full bg-primary text-[10px] font-medium text-primary-foreground flex items-center justify-center px-1 transition-all duration-300",
@@ -425,8 +426,8 @@ function MobileNavigationSheet() {
   return (
     <Sheet>
       <SheetTrigger asChild className="md:hidden">
-        <Button variant="ghost" size="icon">
-          <Menu className="h-5 w-5" />
+        <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
+          <Menu className="h-4 w-4 sm:h-5 sm:w-5" />
           <span className="sr-only">Toggle menu</span>
         </Button>
       </SheetTrigger>

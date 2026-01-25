@@ -126,9 +126,15 @@ export default function DiscountManagementPage() {
           onlineCategoriesApi.getAll(),
           productsApi.getAll(),
         ]);
-        setCategories(cats);
-        setOnlineCategories(onlineCats);
-        setProducts(prods);
+
+        // Handle potential paginated responses
+        const catsData = Array.isArray(cats) ? cats : (cats as any).results || [];
+        const onlineCatsData = Array.isArray(onlineCats) ? onlineCats : (onlineCats as any).results || [];
+        const prodsData = Array.isArray(prods) ? prods : (prods as any).results || [];
+
+        setCategories(catsData);
+        setOnlineCategories(onlineCatsData);
+        setProducts(prodsData);
       } catch (error) {
         console.error('Error loading options:', error);
       } finally {
@@ -292,17 +298,17 @@ export default function DiscountManagementPage() {
     if (discount.discount_type === "APP_WIDE") return "All Products";
     if (discount.discount_type === "CATEGORY") {
       if (discount.online_category) {
-        const cat = onlineCategories.find(c => c.id === discount.online_category);
+        const cat = onlineCategories.find(c => String(c.id) === String(discount.online_category));
         return cat?.name || `Online Category #${discount.online_category}`;
       }
       if (discount.category) {
-        const cat = categories.find(c => c.id === discount.category);
+        const cat = categories.find(c => String(c.id) === String(discount.category));
         return cat?.name || `Category #${discount.category}`;
       }
       return "Unknown Category";
     }
     if (discount.discount_type === "PRODUCT") {
-      const prod = products.find(p => p.id === discount.product);
+      const prod = products.find(p => String(p.id) === String(discount.product));
       return prod?.name || `Product #${discount.product}`;
     }
     return "-";

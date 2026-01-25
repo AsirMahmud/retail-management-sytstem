@@ -172,64 +172,9 @@ export function CheckoutSummary() {
     return String(val).trim() || null
   }
 
-  // Calculate subtotal using discounted prices from items
+  // Trust authoritative subtotal from backend
   const calculateDiscountedSubtotal = (): number => {
-    if (items.length === 0 || products.length === 0) {
-      return Number(cartPricing?.subtotal) || 0
-    }
-
-    let calculatedSubtotal = 0
-
-    items.forEach((it) => {
-      // Extract numeric product ID
-      let numericProductId: number
-      if (typeof it.productId === 'string' && (it.productId.includes('/') || it.productId.includes('-'))) {
-        const parts = it.productId.split(it.productId.includes('/') ? '/' : '-')
-        numericProductId = Number(parts[0]) || 0
-      } else {
-        numericProductId = Number(it.productId) || 0
-      }
-
-      // Find matching priced item
-      const itemColor = normalizeValue(it.variations?.color)
-      const itemSize = normalizeValue(it.variations?.size)
-
-      const pricedItem = pricedItems.find((pi) => {
-        if (pi.productId !== numericProductId) return false
-        const piColor = normalizeValue(pi.variant?.color)
-        const piSize = normalizeValue(pi.variant?.size)
-        const colorMatch = (piColor === itemColor) || (!piColor && !itemColor)
-        const sizeMatch = (piSize === itemSize) || (!piSize && !itemSize)
-        return colorMatch && sizeMatch
-      })
-
-      // Get product info for discount calculation
-      const productInfo = products.find((p) => p.id === numericProductId)
-
-      if (productInfo) {
-        const originalPrice = productInfo.original_price ? Number(productInfo.original_price) : null
-        const discount = productInfo.discount || null
-
-        // Calculate unit price with discount applied
-        let unitPrice = pricedItem?.unit_price || Number(productInfo.selling_price) || 0
-
-        // Apply discount if available
-        if (originalPrice && discount && discount > 0) {
-          const discountedPrice = originalPrice * (1 - discount / 100)
-          unitPrice = discountedPrice
-        } else if (originalPrice && originalPrice > unitPrice) {
-          unitPrice = unitPrice > 0 ? unitPrice : originalPrice
-        }
-
-        // Add to subtotal: discounted unit price * quantity
-        calculatedSubtotal += unitPrice * it.quantity
-      } else if (pricedItem) {
-        // Fallback to priced item if product info not available
-        calculatedSubtotal += pricedItem.line_total
-      }
-    })
-
-    return calculatedSubtotal
+    return Number(cartPricing?.subtotal) || 0
   }
 
   const subtotal = calculateDiscountedSubtotal()
@@ -313,18 +258,6 @@ export function CheckoutSummary() {
 
             // Calculate unit price with discount applied
             let unitPrice = pricedItem?.unit_price || Number(productInfo?.selling_price) || 0
-
-            // If we have original price and discount, calculate discounted price
-            if (originalPrice && discount && discount > 0) {
-              const discountedPrice = originalPrice * (1 - discount / 100)
-              // Use calculated discounted price if it's different from what we have
-              // This ensures discount is always applied
-              unitPrice = discountedPrice
-            } else if (originalPrice && originalPrice > unitPrice) {
-              // If original price exists and is higher, use the lower price (already discounted)
-              // But if unitPrice seems wrong, recalculate from original
-              unitPrice = unitPrice > 0 ? unitPrice : originalPrice
-            }
 
             return (
               <div key={`${it.productId}-${JSON.stringify(it.variations || {})}`} className="flex gap-4 p-3 border rounded-lg bg-card">

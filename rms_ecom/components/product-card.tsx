@@ -8,6 +8,7 @@ import Link from "next/link"
 import { useGlobalDiscount } from "@/lib/useGlobalDiscount"
 import { ProductSizeModal } from "@/components/product-size-modal"
 import { DiscountInfo } from "@/lib/api"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface ProductCardProps {
   id: string
@@ -26,18 +27,20 @@ export function ProductCard({ id, name, price, originalPrice, image, discount, d
   // Global discount as fallback
   const globalDiscountValue = useGlobalDiscount((state) => state.discount?.value || 0)
 
-  // Priority: Use backend discount_info if available, otherwise use global discount
-  // Backend already applies priority (Product > Category > Global)
-  const hasBackendDiscount = !!discountInfo?.discount_type
-  const finalDiscount = hasBackendDiscount
-    ? discountInfo.discount_value
+  // Priority: Use backend discount_info if available (it handles all priorities)
+  // Only fallback to global hook if discountInfo is completely missing (legacy fallback)
+  const hasBackendInfo = discountInfo !== null && discountInfo !== undefined
+
+  const finalDiscount = hasBackendInfo
+    ? discountInfo!.discount_value
     : Math.max(globalDiscountValue, discount || 0)
+
   const showDiscount = finalDiscount > 0
 
   // Calculate prices - use backend final_price if available
   const basePrice = originalPrice !== undefined ? Number(originalPrice) : Number(price)
-  const discountedPrice = hasBackendDiscount
-    ? discountInfo.final_price
+  const discountedPrice = hasBackendInfo
+    ? discountInfo!.final_price
     : (showDiscount ? basePrice * (1 - finalDiscount / 100) : basePrice)
 
   const numericDiscounted = Number.isFinite(discountedPrice) ? Math.round(discountedPrice) : 0
@@ -126,4 +129,27 @@ function toTitleCase(input: string): string {
     .split(/\s+/)
     .map(w => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ")
+}
+
+export function ProductCardSkeleton() {
+  return (
+    <Card className="border-0 shadow-none lg:min-h-[420px] w-full">
+      <CardContent className="p-0 w-full">
+        <div className="relative aspect-square overflow-hidden rounded-2xl mb-4">
+          <Skeleton className="w-full h-full" />
+        </div>
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-3/4" />
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-8 w-24" />
+            <Skeleton className="h-6 w-16" />
+          </div>
+          <div className="pt-1 space-y-2">
+            <Skeleton className="h-10 w-full rounded-full" />
+            <Skeleton className="h-10 w-full rounded-full" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
 }

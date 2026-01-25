@@ -68,7 +68,7 @@ export default function HomePageClient() {
       <main className="flex-1">
         <HeroSection />
         <BrandShowcase />
-        {showcaseData && (
+        {showcaseData ? (
           <>
             {showcaseData.new_arrivals.length > 0 && (
               <ColorSection title="NEW ARRIVALS" baseProducts={showcaseData.new_arrivals} toCard={toCard} />
@@ -91,6 +91,16 @@ export default function HomePageClient() {
                 <ColorSection title="FEATURED" baseProducts={showcaseData.featured} toCard={toCard} />
               </>
             )}
+          </>
+        ) : (
+          <>
+            <ProductSection title="NEW ARRIVALS" products={[]} isLoading={true} />
+            <div className="container px-4"><hr className="border-border" /></div>
+            <ProductSection title="TOP SELLING" products={[]} isLoading={true} />
+            <div className="container px-4"><hr className="border-border" /></div>
+            <ProductSection title="TRENDING" products={[]} isLoading={true} />
+            <div className="container px-4"><hr className="border-border" /></div>
+            <ProductSection title="FEATURED" products={[]} isLoading={true} />
           </>
         )}
         <FeaturesSection />
@@ -116,12 +126,13 @@ function ColorSection({ title, baseProducts, toCard }: { title: string; baseProd
     }
     load()
   }, [baseProducts])
-  if (entries.length === 0) return null
+
   return (
     <ProductSection
       title={title}
       products={entries.slice(0, 8).map(toCard)}
       viewAllHref="/products"
+      isLoading={entries.length === 0}
     />
   )
 }

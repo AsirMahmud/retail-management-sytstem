@@ -31,7 +31,7 @@ export default function ProductByColorPage() {
         who_is_this_for?: { title: string; description: string }[]
         features?: { title: string; description: string }[]
     }>(null)
-    const { startLoading, stopLoading } = useLoading()
+    const { isLoading, startLoading, stopLoading } = useLoading()
     const productId = Number(productIdParam)
 
     useEffect(() => {
@@ -224,7 +224,7 @@ export default function ProductByColorPage() {
                 </div>
 
                 {/* Random products - YOU MIGHT ALSO LIKE */}
-                {suggested.length > 0 && (
+                {(suggested.length > 0 || isLoading) && (
                     <div className="container px-4 pb-12">
                         <ProductRecommendations
                             products={suggested.map(entry => ({
@@ -235,6 +235,7 @@ export default function ProductByColorPage() {
                                 image: entry.cover_image_url || "/placeholder.jpg",
                                 discount: undefined,
                             }))}
+                            isLoading={isLoading}
                         />
                     </div>
                 )}
