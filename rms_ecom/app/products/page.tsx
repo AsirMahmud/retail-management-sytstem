@@ -77,6 +77,14 @@ export default function AllProductsPage() {
     (priceRange[0] > 0 || priceRange[1] < 10000)
   ].filter(Boolean).length
 
+  const handleResetFilters = () => {
+    setSelectedCategorySlug(null)
+    setSelectedGender(null)
+    setSelectedColor(null)
+    setSelectedSize(null)
+    setPriceRange([0, 10000])
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-[#F9FBFC]">
       <StructuredData data={generateBreadcrumbStructuredData(breadcrumbItems)} />
@@ -96,7 +104,7 @@ export default function AllProductsPage() {
           </div>
 
           {/* Search and Sort Toolbar */}
-          <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md -mx-4 px-4 py-4 md:static md:bg-transparent md:backdrop-blur-none mb-8 border-b md:border-none">
+          <div className="sticky top-16 z-40 bg-background/80 backdrop-blur-md -mx-4 px-4 py-4 md:static md:bg-transparent md:backdrop-blur-none mb-8 border-b md:border-none">
             <div className="flex flex-col sm:flex-row gap-4 items-center">
               <div className="relative w-full sm:flex-1">
                 <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
@@ -111,7 +119,7 @@ export default function AllProductsPage() {
 
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="flex-1 sm:w-[200px] h-12 bg-white border-none shadow-sm rounded-xl font-bold uppercase text-[10px] tracking-widest px-6">
+                  <SelectTrigger className="flex-1 sm:w-[200px] h-12 bg-background border border-border shadow-sm rounded-xl font-bold uppercase text-[10px] tracking-widest px-6">
                     <div className="flex items-center gap-2">
                       <span className="text-muted-foreground font-medium">SORT:</span>
                       <SelectValue />
@@ -145,6 +153,7 @@ export default function AllProductsPage() {
                       onColorChange={setSelectedColor}
                       onSizeChange={setSelectedSize}
                       onPriceChange={setPriceRange}
+                      onResetFilters={handleResetFilters}
                       selectedCategory={selectedCategorySlug}
                       selectedGender={selectedGender}
                       selectedColor={selectedColor}
@@ -161,13 +170,14 @@ export default function AllProductsPage() {
           <div className="flex flex-col lg:flex-row gap-10">
             {/* Desktop Sidebar */}
             <aside className="hidden lg:block w-72 flex-shrink-0">
-              <div className="sticky top-24 border rounded-2xl p-8 bg-white shadow-sm h-fit">
+              <div className="sticky top-28 border rounded-2xl p-8 bg-white shadow-sm max-h-[calc(100vh-140px)] overflow-y-auto scrollbar-hide">
                 <CategoryFilters
                   onCategoryChange={setSelectedCategorySlug}
                   onGenderChange={setSelectedGender}
                   onColorChange={setSelectedColor}
                   onSizeChange={setSelectedSize}
                   onPriceChange={setPriceRange}
+                  onResetFilters={handleResetFilters}
                   selectedCategory={selectedCategorySlug}
                   selectedGender={selectedGender}
                   selectedColor={selectedColor}

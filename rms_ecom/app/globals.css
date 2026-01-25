@@ -76,7 +76,7 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
+  --font-sans: "Century Gothic", "Apple Gothic", "ITC Avant Garde Gothic", sans-serif;
   --font-mono: var(--font-geist-mono);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -119,13 +119,42 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    font-family: var(--font-sans);
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+    font-weight: 400;
   }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-weight: 700;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font-family: inherit;
+  }
+
   /* Added container centering and max-width configuration */
   .container {
     @apply mx-auto max-w-7xl;
   }
+
   /* </CHANGE> */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }

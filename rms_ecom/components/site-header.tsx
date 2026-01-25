@@ -18,6 +18,15 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
+} from "@/components/ui/navigation-menu"
 import { useCartStore } from "@/hooks/useCartStore"
 import { ecommerceApi, type ProductByColorEntry } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -30,6 +39,18 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command"
+import {
+  Home,
+  Package,
+  Heart,
+  Settings,
+  LogOut,
+  ChevronDown,
+  ArrowRight,
+  TrendingUp,
+  Award,
+  Zap
+} from "lucide-react"
 
 export function SiteHeader() {
   const [onlineCategories, setOnlineCategories] = useState<
@@ -161,7 +182,7 @@ export function SiteHeader() {
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-16 items-center justify-between px-4 overflow-hidden">
+        <div className="container flex h-16 items-center justify-between px-4">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2 flex-shrink-0" aria-label="Go to home">
             {branding.logo_image_url ? (
@@ -181,67 +202,128 @@ export function SiteHeader() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
-            <Link href="/products" className="text-sm font-medium hover:underline underline-offset-4">
+          <nav className="hidden md:flex items-center gap-2">
+            <Link href="/products" className={cn(navigationMenuTriggerStyle(), "bg-transparent hover:bg-secondary/50 transition-colors")}>
               All Products
             </Link>
-            <DropdownMenu>
-              <DropdownMenuTrigger className="text-sm font-medium hover:underline underline-offset-4">
-                Categories
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56">
-                {loadingCategories ? (
-                  <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
-                ) : organizedCategories.length === 0 ? (
-                  <DropdownMenuItem disabled>No categories available</DropdownMenuItem>
-                ) : (
-                  organizedCategories.map((category) => {
-                    const hasChildren = category.children && category.children.length > 0
 
-                    if (hasChildren) {
-                      return (
-                        <DropdownMenuSub key={category.id}>
-                          <DropdownMenuSubTrigger>{category.name}</DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent className="w-48">
-                            {/* Parent category link */}
-                            <DropdownMenuItem asChild>
-                              <Link href={`/category/${category.slug}`} className="font-medium">
-                                All {category.name}
-                              </Link>
-                            </DropdownMenuItem>
-                            {category.children.length > 0 && (
-                              <>
-                                <DropdownMenuSeparator />
-                                {/* Subcategories */}
-                                {category.children.map((child: { id: number; name: string; slug: string }) => (
-                                  <DropdownMenuItem key={child.id} asChild>
-                                    <Link href={`/category/${child.slug}`}>{child.name}</Link>
-                                  </DropdownMenuItem>
+            <NavigationMenu>
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="bg-secondary/30 hover:bg-secondary/60 transition-colors border border-transparent hover:border-border px-5 h-10 rounded-full font-bold uppercase text-[10px] tracking-widest">
+                    Categories
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <div className="grid w-[600px] gap-3 p-6 md:grid-cols-2 lg:grid-cols-3">
+                      {loadingCategories ? (
+                        <div className="flex items-center justify-center p-4 col-span-full">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                        </div>
+                      ) : organizedCategories.length === 0 ? (
+                        <div className="p-4 text-sm text-muted-foreground col-span-full">
+                          No categories available
+                        </div>
+                      ) : (
+                        organizedCategories.map((category) => (
+                          <div key={category.id} className="space-y-3">
+                            <Link
+                              href={`/category/${category.slug}`}
+                              className="group block space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                            >
+                              <div className="text-sm font-semibold leading-none flex items-center justify-between">
+                                {category.name}
+                                <ArrowRight className="h-3 w-3 opacity-0 -translate-x-2 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
+                              </div>
+                              <p className="line-clamp-2 text-xs leading-snug text-muted-foreground">
+                                Explore our collection of {category.name.toLowerCase()}
+                              </p>
+                            </Link>
+                            {category.children && category.children.length > 0 && (
+                              <ul className="grid gap-1 px-3">
+                                {category.children.slice(0, 4).map((child: any) => (
+                                  <li key={child.id}>
+                                    <NavigationMenuLink asChild>
+                                      <Link
+                                        href={`/category/${child.slug}`}
+                                        className="block select-none rounded-md py-1.5 text-xs font-medium leading-none text-muted-foreground no-underline outline-none transition-colors hover:text-foreground"
+                                      >
+                                        {child.name}
+                                      </Link>
+                                    </NavigationMenuLink>
+                                  </li>
                                 ))}
-                              </>
+                                {category.children.length > 4 && (
+                                  <li>
+                                    <Link
+                                      href={`/category/${category.slug}`}
+                                      className="text-[10px] font-bold text-primary uppercase tracking-wider hover:underline"
+                                    >
+                                      View All +
+                                    </Link>
+                                  </li>
+                                )}
+                              </ul>
                             )}
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                      )
-                    } else {
-                      return (
-                        <DropdownMenuItem key={category.id} asChild>
-                          <Link href={`/category/${category.slug}`}>{category.name}</Link>
-                        </DropdownMenuItem>
-                      )
-                    }
-                  })
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Link href="/women" className="text-sm font-medium hover:underline underline-offset-4">
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="bg-transparent hover:bg-secondary/50 transition-colors px-4">More</NavigationMenuTrigger>
+                  <NavigationMenuContent>
+                    <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
+                      <li className="row-span-3">
+                        <NavigationMenuLink asChild>
+                          <Link
+                            className="flex h-full w-full select-none flex-col justify-end rounded-md bg-linear-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
+                            href="/unisex"
+                          >
+                            <TrendingUp className="h-6 w-6 mb-2 text-primary" />
+                            <div className="mb-2 mt-4 text-lg font-bold">
+                              Unisex Collection
+                            </div>
+                            <p className="text-sm leading-tight text-muted-foreground">
+                              Modern styles for everyone. Discover our versatile unisex pieces.
+                            </p>
+                          </Link>
+                        </NavigationMenuLink>
+                      </li>
+                      <NavigationMenuLink asChild>
+                        <Link
+                          href="/new-arrivals"
+                          className="group block space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                        >
+                          <div className="text-sm font-semibold leading-none flex items-center gap-2">
+                            <Zap className="h-4 w-4 text-yellow-500" /> New Arrivals
+                          </div>
+                          <p className="text-xs text-muted-foreground">Latest items added to our store.</p>
+                        </Link>
+                      </NavigationMenuLink>
+                      <NavigationMenuLink asChild>
+                        <Link
+                          href="/best-sellers"
+                          className="group block space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                        >
+                          <div className="text-sm font-semibold leading-none flex items-center gap-2">
+                            <Award className="h-4 w-4 text-blue-500" /> Best Sellers
+                          </div>
+                          <p className="text-xs text-muted-foreground">Our most popular products.</p>
+                        </Link>
+                      </NavigationMenuLink>
+                    </ul>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+
+            <Link href="/women" className={cn(navigationMenuTriggerStyle(), "bg-transparent hover:bg-secondary/50 transition-colors")}>
               Women
             </Link>
-            <Link href="/men" className="text-sm font-medium hover:underline underline-offset-4">
+            <Link href="/men" className={cn(navigationMenuTriggerStyle(), "bg-transparent hover:bg-secondary/50 transition-colors")}>
               Men
-            </Link>
-            <Link href="/unisex" className="text-sm font-medium hover:underline underline-offset-4">
-              Unisex
             </Link>
           </nav>
 
@@ -284,10 +366,6 @@ export function SiteHeader() {
                 <span className="sr-only">Shopping cart</span>
               </Button>
             </Link>
-            <Button variant="ghost" size="icon" className="hidden md:inline-flex">
-              <User className="h-5 w-5" />
-              <span className="sr-only">Account</span>
-            </Button>
 
             {/* Mobile Menu */}
             <MobileNavigationSheet />
@@ -435,76 +513,92 @@ function MobileNavigationSheet() {
         {selectedGender ? (
           // Categories View
           <div className="flex flex-col h-full">
-            <div className="flex items-center gap-3 mb-6 sticky top-0 bg-background pb-4 border-b">
+            <div className="flex items-center gap-3 mb-6 sticky top-0 bg-background/95 backdrop-blur-sm z-10 pb-4 border-b">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={handleBackToGender}
-                className="h-8 w-8"
+                className="h-10 w-10 rounded-full hover:bg-secondary"
               >
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronLeft className="h-6 w-6" />
               </Button>
-              <h2 className="text-xl font-bold capitalize">{selectedGender} Categories</h2>
+              <div>
+                <h2 className="text-xl font-bold capitalize leading-tight">{selectedGender}</h2>
+                <p className="text-xs text-muted-foreground font-medium">Browse Categories</p>
+              </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto pr-2">
               {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-sm text-muted-foreground">Loading categories...</div>
+                <div className="flex flex-col items-center justify-center py-12 gap-3">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <div className="text-sm font-medium text-muted-foreground">Loading categories...</div>
                 </div>
               ) : organizedCategories.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <p className="text-sm text-muted-foreground mb-2">No categories found</p>
-                  <Button variant="outline" size="sm" onClick={handleBackToGender}>
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Package className="h-12 w-12 text-muted mb-4" />
+                  <p className="text-base font-semibold mb-1">No categories found</p>
+                  <p className="text-sm text-muted-foreground mb-6">We couldn't find any categories for this section.</p>
+                  <Button variant="outline" size="sm" onClick={handleBackToGender} className="rounded-full">
                     Go Back
                   </Button>
                 </div>
               ) : (
-                <nav className="flex flex-col gap-1">
+                <nav className="flex flex-col gap-2">
                   {organizedCategories.map((category) => {
                     const hasChildren = category.children && category.children.length > 0
                     const isExpanded = expandedCategories.has(category.id)
 
                     return (
-                      <div key={category.id} className="space-y-0.5">
+                      <div key={category.id} className="group">
                         {/* Parent Category */}
-                        <div className="flex items-center gap-2">
+                        <div className={cn(
+                          "flex items-center gap-1 rounded-xl transition-all duration-200",
+                          isExpanded ? "bg-secondary/50" : "hover:bg-secondary/30"
+                        )}>
+                          <Link
+                            href={`/category/${category.slug}${selectedGender ? `?gender=${selectedGender}` : ''}`}
+                            className="flex-1 flex items-center gap-3 text-lg font-semibold py-3.5 px-4"
+                          >
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary/40 group-hover:bg-primary transition-colors" />
+                            {category.name}
+                          </Link>
                           {hasChildren && (
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => toggleCategoryExpand(category.id)}
-                              className="h-8 w-8 flex-shrink-0"
+                              className="h-12 w-12 flex-shrink-0"
                             >
-                              <ChevronRight
+                              <ChevronDown
                                 className={cn(
-                                  "h-4 w-4 transition-transform text-muted-foreground",
-                                  isExpanded && "rotate-90"
+                                  "h-5 w-5 transition-transform duration-300 text-muted-foreground",
+                                  isExpanded && "rotate-180 text-foreground"
                                 )}
                               />
                             </Button>
                           )}
-                          {!hasChildren && <div className="w-8 flex-shrink-0" />}
-                          <Link
-                            href={`/category/${category.slug}${selectedGender ? `?gender=${selectedGender}` : ''}`}
-                            className="flex-1 text-lg font-medium py-2 px-2 rounded-md hover:bg-secondary transition-colors"
-                          >
-                            {category.name}
-                          </Link>
                         </div>
 
                         {/* Subcategories */}
                         {hasChildren && isExpanded && (
-                          <div className="ml-10 space-y-0.5 border-l-2 border-secondary/30 pl-4 py-1">
+                          <div className="ml-8 mt-1 mb-2 space-y-1 border-base/10">
                             {category.children.map((child) => (
                               <Link
                                 key={child.id}
                                 href={`/category/${child.slug}${selectedGender ? `?gender=${selectedGender}` : ''}`}
-                                className="block text-base font-medium py-2 px-2 rounded-md hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground"
+                                className="flex items-center gap-3 text-[15px] font-medium py-3 px-4 rounded-lg hover:bg-secondary/50 transition-colors text-muted-foreground hover:text-foreground"
                               >
+                                <ArrowRight className="h-3.5 w-3.5" />
                                 {child.name}
                               </Link>
                             ))}
+                            <Link
+                              href={`/category/${category.slug}${selectedGender ? `?gender=${selectedGender}` : ''}`}
+                              className="flex items-center gap-2 text-xs font-bold py-2.5 px-4 text-primary uppercase tracking-widest hover:underline"
+                            >
+                              View All {category.name}
+                            </Link>
                           </div>
                         )}
                       </div>
@@ -516,49 +610,62 @@ function MobileNavigationSheet() {
           </div>
         ) : (
           // Main Navigation View
-          <div className="flex flex-col h-full">
-            <h2 className="text-xl font-bold mb-6">Menu</h2>
+          <div className="flex flex-col h-full pb-8">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl font-black tracking-tighter">EXPLORE</h2>
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+              </div>
+            </div>
 
-            {/* Filter Section - Moved to top */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-4">Filter by Category</h3>
-              <div className="flex flex-col gap-3">
+            {/* Quick Links */}
+            <div className="grid grid-cols-2 gap-3 mb-8">
+              <Link href="/products" className="flex flex-col items-center justify-center p-4 rounded-2xl bg-secondary/50 border border-transparent hover:border-primary/20 hover:bg-secondary transition-all group">
+                <Package className="h-6 w-6 mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
+                <span className="text-sm font-bold">Store</span>
+              </Link>
+              <Link href="/cart" className="flex flex-col items-center justify-center p-4 rounded-2xl bg-secondary/50 border border-transparent hover:border-primary/20 hover:bg-secondary transition-all group">
+                <ShoppingCart className="h-6 w-6 mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
+                <span className="text-sm font-bold">Cart</span>
+              </Link>
+            </div>
+
+            {/* Shop by Section */}
+            <div className="space-y-4 mb-8">
+              <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em] px-1">Shop by Gender</h3>
+              <div className="grid gap-2">
                 <Button
                   variant="outline"
-                  className="w-full justify-between h-12 text-base font-medium"
+                  className="w-full justify-between h-14 px-6 rounded-2xl text-lg font-bold border-2 hover:bg-primary hover:text-primary-foreground group transition-all"
                   onClick={() => setSelectedGender("men")}
                 >
-                  <span>Men</span>
-                  <ChevronRight className="h-5 w-5" />
+                  <span className="flex items-center gap-3">
+                    MEN
+                  </span>
+                  <ChevronRight className="h-5 w-5 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full justify-between h-12 text-base font-medium"
+                  className="w-full justify-between h-14 px-6 rounded-2xl text-lg font-bold border-2 hover:bg-primary hover:text-primary-foreground group transition-all"
                   onClick={() => setSelectedGender("women")}
                 >
-                  <span>Women</span>
-                  <ChevronRight className="h-5 w-5" />
+                  <span className="flex items-center gap-3">
+                    WOMEN
+                  </span>
+                  <ChevronRight className="h-5 w-5 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                 </Button>
                 <Link href="/unisex" className="w-full">
                   <Button
                     variant="outline"
-                    className="w-full justify-between h-12 text-base font-medium"
+                    className="w-full justify-between h-14 px-6 rounded-2xl text-lg font-bold border-2 hover:bg-primary hover:text-primary-foreground group transition-all"
                   >
-                    <span>Unisex</span>
-                    <ChevronRight className="h-5 w-5" />
+                    <span>UNISEX</span>
+                    <ChevronRight className="h-5 w-5 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                   </Button>
                 </Link>
               </div>
             </div>
 
-            <nav className="flex flex-col gap-4 border-t pt-6">
-              <Link href="/products" className="text-lg font-medium py-2 hover:underline">
-                All Products
-              </Link>
-              <Link href="/women" className="text-lg font-medium py-2 hover:underline">Women</Link>
-              <Link href="/men" className="text-lg font-medium py-2 hover:underline">Men</Link>
-              <Link href="/unisex" className="text-lg font-medium py-2 hover:underline">Unisex</Link>
-            </nav>
           </div>
         )}
       </SheetContent>
