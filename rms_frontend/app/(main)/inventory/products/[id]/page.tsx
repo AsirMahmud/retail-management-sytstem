@@ -287,11 +287,11 @@ function ProductDetails({ product }: ProductDetailsProps) {
                       </div>
                       <div>
                         <p className="text-sm font-medium text-muted-foreground">
-                          Online Category
+                          Online Categories
                         </p>
                         <p className="font-medium">
-                          {typeof product.online_category === "object" 
-                            ? product.online_category?.name 
+                          {product.online_categories && product.online_categories.length > 0
+                            ? product.online_categories.map(c => c.name).join(", ")
                             : "N/A"}
                         </p>
                       </div>
@@ -342,15 +342,15 @@ function ProductDetails({ product }: ProductDetailsProps) {
                               profitMargin > 30
                                 ? "default"
                                 : profitMargin > 15
-                                ? "secondary"
-                                : "outline"
+                                  ? "secondary"
+                                  : "outline"
                             }
                           >
                             {profitMargin > 30
                               ? "High"
                               : profitMargin > 15
-                              ? "Good"
-                              : "Low"}
+                                ? "Good"
+                                : "Low"}
                           </Badge>
                         </div>
                       </div>
@@ -361,56 +361,56 @@ function ProductDetails({ product }: ProductDetailsProps) {
                   {(product.size_type ||
                     product.size_category ||
                     product.gender) && (
-                    <div>
-                      <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="h-5 w-5 text-indigo-500"
-                        >
-                          <path d="M4 7V4a2 2 0 0 1 2-2h8.5L20 7.5V20a2 2 0 0 1-2 2h-12a2 2 0 0 1-2-2Z" />
-                          <polyline points="14,2 14,8 20,8" />
-                          <line x1="16" x2="8" y1="13" y2="13" />
-                          <line x1="16" x2="8" y1="17" y2="17" />
-                          <polyline points="10,9 9,9 8,9" />
-                        </svg>
-                        Size Information
-                      </h3>
-                      <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                        {product.size_type && (
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">
-                              Size Type
-                            </p>
-                            <p className="font-medium capitalize">
-                              {product.size_type}
-                            </p>
-                          </div>
-                        )}
-                        {product.size_category && (
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">
-                              Size Category
-                            </p>
-                            <p className="font-medium">{product.size_category}</p>
-                          </div>
-                        )}
-                        {product.gender && (
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">
-                              Gender
-                            </p>
-                            <p className="font-medium">{product.gender}</p>
-                          </div>
-                        )}
+                      <div>
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-5 w-5 text-indigo-500"
+                          >
+                            <path d="M4 7V4a2 2 0 0 1 2-2h8.5L20 7.5V20a2 2 0 0 1-2 2h-12a2 2 0 0 1-2-2Z" />
+                            <polyline points="14,2 14,8 20,8" />
+                            <line x1="16" x2="8" y1="13" y2="13" />
+                            <line x1="16" x2="8" y1="17" y2="17" />
+                            <polyline points="10,9 9,9 8,9" />
+                          </svg>
+                          Size Information
+                        </h3>
+                        <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+                          {product.size_type && (
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">
+                                Size Type
+                              </p>
+                              <p className="font-medium capitalize">
+                                {product.size_type}
+                              </p>
+                            </div>
+                          )}
+                          {product.size_category && (
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">
+                                Size Category
+                              </p>
+                              <p className="font-medium">{product.size_category}</p>
+                            </div>
+                          )}
+                          {product.gender && (
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">
+                                Gender
+                              </p>
+                              <p className="font-medium">{product.gender}</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   <Separator className="my-2" />
                 </div>
@@ -458,16 +458,16 @@ function ProductDetails({ product }: ProductDetailsProps) {
                             isOutOfStock
                               ? "destructive"
                               : isLowStock
-                              ? "outline"
-                              : "default"
+                                ? "outline"
+                                : "default"
                           }
                           className="mt-1"
                         >
                           {isOutOfStock
                             ? "Out of Stock"
                             : isLowStock
-                            ? "Low Stock"
-                            : "In Stock"}
+                              ? "Low Stock"
+                              : "In Stock"}
                         </Badge>
                       </div>
                     </div>
@@ -489,14 +489,14 @@ function ProductDetails({ product }: ProductDetailsProps) {
                         <p className="font-medium">
                           {product.created_at
                             ? new Date(product.created_at).toLocaleDateString(
-                                "en-US",
-                                {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                  timeZone: "UTC",
-                                }
-                              )
+                              "en-US",
+                              {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                                timeZone: "UTC",
+                              }
+                            )
                             : "N/A"}
                         </p>
                       </div>
@@ -507,14 +507,14 @@ function ProductDetails({ product }: ProductDetailsProps) {
                         <p className="font-medium">
                           {product.updated_at
                             ? new Date(product.updated_at).toLocaleDateString(
-                                "en-US",
-                                {
-                                  year: "numeric",
-                                  month: "short",
-                                  day: "numeric",
-                                  timeZone: "UTC",
-                                }
-                              )
+                              "en-US",
+                              {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                                timeZone: "UTC",
+                              }
+                            )
                             : "N/A"}
                         </p>
                       </div>
@@ -759,7 +759,7 @@ function ProductDetails({ product }: ProductDetailsProps) {
                           {gallery.images?.length || 0} image{(gallery.images?.length || 0) !== 1 ? 's' : ''}
                         </Badge>
                       </div>
-                      
+
                       {gallery.images && gallery.images.length > 0 ? (
                         <div className="grid grid-cols-2 gap-2">
                           {gallery.images.map((image, imageIndex) => {
@@ -797,8 +797,8 @@ function ProductDetails({ product }: ProductDetailsProps) {
                                   </div>
                                 </div>
                                 <div className="absolute top-2 right-2">
-                                  <Badge 
-                                    variant="secondary" 
+                                  <Badge
+                                    variant="secondary"
                                     className="text-xs bg-black bg-opacity-70 text-white border-0"
                                   >
                                     {image.imageType}
@@ -952,12 +952,12 @@ function VariantPrintRow({
         <div className="flex items-center gap-3">
           {/* Find the gallery for this color and show first image */}
           {(() => {
-            const gallery = product.galleries?.find(g => 
+            const gallery = product.galleries?.find(g =>
               g.color.toLowerCase() === variation.color.toLowerCase()
             );
             const firstImage = gallery?.images?.[0];
             const imageUrl = getImageUrl((firstImage as any)?.image_url || firstImage?.image);
-            
+
             return imageUrl ? (
               <div className="w-8 h-8 rounded-lg overflow-hidden border border-gray-200">
                 <Image
@@ -971,12 +971,12 @@ function VariantPrintRow({
             ) : (
               <div
                 className="w-8 h-8 rounded-lg border-2 border-gray-300 flex items-center justify-center"
-            style={{
-                  backgroundColor: variation.color_hax || 
+                style={{
+                  backgroundColor: variation.color_hax ||
                     (variation.color.toLowerCase() === "white" ? "#ffffff" :
-                     variation.color.toLowerCase() === "blue" ? "#3b82f6" :
-                     variation.color.toLowerCase() === "black" ? "#000000" :
-                     variation.color.toLowerCase())
+                      variation.color.toLowerCase() === "blue" ? "#3b82f6" :
+                        variation.color.toLowerCase() === "black" ? "#000000" :
+                          variation.color.toLowerCase())
                 }}
               >
                 <Package className="h-4 w-4 text-white opacity-70" />
@@ -1009,15 +1009,15 @@ function VariantPrintRow({
             variation.stock <= 0
               ? "destructive"
               : variation.stock <= 5
-              ? "outline"
-              : "default"
+                ? "outline"
+                : "default"
           }
         >
           {variation.stock <= 0
             ? "Out of Stock"
             : variation.stock <= 5
-            ? "Low Stock"
-            : "In Stock"}
+              ? "Low Stock"
+              : "In Stock"}
         </Badge>
       </td>
       <td className="px-6 py-4 space-x-1 flex items-center">
@@ -1071,10 +1071,10 @@ function generateQRCodeDataURL(productId: number, size: string, color: string): 
         },
       }],
     };
-    
+
     // Compress by encoding as base64 JSON
     const qrCodeData = btoa(JSON.stringify(cartData));
-    
+
     // Create a temporary container to render QR code (35mm ≈ 132px at 96 DPI)
     const qrSize = 132; // 35mm in pixels at 96 DPI
     const container = document.createElement("div");
@@ -1085,11 +1085,11 @@ function generateQRCodeDataURL(productId: number, size: string, color: string): 
     container.style.height = `${qrSize}px`;
     container.style.visibility = "hidden";
     document.body.appendChild(container);
-    
+
     // Use React imports from the component
     const React = require("react");
     const ReactDOM = require("react-dom/client");
-    
+
     const qrElement = React.createElement(QRCodeSVG, {
       value: qrCodeData,
       size: qrSize,
@@ -1097,7 +1097,7 @@ function generateQRCodeDataURL(productId: number, size: string, color: string): 
       bgColor: "#ffffff",
       fgColor: "#000000",
     });
-    
+
     let root: any = null;
     try {
       root = ReactDOM.createRoot(container);
@@ -1108,26 +1108,26 @@ function generateQRCodeDataURL(productId: number, size: string, color: string): 
       resolve("");
       return;
     }
-    
+
     // Wait longer for QR code to render and increase retries
     let attempts = 0;
     const maxAttempts = 20;
-    
+
     const checkForSVG = () => {
       attempts++;
       const svgElement = container.querySelector("svg");
-      
+
       if (svgElement && svgElement.innerHTML) {
         try {
           const svgData = new XMLSerializer().serializeToString(svgElement);
           // Convert SVG to base64 data URL directly
           const base64Svg = btoa(unescape(encodeURIComponent(svgData)));
           const dataUrl = `data:image/svg+xml;base64,${base64Svg}`;
-          
+
           // Also create PNG version for better print compatibility
           const img = document.createElement("img");
           img.crossOrigin = "anonymous";
-          
+
           img.onload = () => {
             try {
               const canvas = document.createElement("canvas");
@@ -1155,14 +1155,14 @@ function generateQRCodeDataURL(productId: number, size: string, color: string): 
               resolve(dataUrl);
             }
           };
-          
+
           img.onerror = () => {
             console.error("Error loading SVG image");
             document.body.removeChild(container);
             if (root) root.unmount();
             resolve(dataUrl); // Fallback to SVG data URL
           };
-          
+
           img.src = dataUrl;
         } catch (err) {
           console.error("Error serializing SVG:", err);
@@ -1179,7 +1179,7 @@ function generateQRCodeDataURL(productId: number, size: string, color: string): 
         resolve("");
       }
     };
-    
+
     // Start checking after initial delay
     setTimeout(checkForSVG, 200);
   });
@@ -1187,21 +1187,21 @@ function generateQRCodeDataURL(productId: number, size: string, color: string): 
 
 async function handlePrintLabel(product: Product, variation: any, count: number) {
   if (!count || count < 1) return;
-  
+
   // Generate QR code data URL
   const qrCodeDataURL = await generateQRCodeDataURL(
     product.id,
     variation.size,
     variation.color
   );
-  
+
   // Log for debugging
   console.log("QR Code Data URL generated:", qrCodeDataURL ? "Yes" : "No", qrCodeDataURL ? qrCodeDataURL.substring(0, 50) + "..." : "");
   if (!qrCodeDataURL) {
     console.error("QR code generation failed");
     // Continue anyway - will show "No QR" placeholder
   }
-  
+
   const printWindow = window.open("", "_blank", "width=220,height=120");
   if (!printWindow) return;
   const style = `
@@ -1376,11 +1376,11 @@ async function handlePrintLabel(product: Product, variation: any, count: number)
 async function handlePrintAllVariantsByStock(product: Product) {
   const printWindow = window.open("", "_blank", "width=220,height=120");
   if (!printWindow) return;
-  
+
   // Generate QR codes for all variations
   const variations = product.variations ?? [];
   const qrCodeMap: Record<string, string> = {};
-  
+
   for (const variation of variations) {
     const key = `${variation.size}-${variation.color}`;
     if (!qrCodeMap[key]) {
@@ -1493,7 +1493,7 @@ async function handlePrintAllVariantsByStock(product: Product) {
   for (const variation of productVariations) {
     const key = `${variation.size}-${variation.color}`;
     const qrCodeDataURL = qrCodeMap[key] || "";
-    
+
     for (let i = 0; i < variation.stock; i++) {
       labels += `
         <div class="label">

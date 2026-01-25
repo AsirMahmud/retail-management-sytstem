@@ -55,8 +55,8 @@ def get_applicable_discount(product):
     if product.category:
         category_conditions |= Q(category=product.category)
     
-    if product.online_category:
-        category_conditions |= Q(online_category=product.online_category)
+    if product.online_categories.exists():
+        category_conditions |= Q(online_category__in=product.online_categories.all())
     
     if category_conditions:
         category_discount = Discount.objects.filter(

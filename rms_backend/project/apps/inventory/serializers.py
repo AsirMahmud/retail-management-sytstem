@@ -115,8 +115,7 @@ class ProductVariationSerializer(serializers.ModelSerializer):
 class EcommerceProductSerializer(serializers.ModelSerializer):
     """Simplified serializer for ecommerce showcase"""
     image_url = serializers.SerializerMethodField()
-    online_category_name = serializers.CharField(source='online_category.name', read_only=True)
-    online_category_id = serializers.IntegerField(source='online_category.id', read_only=True)
+    online_categories = serializers.SerializerMethodField()
     available_colors = serializers.SerializerMethodField()
     available_sizes = serializers.SerializerMethodField()
     # Use the same variation serializer as ProductSerializer, keeping the key name 'variants'
@@ -130,11 +129,17 @@ class EcommerceProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'id', 'name', 'sku', 'description', 'selling_price', 'original_price', 'discount',
-            'stock_quantity', 'image', 'image_url', 'online_category_name', 'online_category_id',
+            'stock_quantity', 'image', 'image_url', 'online_categories',
             'available_colors', 'available_sizes', 'variants', 'primary_image', 'images_ordered',
             'created_at', 'updated_at'
         ]
     
+    def get_online_categories(self, obj):
+        return [
+            {'id': cat.id, 'name': cat.name} 
+            for cat in obj.online_categories.all()
+        ]
+
     def get_image_url(self, obj):
         try:
             if not obj.image:
@@ -218,15 +223,15 @@ class EcommerceProductSerializer(serializers.ModelSerializer):
         
         # Check category discount
         category_discount = None
-        if obj.online_category:
+        if obj.online_categories.exists():
             category_discount = Discount.objects.filter(
-                online_category=obj.online_category,
+                online_category__in=obj.online_categories.all(),
                 discount_type='CATEGORY',
                 is_active=True,
                 start_date__lte=now,
                 end_date__gte=now,
                 status='ACTIVE'
-            ).first()
+            ).order_by('-value').first()
         
         if category_discount:
             return obj.selling_price
@@ -264,15 +269,15 @@ class EcommerceProductSerializer(serializers.ModelSerializer):
             return float(product_discount.value)
         
         category_discount = None
-        if obj.online_category:
+        if obj.online_categories.exists():
             category_discount = Discount.objects.filter(
-                online_category=obj.online_category,
+                online_category__in=obj.online_categories.all(),
                 discount_type='CATEGORY',
                 is_active=True,
                 start_date__lte=now,
                 end_date__gte=now,
                 status='ACTIVE'
-            ).first()
+            ).order_by('-value').first()
         
         if category_discount:
             return float(category_discount.value)
@@ -445,8 +450,7 @@ class ProductSerializer(serializers.ModelSerializer):
     galleries = GallerySerializer(many=True, read_only=True)
     category = serializers.SerializerMethodField()
     category_name = serializers.CharField(source='category.name', read_only=True, allow_null=True)
-    online_category = serializers.SerializerMethodField()
-    online_category_name = serializers.CharField(source='online_category.name', read_only=True, allow_null=True)
+    online_categories = serializers.SerializerMethodField()
     supplier = serializers.SerializerMethodField()
     supplier_name = serializers.CharField(source='supplier.company_name', read_only=True, allow_null=True)
     total_stock = serializers.SerializerMethodField()
@@ -467,7 +471,7 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'id', 'name', 'sku', 'barcode', 'description', 'category', 'category_name',
-            'online_category', 'online_category_name',
+            'online_categories',
             'supplier', 'supplier_name', 'cost_price', 'selling_price', 'stock_quantity',
             'minimum_stock', 'image', 'is_active', 'size_type', 'size_category', 'gender', 'assign_to_online', 
             'is_new_arrival', 'is_trending', 'is_featured',
@@ -514,16 +518,17 @@ class ProductSerializer(serializers.ModelSerializer):
     def get_total_stock(self, obj):
         return obj.stock_quantity
 
-    def get_online_category(self, obj):
-        if getattr(obj, 'online_category', None):
-            return {
-                'id': obj.online_category.id,
-                'name': obj.online_category.name,
-                'slug': obj.online_category.slug,
-                'description': obj.online_category.description,
-                'parent': obj.online_category.parent.id if obj.online_category.parent else None
+    def get_online_categories(self, obj):
+        return [
+            {
+                'id': cat.id,
+                'name': cat.name,
+                'slug': cat.slug,
+                'description': cat.description,
+                'parent': cat.parent.id if cat.parent else None
             }
-        return None
+            for cat in obj.online_categories.all()
+        ]
 
     def get_material_composition(self, obj):
         qs = obj.material_compositions.all()
@@ -558,12 +563,12 @@ class ProductSerializer(serializers.ModelSerializer):
         if discount: return discount
         
         # 2. Category Discount
-        if obj.online_category:
+        if obj.online_categories.exists():
             discount = Discount.objects.filter(
-                online_category=obj.online_category, discount_type='CATEGORY',
+                online_category__in=obj.online_categories.all(), discount_type='CATEGORY',
                 is_active=True, status='ACTIVE',
                 start_date__lte=now, end_date__gte=now
-            ).first()
+            ).order_by('-value').first()
             if discount: return discount
         
         # 3. App-Wide Discount
@@ -631,7 +636,7 @@ class ProductCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'sku', 'barcode', 'description', 'category', 'online_category', 'supplier',
+            'id', 'name', 'sku', 'barcode', 'description', 'category', 'online_categories', 'supplier',
             'cost_price', 'selling_price', 'stock_quantity', 'minimum_stock', 'image',
             'is_active', 'size_type', 'size_category', 'gender', 'variations', 'galleries',
             'material_composition', 'who_is_this_for', 'features'
@@ -677,13 +682,14 @@ class ProductCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         variations_data = validated_data.pop('variations', [])
-        galleries_data = validated_data.pop('galleries', [])
-        material_data = validated_data.pop('material_composition', [])
-        who_data = validated_data.pop('who_is_this_for', [])
-        features_data = validated_data.pop('features', [])
+        online_categories = validated_data.pop('online_categories', [])
         
         # Create the product first
         product = Product.objects.create(**validated_data)
+        
+        # Add many-to-many relationships
+        if online_categories:
+            product.online_categories.set(online_categories)
         
         # Create variations and calculate total stock
         total_stock = 0
@@ -732,10 +738,15 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         material_data = validated_data.pop('material_composition', None)
         who_data = validated_data.pop('who_is_this_for', None)
         features_data = validated_data.pop('features', None)
+        online_categories = validated_data.pop('online_categories', None)
         
         # Update product fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
+        
+        # Update many-to-many if provided
+        if online_categories is not None:
+            instance.online_categories.set(online_categories)
         
         # Handle variations if provided
         if variations_data is not None:

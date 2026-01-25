@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { CategoryFilters } from "@/components/category-filters"
 import { useEffect } from "react"
 import { DiscountInfo } from "@/lib/api"
+import { cn } from "@/lib/utils"
 
 const products = [
   {
@@ -158,48 +159,9 @@ export function ProductGrid({ category, products: propProducts, totalCount, page
   }
 
   return (
-    <div className="space-y-6 min-h-screen">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl md:text-3xl font-bold">{category}</h1>
-          <span className="hidden md:inline text-sm text-muted-foreground">
-            Showing {(effectivePage - 1) * productsPerPage + 1}-{Math.min(effectivePage * productsPerPage, totalProducts)}{" "}
-            of {totalProducts} Products
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="lg:hidden rounded-lg bg-transparent">
-                <SlidersHorizontal className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-full sm:w-[400px] overflow-y-auto">
-              <CategoryFilters />
-            </SheetContent>
-          </Sheet>
-
-          <Select defaultValue="popular">
-            <SelectTrigger className="w-[140px] md:w-[160px] border-0 font-medium text-sm">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="popular">Most Popular</SelectItem>
-              <SelectItem value="newest">Newest</SelectItem>
-              <SelectItem value="price-low">Price: Low to High</SelectItem>
-              <SelectItem value="price-high">Price: High to Low</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="md:hidden text-sm text-muted-foreground">
-        Showing {(effectivePage - 1) * productsPerPage + 1}-{Math.min(effectivePage * productsPerPage, totalProducts)} of {totalProducts} Products
-      </div>
-
+    <div className="space-y-8 min-h-screen">
       {/* Product Grid */}
-      <div className="grid  grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 md:gap-8">
         {isLoading
           ? Array.from({ length: productsPerPage }).map((_, i) => (
             <ProductCardSkeleton key={i} />
@@ -209,41 +171,65 @@ export function ProductGrid({ category, products: propProducts, totalCount, page
           ))}
       </div>
 
+      {/* Empty State */}
+      {!isLoading && paginatedProducts.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="bg-secondary/30 p-6 rounded-full mb-4">
+            <SlidersHorizontal className="h-8 w-8 text-muted-foreground" />
+          </div>
+          <h3 className="text-xl font-bold mb-2">No products found</h3>
+          <p className="text-muted-foreground max-w-xs">
+            We couldn't find anything matching your filters. Try adjusting your search or filter criteria.
+          </p>
+        </div>
+      )}
+
       {/* Pagination */}
-      <div className="flex items-center justify-center gap-2 pt-6">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => (isServerPaginated ? onPageChange!(Math.max(1, effectivePage - 1)) : setCurrentPage((prev) => Math.max(1, prev - 1)))}
-          disabled={effectivePage === 1}
-          className="rounded-lg"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-
-        {renderPageNumbers().map((pageNum, index) => (
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-3 pt-12 border-t mt-12">
           <Button
-            key={index}
-            variant={pageNum === effectivePage ? "default" : "outline"}
-            size="icon"
-            onClick={() => typeof pageNum === "number" && (isServerPaginated ? onPageChange!(pageNum) : setCurrentPage(pageNum))}
-            disabled={pageNum === "..."}
-            className="rounded-lg"
+            variant="ghost"
+            onClick={() => (isServerPaginated ? onPageChange!(Math.max(1, effectivePage - 1)) : setCurrentPage((prev) => Math.max(1, prev - 1)))}
+            disabled={effectivePage === 1}
+            className="rounded-xl h-12 px-6 font-bold uppercase text-[10px] tracking-widest gap-2"
           >
-            {pageNum}
+            <ChevronLeft className="h-4 w-4" />
+            Previous
           </Button>
-        ))}
 
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => (isServerPaginated ? onPageChange!(Math.min(totalPages, effectivePage + 1)) : setCurrentPage((prev) => Math.min(totalPages, prev + 1)))}
-          disabled={effectivePage === totalPages}
-          className="rounded-lg"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
+          <div className="hidden md:flex items-center gap-2">
+            {renderPageNumbers().map((pageNum, index) => (
+              <Button
+                key={index}
+                variant={pageNum === effectivePage ? "default" : "ghost"}
+                size="icon"
+                onClick={() => typeof pageNum === "number" && (isServerPaginated ? onPageChange!(pageNum) : setCurrentPage(pageNum))}
+                disabled={pageNum === "..."}
+                className={cn(
+                  "rounded-xl h-10 w-10 font-bold",
+                  pageNum === effectivePage ? "shadow-lg shadow-primary/20" : ""
+                )}
+              >
+                {pageNum}
+              </Button>
+            ))}
+          </div>
+
+          <div className="md:hidden flex items-center px-4 font-bold text-sm">
+            {effectivePage} / {totalPages}
+          </div>
+
+          <Button
+            variant="ghost"
+            onClick={() => (isServerPaginated ? onPageChange!(Math.min(totalPages, effectivePage + 1)) : setCurrentPage((prev) => Math.min(totalPages, prev + 1)))}
+            disabled={effectivePage === totalPages}
+            className="rounded-xl h-12 px-6 font-bold uppercase text-[10px] tracking-widest gap-2"
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

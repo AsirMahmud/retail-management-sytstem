@@ -24,9 +24,13 @@ export default function AllProductsPage() {
   const [sortBy, setSortBy] = useState("popular")
   const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(null)
   const [selectedGender, setSelectedGender] = useState<string | null>(null)
+  const [selectedColor, setSelectedColor] = useState<string | null>(null)
+  const [selectedSize, setSelectedSize] = useState<string | null>(null)
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000])
   const [page, setPage] = useState(1)
   const [pageSize] = useState(24)
   const [totalCount, setTotalCount] = useState(0)
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -36,9 +40,13 @@ export default function AllProductsPage() {
           page,
           page_size: pageSize,
           search: searchTerm || undefined,
-          sort: sortBy === 'price-low' ? 'price_asc' : sortBy === 'price-high' ? 'price_desc' : sortBy === 'name' ? 'name' : undefined,
+          sort: (sortBy === 'price-low' ? 'price_asc' : sortBy === 'price-high' ? 'price_desc' : sortBy === 'name' ? 'name' : undefined) as any,
           online_category: selectedCategorySlug || undefined,
           gender: selectedGender as 'men' | 'women' | 'MALE' | 'FEMALE' | 'UNISEX' | undefined,
+          price_min: priceRange[0],
+          price_max: priceRange[1],
+          colors: selectedColor ? [selectedColor] : undefined,
+          sizes: selectedSize ? [selectedSize] : undefined,
         })
         setProducts(res.results)
         setTotalCount(res.count)
@@ -49,107 +57,124 @@ export default function AllProductsPage() {
       }
     }
     fetchProducts()
-  }, [page, pageSize, searchTerm, sortBy, selectedCategorySlug, selectedGender, startLoading, stopLoading])
+  }, [page, pageSize, searchTerm, sortBy, selectedCategorySlug, selectedGender, selectedColor, selectedSize, priceRange, startLoading, stopLoading])
 
   // Reset to first page on key changes
   useEffect(() => {
     setPage(1)
-  }, [searchTerm, sortBy, selectedCategorySlug, selectedGender])
-
-  const handleCategoryChange = (categorySlug: string | null) => {
-    setSelectedCategorySlug(categorySlug)
-  }
-
-  const handleGenderChange = (gender: string | null) => {
-    setSelectedGender(gender)
-  }
-
-  const handleApplyFilters = () => {
-    setPage(1)
-  }
+  }, [searchTerm, sortBy, selectedCategorySlug, selectedGender, selectedColor, selectedSize, priceRange])
 
   const breadcrumbItems = [
     { label: "Home", href: "/" },
     { label: "All Products", href: "/products" }
   ]
 
+  const activeFiltersCount = [
+    selectedCategorySlug,
+    selectedGender,
+    selectedColor,
+    selectedSize,
+    (priceRange[0] > 0 || priceRange[1] < 10000)
+  ].filter(Boolean).length
+
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-[#F9FBFC]">
       <StructuredData data={generateBreadcrumbStructuredData(breadcrumbItems)} />
       <SiteHeader />
-      <main className="flex-1">
+      <main className="flex-1 pb-20">
         <div className="container mx-auto px-4 py-6">
           <Breadcrumb items={breadcrumbItems} />
 
           {/* Page Header */}
-          <div className="mt-6 mb-8">
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">All Products</h1>
-            <p className="text-muted-foreground">
-              Discover our complete collection of products
-            </p>
+          <div className="mt-8 mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <h1 className="text-4xl font-extrabold tracking-tight mb-2">SHOP ALL</h1>
+              <p className="text-muted-foreground font-medium">
+                {totalCount} premium products found
+              </p>
+            </div>
           </div>
 
-          {/* Search and Filters */}
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6">
-            {/* Search Bar */}
-            <div className="w-full sm:flex-1 sm:max-w-md">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
+          {/* Search and Sort Toolbar */}
+          <div className="sticky top-0 z-40 bg-background/80 backdrop-blur-md -mx-4 px-4 py-4 md:static md:bg-transparent md:backdrop-blur-none mb-8 border-b md:border-none">
+            <div className="flex flex-col sm:flex-row gap-4 items-center">
+              <div className="relative w-full sm:flex-1">
+                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder="Search products..."
+                  placeholder="What are you looking for?"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full h-10"
+                  className="pl-12 h-12 bg-white border-none shadow-sm rounded-xl focus-visible:ring-primary"
                 />
               </div>
-            </div>
 
-            {/* Sort Dropdown and Filters Row */}
-            <div className="flex gap-3 sm:gap-4">
-              {/* Sort Dropdown */}
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full sm:w-[180px] h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="popular">Most Popular</SelectItem>
-                  <SelectItem value="newest">Newest First</SelectItem>
-                  <SelectItem value="price-low">Price: Low to High</SelectItem>
-                  <SelectItem value="price-high">Price: High to Low</SelectItem>
-                  <SelectItem value="name">Name A-Z</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="flex-1 sm:w-[200px] h-12 bg-white border-none shadow-sm rounded-xl font-bold uppercase text-[10px] tracking-widest px-6">
+                    <div className="flex items-center gap-2">
+                      <span className="text-muted-foreground font-medium">SORT:</span>
+                      <SelectValue />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-none shadow-xl">
+                    <SelectItem value="popular">Most Popular</SelectItem>
+                    <SelectItem value="newest">Newest First</SelectItem>
+                    <SelectItem value="price-low">Price: Low to High</SelectItem>
+                    <SelectItem value="price-high">Price: High to Low</SelectItem>
+                    <SelectItem value="name">Name A-Z</SelectItem>
+                  </SelectContent>
+                </Select>
 
-              {/* Mobile Filters */}
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" className="lg:hidden h-10 flex-shrink-0">
-                    <SlidersHorizontal className="h-4 w-4 mr-2" />
-                    Filters
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-full sm:w-[400px] overflow-y-auto">
-                  <CategoryFilters
-                    onCategoryChange={handleCategoryChange}
-                    onGenderChange={handleGenderChange}
-                    selectedGender={selectedGender}
-                    onApplyFilters={handleApplyFilters}
-                  />
-                </SheetContent>
-              </Sheet>
+                <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" className="lg:hidden h-12 px-6 bg-white border-none shadow-sm rounded-xl font-bold uppercase text-[10px] tracking-widest relative">
+                      <SlidersHorizontal className="h-4 w-4 mr-2" />
+                      Filter
+                      {activeFiltersCount > 0 && (
+                        <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px]">
+                          {activeFiltersCount}
+                        </span>
+                      )}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-full sm:w-[450px] overflow-y-auto p-6">
+                    <CategoryFilters
+                      onCategoryChange={setSelectedCategorySlug}
+                      onGenderChange={setSelectedGender}
+                      onColorChange={setSelectedColor}
+                      onSizeChange={setSelectedSize}
+                      onPriceChange={setPriceRange}
+                      selectedCategory={selectedCategorySlug}
+                      selectedGender={selectedGender}
+                      selectedColor={selectedColor}
+                      selectedSize={selectedSize}
+                      priceRange={priceRange}
+                      onClose={() => setIsFilterOpen(false)}
+                    />
+                  </SheetContent>
+                </Sheet>
+              </div>
             </div>
           </div>
 
-          <div className="flex flex-col lg:flex-row gap-6">
+          <div className="flex flex-col lg:flex-row gap-10">
             {/* Desktop Sidebar */}
-            <aside className="hidden lg:block w-64 flex-shrink-0">
-              <CategoryFilters
-                onCategoryChange={handleCategoryChange}
-                onGenderChange={handleGenderChange}
-                selectedGender={selectedGender}
-                onApplyFilters={handleApplyFilters}
-              />
+            <aside className="hidden lg:block w-72 flex-shrink-0">
+              <div className="sticky top-24 border rounded-2xl p-8 bg-white shadow-sm h-fit">
+                <CategoryFilters
+                  onCategoryChange={setSelectedCategorySlug}
+                  onGenderChange={setSelectedGender}
+                  onColorChange={setSelectedColor}
+                  onSizeChange={setSelectedSize}
+                  onPriceChange={setPriceRange}
+                  selectedCategory={selectedCategorySlug}
+                  selectedGender={selectedGender}
+                  selectedColor={selectedColor}
+                  selectedSize={selectedSize}
+                  priceRange={priceRange}
+                />
+              </div>
             </aside>
 
             {/* Main Content */}

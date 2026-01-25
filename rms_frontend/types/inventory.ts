@@ -35,7 +35,7 @@ export interface Product {
     barcode?: string;
     description?: string;
     category?: Category;
-    online_category?: Category;
+    online_categories?: Category[];
     supplier?: Supplier;
     cost_price: number;
     selling_price: number;
@@ -128,7 +128,7 @@ export interface CreateProductDTO {
     barcode?: string;
     description?: string;
     category?: number;
-    online_category?: number;
+    online_categories?: number[];
     supplier?: number;
     cost_price: number;
     selling_price: number;

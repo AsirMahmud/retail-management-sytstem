@@ -67,7 +67,9 @@ export default function ProductStatusPage() {
     name: product.name,
     sku: product.sku,
     image: product.image || product.image_url || "/placeholder.jpg",
-    category: product.online_category_name || product.category_name || "Uncategorized",
+    category: (product.online_categories && product.online_categories.length > 0)
+      ? product.online_categories[0].name
+      : (product.category_name || "Uncategorized"),
     price: product.selling_price || product.cost_price || 0,
     stock: product.stock_quantity || 0,
     is_new_arrival: product.is_new_arrival || false,
@@ -79,12 +81,12 @@ export default function ProductStatusPage() {
 
   // Update product status using React Query mutation
   const updateProductStatusMutation = useUpdateProductEcommerceStatus();
-  
+
   const updateProductStatus = async (productId: number, field: string, value: boolean) => {
     try {
-      await updateProductStatusMutation.mutateAsync({ 
-        productId, 
-        status: { [field]: value } 
+      await updateProductStatusMutation.mutateAsync({
+        productId,
+        status: { [field]: value }
       });
       toast.success(`${field.replace('_', ' ')} status updated successfully`);
     } catch (error: any) {
@@ -112,14 +114,14 @@ export default function ProductStatusPage() {
 
   const filteredProducts = transformedProducts.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         product.sku.toLowerCase().includes(searchQuery.toLowerCase());
+      product.sku.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter === "all" || product.category === categoryFilter;
     const matchesStatus = statusFilter === "all" || product.status === statusFilter;
-    const matchesFeature = featureFilter === "all" || 
-                          (featureFilter === "new" && product.is_new_arrival) ||
-                          (featureFilter === "trending" && product.is_trending) ||
-                          (featureFilter === "featured" && product.is_featured);
-    
+    const matchesFeature = featureFilter === "all" ||
+      (featureFilter === "new" && product.is_new_arrival) ||
+      (featureFilter === "trending" && product.is_trending) ||
+      (featureFilter === "featured" && product.is_featured);
+
     return matchesSearch && matchesCategory && matchesStatus && matchesFeature;
   });
 
@@ -191,7 +193,7 @@ export default function ProductStatusPage() {
                     />
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Category</label>
                   <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -206,7 +208,7 @@ export default function ProductStatusPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Status</label>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -220,7 +222,7 @@ export default function ProductStatusPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Feature</label>
                   <Select value={featureFilter} onValueChange={setFeatureFilter}>
@@ -236,7 +238,7 @@ export default function ProductStatusPage() {
                   </Select>
                 </div>
               </div>
-              
+
               <div className="flex justify-between items-center mt-6">
                 <div className="text-sm text-gray-500">
                   Showing {filteredProducts.length} of {transformedProducts.length} products
@@ -307,93 +309,93 @@ export default function ProductStatusPage() {
                     <div className="col-span-1 text-center">Featured</div>
                     <div className="col-span-1 text-center">Actions</div>
                   </div>
-                  
+
                   {/* Products */}
                   {filteredProducts.map((product) => (
-                  <div key={product.id} className="grid grid-cols-12 gap-4 items-center py-4 border-b border-gray-100 hover:bg-gray-50 rounded-lg px-2">
-                    <div className="col-span-4 flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-                        {product.image && product.image !== "/placeholder.jpg" ? (
-                          <Image 
-                            src={product.image} 
-                            alt={product.name}
-                            width={48}
-                            height={48}
-                            className="object-cover w-full h-full"
-                            onError={(e) => {
-                              e.currentTarget.src = '/placeholder.jpg';
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">
-                            No Image
-                          </div>
-                        )}
+                    <div key={product.id} className="grid grid-cols-12 gap-4 items-center py-4 border-b border-gray-100 hover:bg-gray-50 rounded-lg px-2">
+                      <div className="col-span-4 flex items-center space-x-3">
+                        <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                          {product.image && product.image !== "/placeholder.jpg" ? (
+                            <Image
+                              src={product.image}
+                              alt={product.name}
+                              width={48}
+                              height={48}
+                              className="object-cover w-full h-full"
+                              onError={(e) => {
+                                e.currentTarget.src = '/placeholder.jpg';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400 text-xs">
+                              No Image
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">{product.name}</div>
+                          <div className="text-sm text-gray-500">SKU: {product.sku}</div>
+                          <div className="text-sm text-gray-500">${product.price}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-medium text-gray-900">{product.name}</div>
-                        <div className="text-sm text-gray-500">SKU: {product.sku}</div>
-                        <div className="text-sm text-gray-500">${product.price}</div>
+
+                      <div className="col-span-2 text-center">
+                        {getStatusBadge(product.status)}
+                      </div>
+
+                      <div className="col-span-2 text-center">
+                        {getStockBadge(product.stock)}
+                      </div>
+
+                      <div className="col-span-1 flex justify-center">
+                        <Switch
+                          checked={product.is_new_arrival}
+                          onCheckedChange={() => handleToggleStatus(product.id, 'new_arrival')}
+                          className="data-[state=checked]:bg-blue-600"
+                          disabled={updateProductStatusMutation.isPending}
+                        />
+                      </div>
+
+                      <div className="col-span-1 flex justify-center">
+                        <Switch
+                          checked={product.is_trending}
+                          onCheckedChange={() => handleToggleStatus(product.id, 'trending')}
+                          className="data-[state=checked]:bg-blue-600"
+                          disabled={updateProductStatusMutation.isPending}
+                        />
+                      </div>
+
+                      <div className="col-span-1 flex justify-center">
+                        <Switch
+                          checked={product.is_featured}
+                          onCheckedChange={() => handleToggleStatus(product.id, 'featured')}
+                          className="data-[state=checked]:bg-blue-600"
+                          disabled={updateProductStatusMutation.isPending}
+                        />
+                      </div>
+
+                      <div className="col-span-1 text-center">
+                        <div className="flex justify-center space-x-1">
+                          {product.is_new_arrival && (
+                            <Sparkles className="h-4 w-4 text-blue-500" />
+                          )}
+                          {product.is_trending && (
+                            <TrendingUp className="h-4 w-4 text-green-500" />
+                          )}
+                          {product.is_featured && (
+                            <Star className="h-4 w-4 text-yellow-500" />
+                          )}
+                        </div>
                       </div>
                     </div>
-                    
-                    <div className="col-span-2 text-center">
-                      {getStatusBadge(product.status)}
+                  ))}
+
+                  {filteredProducts.length === 0 && (
+                    <div className="text-center py-8 text-gray-500">
+                      No products found matching your criteria.
                     </div>
-                    
-                    <div className="col-span-2 text-center">
-                      {getStockBadge(product.stock)}
-                    </div>
-                    
-                    <div className="col-span-1 flex justify-center">
-                      <Switch
-                        checked={product.is_new_arrival}
-                        onCheckedChange={() => handleToggleStatus(product.id, 'new_arrival')}
-                        className="data-[state=checked]:bg-blue-600"
-                        disabled={updateProductStatusMutation.isPending}
-                      />
-                    </div>
-                    
-                    <div className="col-span-1 flex justify-center">
-                      <Switch
-                        checked={product.is_trending}
-                        onCheckedChange={() => handleToggleStatus(product.id, 'trending')}
-                        className="data-[state=checked]:bg-blue-600"
-                        disabled={updateProductStatusMutation.isPending}
-                      />
-                    </div>
-                    
-                    <div className="col-span-1 flex justify-center">
-                      <Switch
-                        checked={product.is_featured}
-                        onCheckedChange={() => handleToggleStatus(product.id, 'featured')}
-                        className="data-[state=checked]:bg-blue-600"
-                        disabled={updateProductStatusMutation.isPending}
-                      />
-                    </div>
-                    
-                    <div className="col-span-1 text-center">
-                      <div className="flex justify-center space-x-1">
-                        {product.is_new_arrival && (
-                          <Sparkles className="h-4 w-4 text-blue-500" />
-                        )}
-                        {product.is_trending && (
-                          <TrendingUp className="h-4 w-4 text-green-500" />
-                        )}
-                        {product.is_featured && (
-                          <Star className="h-4 w-4 text-yellow-500" />
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                
-                {filteredProducts.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    No products found matching your criteria.
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>
