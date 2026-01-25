@@ -14,6 +14,7 @@ interface CategoryFiltersProps {
   onPriceChange?: (priceRange: [number, number]) => void;
   onGenderChange?: (gender: string | null) => void;
   onApplyFilters?: () => void;
+  onResetFilters?: () => void;
   onClose?: () => void;
   selectedCategory?: string | null;
   selectedColor?: string | null;
@@ -60,6 +61,7 @@ export function CategoryFilters({
   onPriceChange,
   onGenderChange,
   onApplyFilters,
+  onResetFilters,
   onClose,
   selectedCategory: externalSelectedCategory,
   selectedColor: externalSelectedColor,
@@ -160,7 +162,16 @@ export function CategoryFilters({
     const newRange: [number, number] = [min, max]
     setPriceRange(newRange)
     onPriceChange?.(newRange)
-    // We might want a debounce here, but for now let it be direct
+    onApplyFilters?.()
+  }
+
+  const handleReset = () => {
+    setPriceRange([0, 10000])
+    setSelectedColor(null)
+    setSelectedSize(null)
+    setSelectedCategory(null)
+    setSelectedGender(null)
+    onResetFilters?.()
     onApplyFilters?.()
   }
 
@@ -185,13 +196,21 @@ export function CategoryFilters({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold uppercase tracking-wider">Filters</h2>
-        <button
-          onClick={onClose}
-          className="lg:hidden p-2 hover:bg-secondary rounded-full transition-colors"
-        >
-          <X className="h-5 w-5 text-muted-foreground" />
-        </button>
-        <SlidersHorizontal className="h-5 w-5 text-muted-foreground lg:block hidden" />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleReset}
+            className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-md hover:bg-secondary/50"
+          >
+            Reset
+          </button>
+          <button
+            onClick={onClose}
+            className="lg:hidden p-2 hover:bg-secondary rounded-full transition-colors"
+          >
+            <X className="h-5 w-5 text-muted-foreground" />
+          </button>
+          <SlidersHorizontal className="h-5 w-5 text-muted-foreground lg:block hidden" />
+        </div>
       </div>
 
       <Separator />
