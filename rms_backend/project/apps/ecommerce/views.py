@@ -291,7 +291,7 @@ class PublicProductsByColorView(APIView):
         wanted_sizes = {s.strip().lower() for s in sizes_csv.split(',') if s.strip()} if sizes_csv else None
 
         # Only return products explicitly assigned to online and active
-        products = Product.objects.filter(is_active=True, assign_to_online=True).select_related('category', 'online_category')
+        products = Product.objects.filter(is_active=True, assign_to_online=True).prefetch_related('online_categories').select_related('category')
         if search:
             products = products.filter(name__icontains=search)
         if category_slug:
@@ -308,7 +308,7 @@ class PublicProductsByColorView(APIView):
                 children = OnlineCategory.objects.filter(parent=category)
                 child_ids.extend([child.id for child in children])
                 # Filter products by category or any of its children
-                products = products.filter(online_category_id__in=child_ids)
+                products = products.filter(online_categories__id__in=child_ids)
             except OnlineCategory.DoesNotExist:
                 # If category doesn't exist, return empty result
                 products = products.none()
@@ -316,7 +316,7 @@ class PublicProductsByColorView(APIView):
         if product_types_csv:
             type_slugs = [s.strip() for s in product_types_csv.split(',') if s.strip()]
             if type_slugs:
-                products = products.filter(online_category__slug__in=type_slugs)
+                products = products.filter(online_categories__slug__in=type_slugs)
         # Gender filter: support both backend values (MALE, FEMALE, UNISEX) and convenience values (men, women)
         if gender_param:
             gender_lower = gender_param.strip().upper()
@@ -356,6 +356,8 @@ class PublicProductsByColorView(APIView):
                     products = products.filter(id__in=ids)
             except Exception:
                 pass
+
+        products = products.distinct()
 
         result = []
         # Prefetch variations to reduce queries
@@ -441,7 +443,7 @@ class PublicProductDetailByColorView(APIView):
     def get(self, request, product_id: int, color_slug: str):
         try:
             # Only return products explicitly assigned to online and active
-            product = Product.objects.select_related('category', 'online_category').get(id=product_id, is_active=True, assign_to_online=True)
+            product = Product.objects.prefetch_related('online_categories').select_related('category').get(id=product_id, is_active=True, assign_to_online=True)
         except Product.DoesNotExist:
             return Response({'detail': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -614,9 +616,9 @@ class PublicCartPriceView(APIView):
             assign_to_online=True
         ).select_related(
             'category',
-            'online_category',
             'supplier'
         ).prefetch_related(
+            'online_categories',
             'galleries__images',
             'variations'
         )

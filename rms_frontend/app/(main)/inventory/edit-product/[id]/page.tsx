@@ -49,6 +49,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HydrationWrapper } from "@/components/hydration-wrapper";
 import { HierarchicalCategorySelect } from "@/components/inventory/hierarchical-category-select";
+import { MultiOnlineCategorySelect } from "@/components/inventory/multi-online-category-select";
 import { COLORS, globalSizes } from "../../add-product/constants";
 import { getImageUrl } from "@/lib/utils";
 
@@ -65,7 +66,7 @@ const productFormSchema = z.object({
   description: z.string().optional(),
   barcode: z.string().optional(),
   category: z.string({ required_error: "Please select a category" }),
-  online_category: z.string().optional(),
+  online_categories: z.array(z.string()).optional(),
   supplier: z.string({ required_error: "Please select a supplier" }).optional(),
   cost_price: z.string().min(1, "Cost price is required"),
   selling_price: z.string().min(1, "Selling price is required"),
@@ -199,7 +200,7 @@ export default function EditProductPage() {
       description: "",
       barcode: "",
       category: undefined,
-      online_category: undefined,
+      online_categories: [],
       supplier: undefined,
       cost_price: "",
       selling_price: "",
@@ -213,22 +214,22 @@ export default function EditProductPage() {
 
   // State for variants
   const [variants, setVariants] = useState<SizeVariant[]>([]);
-  
+
   // State for galleries
   const [galleries, setGalleries] = useState<ColorGallery[]>([]);
-  
+
   // State to track images that should be deleted from backend
   const [imagesToDelete, setImagesToDelete] = useState<number[]>([]);
-  
+
   // State for material composition
   const [materialCompositions, setMaterialCompositions] = useState<MaterialComposition[]>([]);
-  
+
   // State for who is this for
   const [whoIsThisFor, setWhoIsThisFor] = useState<WhoIsThisFor[]>([]);
-  
+
   // State for features
   const [features, setFeatures] = useState<Feature[]>([]);
-  
+
   // State for online category creation
   const [isCreatingOnlineCategory, setIsCreatingOnlineCategory] = useState(false);
   const [newOnlineCategoryName, setNewOnlineCategoryName] = useState("");
@@ -253,7 +254,7 @@ export default function EditProductPage() {
       const colorExists = currentGalleries.some(
         (g) => g.color.toLowerCase() === colorName.toLowerCase()
       );
-      
+
       if (!colorExists) {
         let colorHex = '#000000';
         for (const variant of currentVariants) {
@@ -279,17 +280,17 @@ export default function EditProductPage() {
       }
     });
 
-    const updatedGalleries = currentGalleries.filter(gallery => 
+    const updatedGalleries = currentGalleries.filter(gallery =>
       allColors.has(gallery.color.toLowerCase())
     ).map(gallery => {
       // Ensure each existing gallery has exactly 4 image slots
       const imageTypes: ('PRIMARY' | 'SECONDARY' | 'THIRD' | 'FOURTH')[] = ['PRIMARY', 'SECONDARY', 'THIRD', 'FOURTH'];
       const existingImages = new Map();
-      
+
       gallery.images.forEach(img => {
         existingImages.set(img.imageType, img);
       });
-      
+
       const completeImages = imageTypes.map(imageType => {
         return existingImages.get(imageType) || {
           id: Math.floor(Math.random() * 1000000),
@@ -301,7 +302,7 @@ export default function EditProductPage() {
           preview: null,
         };
       });
-      
+
       return {
         ...gallery,
         images: completeImages,
@@ -329,7 +330,7 @@ export default function EditProductPage() {
         description: product.description || "",
         barcode: product.barcode || "",
         category: product.category?.id.toString(),
-        online_category: product.online_category?.id.toString(),
+        online_categories: (product as any).online_categories?.map((cat: any) => cat.id.toString()) || [],
         supplier: product.supplier?.id.toString(),
         cost_price: product.cost_price.toString(),
         selling_price: product.selling_price.toString(),
@@ -379,7 +380,7 @@ export default function EditProductPage() {
         console.log('Loading galleries:', product.galleries);
         const loadedGalleries: ColorGallery[] = product.galleries.map((gallery: any) => {
           console.log('Processing gallery:', gallery);
-          
+
           // Create a map of existing images by type for easy lookup
           const existingImages = new Map();
           if (gallery.images) {
@@ -396,7 +397,7 @@ export default function EditProductPage() {
               });
             });
           }
-          
+
           // Always create exactly 4 image slots
           const imageTypes: ('PRIMARY' | 'SECONDARY' | 'THIRD' | 'FOURTH')[] = ['PRIMARY', 'SECONDARY', 'THIRD', 'FOURTH'];
           const images = imageTypes.map(imageType => {
@@ -410,7 +411,7 @@ export default function EditProductPage() {
               preview: null,
             };
           });
-          
+
           return {
             color: gallery.color,
             colorHex: gallery.color_hax || "#000000",
@@ -479,8 +480,8 @@ export default function EditProductPage() {
         watchedGender === "MALE"
           ? "men"
           : watchedGender === "FEMALE"
-          ? "women"
-          : "unisex";
+            ? "women"
+            : "unisex";
       const genderData =
         sizeTypeData[frontendGender as keyof typeof sizeTypeData];
       if (genderData) {
@@ -518,8 +519,8 @@ export default function EditProductPage() {
               watchedGender === "MALE"
                 ? "men"
                 : watchedGender === "FEMALE"
-                ? "women"
-                : "unisex";
+                  ? "women"
+                  : "unisex";
             const genderData =
               sizeTypeData[frontendGender as keyof typeof sizeTypeData];
             if (genderData) {
@@ -641,17 +642,17 @@ export default function EditProductPage() {
       variants.map((variant) =>
         variant.id === sizeId
           ? {
-              ...variant,
-              colors: [
-                ...variant.colors,
-                {
-                  id: Math.random().toString(36).substr(2, 9),
-                  color: firstAvailableColor,
-                  colorHex: COLORS[firstAvailableColor as keyof typeof COLORS],
-                  stock: 0,
-                },
-              ],
-            }
+            ...variant,
+            colors: [
+              ...variant.colors,
+              {
+                id: Math.random().toString(36).substr(2, 9),
+                color: firstAvailableColor,
+                colorHex: COLORS[firstAvailableColor as keyof typeof COLORS],
+                stock: 0,
+              },
+            ],
+          }
           : variant
       )
     );
@@ -694,11 +695,11 @@ export default function EditProductPage() {
       variants.map((variant) =>
         variant.id === sizeId
           ? {
-              ...variant,
-              colors: variant.colors.map((color) =>
-                color.id === colorId ? { ...color, [field]: value } : color
-              ),
-            }
+            ...variant,
+            colors: variant.colors.map((color) =>
+              color.id === colorId ? { ...color, [field]: value } : color
+            ),
+          }
           : variant
       )
     );
@@ -713,9 +714,9 @@ export default function EditProductPage() {
       variants.map((variant) =>
         variant.id === sizeId
           ? {
-              ...variant,
-              colors: variant.colors.filter((color) => color.id !== colorId),
-            }
+            ...variant,
+            colors: variant.colors.filter((color) => color.id !== colorId),
+          }
           : variant
       )
     );
@@ -759,12 +760,15 @@ export default function EditProductPage() {
         name: newOnlineCategoryName,
         description: newOnlineCategoryDescription,
       });
-      
-      form.setValue("online_category", newCategory.id.toString());
+
+      form.setValue("online_categories", [
+        ...(form.getValues("online_categories") || []),
+        newCategory.id.toString(),
+      ]);
       setNewOnlineCategoryName("");
       setNewOnlineCategoryDescription("");
       setIsCreatingOnlineCategory(false);
-      
+
       toast({
         title: "Success",
         description: "Online category created successfully",
@@ -850,7 +854,7 @@ export default function EditProductPage() {
     const gallery = newGalleries[galleryIndex];
     if (gallery && gallery.images[imageIndex]) {
       const image = gallery.images[imageIndex];
-      
+
       // If replacing an existing image (has id and image_url), mark it for deletion first
       if (image.id && image.image && !image.file) {
         // This is an existing image being replaced, mark it for deletion
@@ -862,19 +866,19 @@ export default function EditProductPage() {
           return prev;
         });
       }
-      
+
       // Revoke old preview URL if exists
       if (image.preview) {
         URL.revokeObjectURL(image.preview);
       }
-      
+
       // Set the new file and preview
       image.file = file;
       image.preview = URL.createObjectURL(file);
       // Clear the old image URL since we're replacing it
       image.image = '';
       image.image_url = '';
-      
+
       setGalleries(newGalleries);
     }
   };
@@ -884,7 +888,7 @@ export default function EditProductPage() {
     const gallery = newGalleries[galleryIndex];
     if (gallery && gallery.images[imageIndex]) {
       const image = gallery.images[imageIndex];
-      
+
       // If it's a new file upload, clear both file and preview
       if (image.file) {
         image.file = null;
@@ -967,7 +971,7 @@ export default function EditProductPage() {
         description: data.description || "",
         barcode: data.barcode || undefined,
         category: parseInt(data.category),
-        online_category: data.online_category ? parseInt(data.online_category) : undefined,
+        online_categories: data.online_categories?.map(id => parseInt(id)),
         supplier: data.supplier ? parseInt(data.supplier) : undefined,
         cost_price: parseFloat(data.cost_price),
         selling_price: parseFloat(data.selling_price),
@@ -1020,7 +1024,7 @@ export default function EditProductPage() {
         try {
           const { galleryImagesApi } = await import('@/lib/api/inventory');
           await Promise.all(
-            imagesToDelete.map(imageId => 
+            imagesToDelete.map(imageId =>
               galleryImagesApi.delete(imageId).catch(error => {
                 console.error(`Error deleting image ${imageId}:`, error);
                 return null; // Continue with other deletions even if one fails
@@ -1039,20 +1043,20 @@ export default function EditProductPage() {
       }
 
       // Upload images for galleries that have new images (after deletion is complete)
-      const galleriesWithImages = galleries.filter((g) => 
+      const galleriesWithImages = galleries.filter((g) =>
         g.images.some((img) => img.file !== null)
       );
 
       if (galleriesWithImages.length > 0) {
         for (const gallery of galleriesWithImages) {
           const imagesToUpload = gallery.images.filter((img) => img.file !== null);
-          
+
           if (imagesToUpload.length > 0) {
             const formData = new FormData();
             formData.append('color', gallery.color);
             formData.append('color_hax', gallery.color_hax || gallery.colorHex);
             formData.append('alt_text', gallery.color);
-            
+
             imagesToUpload.forEach((img) => {
               if (img.file) {
                 formData.append('images', img.file);
@@ -1060,7 +1064,7 @@ export default function EditProductPage() {
                 formData.append('image_types', img.imageType);
               }
             });
-            
+
             try {
               const { galleriesApi } = await import('@/lib/api/inventory');
               await galleriesApi.uploadColorImages(productId, formData);
@@ -1076,12 +1080,12 @@ export default function EditProductPage() {
         }
       }
 
-      const hasImages = galleries.some((g) => 
+      const hasImages = galleries.some((g) =>
         g.images.some((img) => img.file !== null)
       );
-      
+
       const hasDeletedImages = imagesToDelete.length > 0;
-      
+
       let description = "Product updated successfully";
       if (hasImages && hasDeletedImages) {
         description = "Product, images uploaded, and images deleted successfully";
@@ -1090,7 +1094,7 @@ export default function EditProductPage() {
       } else if (hasDeletedImages) {
         description = "Product updated and images deleted successfully";
       }
-      
+
       toast({
         title: "Product Updated",
         description: description,
@@ -1233,19 +1237,19 @@ export default function EditProductPage() {
 
                 <FormField
                   control={form.control}
-                  name="online_category"
+                  name="online_categories"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Online Category</FormLabel>
+                      <FormLabel>Online Categories</FormLabel>
                       <div className="space-y-2">
                         {!isCreatingOnlineCategory ? (
                           <div className="space-y-2">
                             <FormControl>
-                              <HierarchicalCategorySelect
+                              <MultiOnlineCategorySelect
                                 categories={onlineCategories}
-                                value={field.value}
-                                onValueChange={field.onChange}
-                                placeholder="Select online category"
+                                values={field.value || []}
+                                onValuesChange={field.onChange}
+                                placeholder="Select online categories"
                               />
                             </FormControl>
                             <Button
@@ -1561,11 +1565,11 @@ export default function EditProductPage() {
                                     watchedGender === "MALE"
                                       ? "men"
                                       : watchedGender === "FEMALE"
-                                      ? "women"
-                                      : "unisex";
+                                        ? "women"
+                                        : "unisex";
                                   const genderData =
                                     sizeTypeData[
-                                      frontendGender as keyof typeof sizeTypeData
+                                    frontendGender as keyof typeof sizeTypeData
                                     ];
                                   if (genderData) {
                                     categories = Object.keys(genderData);
@@ -1968,15 +1972,14 @@ export default function EditProductPage() {
                       ({gallery.images.filter(img => img.file || img.preview).length}/4 images)
                     </span>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {gallery.images.map((image, imageIndex) => (
                       <div key={image.id} className="space-y-2">
-                        <div className={`aspect-square border-2 border-dashed rounded-lg flex items-center justify-center overflow-hidden ${
-                          image.preview ? 'border-gray-300' : 
-                          imagesToDelete.includes(image.id) ? 'border-red-300 bg-red-50' : 
-                          'border-gray-300'
-                        }`}>
+                        <div className={`aspect-square border-2 border-dashed rounded-lg flex items-center justify-center overflow-hidden ${image.preview ? 'border-gray-300' :
+                          imagesToDelete.includes(image.id) ? 'border-red-300 bg-red-50' :
+                            'border-gray-300'
+                          }`}>
                           {image.preview ? (
                             <div className="relative w-full h-full">
                               <img
@@ -2006,7 +2009,7 @@ export default function EditProductPage() {
                             </div>
                           )}
                         </div>
-                        
+
                         <div className="space-y-1">
                           {!image.preview && !imagesToDelete.includes(image.id) && (
                             <Input
@@ -2072,7 +2075,7 @@ export default function EditProductPage() {
                   </div>
                 </div>
               ))}
-              
+
               {galleries.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Upload className="h-12 w-12 mx-auto mb-4 opacity-50" />

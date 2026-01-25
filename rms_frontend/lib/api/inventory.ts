@@ -192,12 +192,12 @@ export const onlineCategoriesApi = {
 // Products API
 export const productsApi = {
     getAll: async (): Promise<Product[]> => {
-        const { data } = await axiosInstance.get('/inventory/products/?expand=category,online_category&page_size=1000');
+        const { data } = await axiosInstance.get('/inventory/products/?expand=category,online_categories&page_size=1000');
         return data;
     },
 
     getById: async (id: number): Promise<Product> => {
-        const { data } = await axiosInstance.get(`/inventory/products/${id}/?expand=category,online_category`);
+        const { data } = await axiosInstance.get(`/inventory/products/${id}/?expand=category,online_categories`);
         return data;
     },
 

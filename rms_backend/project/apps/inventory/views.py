@@ -110,7 +110,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         queryset = Product.objects.all()
         search = self.request.query_params.get('search', None)
         category = self.request.query_params.get('category', None)
-        online_category = self.request.query_params.get('online_category', None)
+        online_categories = self.request.query_params.getlist('online_category')
         supplier = self.request.query_params.get('supplier', None)
         is_active = self.request.query_params.get('is_active', None)
         stock_status = self.request.query_params.get('stock_status', None)
@@ -125,8 +125,8 @@ class ProductViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(category_id=category)
         if supplier:
             queryset = queryset.filter(supplier_id=supplier)
-        if online_category:
-            queryset = queryset.filter(online_category_id=online_category)
+        if online_categories:
+            queryset = queryset.filter(online_categories__id__in=online_categories).distinct()
         if is_active is not None:
             queryset = queryset.filter(is_active=is_active)
         if stock_status:
@@ -634,7 +634,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         queryset = Product.objects.filter(is_active=True, assign_to_online=True).order_by('-created_at')
         
         if online_category:
-            queryset = queryset.filter(online_category_id=online_category)
+            queryset = queryset.filter(online_categories__id=online_category)
         
         products = queryset[:limit]
         serializer = EcommerceProductSerializer(products, many=True, context={'request': request})
@@ -668,7 +668,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         ).order_by('-total_sold')
         
         if online_category:
-            top_products = top_products.filter(online_category_id=online_category)
+            top_products = top_products.filter(online_categories__id=online_category)
         
         products = top_products[:limit]
         serializer = EcommerceProductSerializer(products, many=True, context={'request': request})
@@ -695,7 +695,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         ).order_by('-updated_at', '-stock_quantity')
         
         if online_category:
-            queryset = queryset.filter(online_category_id=online_category)
+            queryset = queryset.filter(online_categories__id=online_category)
         
         products = queryset[:limit]
         serializer = EcommerceProductSerializer(products, many=True, context={'request': request})
@@ -721,7 +721,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             is_new_arrival=True,
         )
         if online_category:
-            new_arrivals = new_arrivals.filter(online_category_id=online_category)
+            new_arrivals = new_arrivals.filter(online_categories__id=online_category)
         new_arrivals = new_arrivals.order_by('-updated_at', '-created_at')[:new_arrivals_limit]
         
         # Top Selling (last 30 days)
@@ -738,7 +738,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         ).order_by('-total_sold')
         
         if online_category:
-            top_selling = top_selling.filter(online_category_id=online_category)
+            top_selling = top_selling.filter(online_categories__id=online_category)
         top_selling = top_selling[:top_selling_limit]
         
         # Featured (explicit flag)
@@ -750,7 +750,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         ).order_by('-updated_at')
         
         if online_category:
-            featured = featured.filter(online_category_id=online_category)
+            featured = featured.filter(online_categories__id=online_category)
         featured = featured[:featured_limit]
         
         # Trending (explicit flag)
@@ -762,7 +762,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             stock_quantity__gt=0,
         )
         if online_category:
-            trending = trending.filter(online_category_id=online_category)
+            trending = trending.filter(online_categories__id=online_category)
         trending = trending.order_by('-updated_at')[:trending_limit]
         
         # Serialize all data

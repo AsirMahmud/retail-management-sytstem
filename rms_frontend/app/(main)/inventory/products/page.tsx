@@ -177,8 +177,8 @@ export default function ProductsPage() {
             `${ecomBaseUrl}/product/${product.id}${colorSlug ? `/${colorSlug}` : ""}`, // link
             getImageUrl(variantImage), // image_link
             "Raw Stitch", // brand
-            product.online_category?.name || product.category?.name || "", // google_product_category
-            product.online_category?.name || product.category?.name || "", // fb_product_category
+            product.online_categories?.[0]?.name || product.category?.name || "", // google_product_category
+            product.online_categories?.[0]?.name || product.category?.name || "", // fb_product_category
             product.stock_quantity.toString(), // quantity_to_sell_on_facebook
             product.discount_percentage && product.discount_percentage > 0 ? `${product.sale_price} BDT` : "", // sale_price
             product.discount_end_date || "", // sale_price_effective_date
@@ -212,8 +212,8 @@ export default function ProductsPage() {
           `${ecomBaseUrl}/product/${product.id}`, // link
           getImageUrl(product.first_variation_image || product.image), // image_link
           "Raw Stitch", // brand
-          product.online_category?.name || product.category?.name || "", // google_product_category
-          product.online_category?.name || product.category?.name || "", // fb_product_category
+          product.online_categories?.[0]?.name || product.category?.name || "", // google_product_category
+          product.online_categories?.[0]?.name || product.category?.name || "", // fb_product_category
           product.stock_quantity.toString(), // quantity_to_sell_on_facebook
           product.discount_percentage && product.discount_percentage > 0 ? `${product.sale_price} BDT` : "", // sale_price
           product.discount_end_date || "", // sale_price_effective_date
@@ -907,7 +907,9 @@ export default function ProductsPage() {
                           {product.category?.name || "Uncategorized"}
                         </TableCell>
                         <TableCell className="font-medium text-blue-600">
-                          {product.online_category?.name || "-"}
+                          {product.online_categories && product.online_categories.length > 0
+                            ? product.online_categories.map(c => c.name).join(", ")
+                            : "-"}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">

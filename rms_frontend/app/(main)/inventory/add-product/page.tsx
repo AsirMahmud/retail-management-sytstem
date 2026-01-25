@@ -44,6 +44,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { HydrationWrapper } from "@/components/hydration-wrapper";
 import { globalSizes, COLORS } from "./constants";
 import { HierarchicalCategorySelect } from "@/components/inventory/hierarchical-category-select";
+import { MultiOnlineCategorySelect } from "@/components/inventory/multi-online-category-select";
+import { Badge } from "@/components/ui/badge";
 
 // Define the form schema using Zod
 const productFormSchema = z.object({
@@ -51,7 +53,7 @@ const productFormSchema = z.object({
   description: z.string().optional(),
   barcode: z.string().optional(),
   category: z.string({ required_error: "Please select a category" }),
-  online_category: z.string().optional(),
+  online_categories: z.array(z.string()).optional(),
   supplier: z.string({ required_error: "Please select a supplier" }).optional(),
   cost_price: z.string().min(1, "Cost price is required"),
   selling_price: z.string().min(1, "Selling price is required"),
@@ -149,7 +151,7 @@ export default function AddProductPage() {
       description: "",
       barcode: "",
       category: undefined,
-      online_category: undefined,
+      online_categories: [],
       supplier: undefined,
       cost_price: "",
       selling_price: "",
@@ -163,15 +165,15 @@ export default function AddProductPage() {
   // State for variants
   const [variants, setVariants] = useState<SizeVariant[]>([]);
   const [sizeCategory, setSizeCategory] = useState<string>("");
-  
+
   // State for galleries (one per unique color)
   const [galleries, setGalleries] = useState<ColorGallery[]>([]);
-  
+
   // State for additional product information
   const [materialCompositions, setMaterialCompositions] = useState<MaterialComposition[]>([]);
   const [whoIsThisFor, setWhoIsThisFor] = useState<WhoIsThisFor[]>([]);
   const [features, setFeatures] = useState<Feature[]>([]);
-  
+
   // State for creating new online category
   const [isCreatingOnlineCategory, setIsCreatingOnlineCategory] = useState(false);
   const [newOnlineCategoryName, setNewOnlineCategoryName] = useState("");
@@ -204,8 +206,8 @@ export default function AddProductPage() {
         watchedGender === "MALE"
           ? "men"
           : watchedGender === "FEMALE"
-          ? "women"
-          : "unisex";
+            ? "women"
+            : "unisex";
       const genderData =
         sizeTypeData[frontendGender as keyof typeof sizeTypeData];
       if (genderData) {
@@ -239,8 +241,8 @@ export default function AddProductPage() {
         watchedGender === "MALE"
           ? "men"
           : watchedGender === "FEMALE"
-          ? "women"
-          : "unisex";
+            ? "women"
+            : "unisex";
       const genderData =
         sizeTypeData[frontendGender as keyof typeof sizeTypeData];
       return genderData ? Object.keys(genderData) : [];
@@ -450,7 +452,7 @@ export default function AddProductPage() {
     // Find the color being removed
     const variant = variants.find((v) => v.id === sizeId);
     const colorToRemove = variant?.colors.find((c) => c.id === colorId);
-    
+
     setVariants(
       variants.map((variant) => {
         if (variant.id === sizeId) {
@@ -490,7 +492,7 @@ export default function AddProductPage() {
   // Gallery image handling functions
   const handleImageUpload = (color: string, imageId: string, file: File) => {
     const preview = URL.createObjectURL(file);
-    
+
     setGalleries(galleries.map((gallery) => {
       if (gallery.color.toLowerCase() === color.toLowerCase()) {
         return {
@@ -543,7 +545,7 @@ export default function AddProductPage() {
   };
 
   const updateMaterialComposition = (id: string, field: keyof MaterialComposition, value: string | number) => {
-    setMaterialCompositions(materialCompositions.map((item) => 
+    setMaterialCompositions(materialCompositions.map((item) =>
       item.id === id ? { ...item, [field]: value } : item
     ));
   };
@@ -563,7 +565,7 @@ export default function AddProductPage() {
   };
 
   const updateWhoIsThisFor = (id: string, field: keyof WhoIsThisFor, value: string) => {
-    setWhoIsThisFor(whoIsThisFor.map((item) => 
+    setWhoIsThisFor(whoIsThisFor.map((item) =>
       item.id === id ? { ...item, [field]: value } : item
     ));
   };
@@ -583,7 +585,7 @@ export default function AddProductPage() {
   };
 
   const updateFeature = (id: string, field: keyof Feature, value: string) => {
-    setFeatures(features.map((item) => 
+    setFeatures(features.map((item) =>
       item.id === id ? { ...item, [field]: value } : item
     ));
   };
@@ -608,7 +610,7 @@ export default function AddProductPage() {
       const colorExists = galleries.some(
         (g) => g.color.toLowerCase() === colorName.toLowerCase()
       );
-      
+
       if (!colorExists) {
         // Find the color in variants to get the hex value
         let colorHex = '#000000'; // Default fallback
@@ -636,7 +638,7 @@ export default function AddProductPage() {
     });
 
     // Remove galleries for colors that no longer exist in variants
-    const updatedGalleries = galleries.filter(gallery => 
+    const updatedGalleries = galleries.filter(gallery =>
       allColors.has(gallery.color.toLowerCase())
     );
 
@@ -674,7 +676,7 @@ export default function AddProductPage() {
 
       // Set the newly created category as selected
       form.setValue("online_category", newCategory.id.toString());
-      
+
       // Reset form
       setNewOnlineCategoryName("");
       setNewOnlineCategoryDescription("");
@@ -764,7 +766,7 @@ export default function AddProductPage() {
         description: data.description || "",
         barcode: data.barcode || undefined,
         category: parseInt(data.category),
-        online_category: data.online_category ? parseInt(data.online_category) : undefined,
+        online_categories: data.online_categories?.map(id => parseInt(id)),
         supplier: data.supplier ? parseInt(data.supplier) : undefined,
         cost_price: parseFloat(data.cost_price),
         selling_price: parseFloat(data.selling_price),
@@ -807,7 +809,7 @@ export default function AddProductPage() {
       const createdProduct = await createProduct.mutateAsync(productData);
 
       // Upload images for galleries that have images
-      const galleriesWithImages = galleries.filter((g) => 
+      const galleriesWithImages = galleries.filter((g) =>
         g.images.some((img) => img.file !== null)
       );
 
@@ -815,13 +817,13 @@ export default function AddProductPage() {
         // Upload images for each color
         for (const gallery of galleriesWithImages) {
           const imagesToUpload = gallery.images.filter((img) => img.file !== null);
-          
+
           if (imagesToUpload.length > 0) {
             const formData = new FormData();
             formData.append('color', gallery.color);
             formData.append('color_hax', gallery.color_hax || gallery.colorHex);
             formData.append('alt_text', gallery.color);
-            
+
             // Add all images for this color with their imageTypes
             imagesToUpload.forEach((img) => {
               if (img.file) {
@@ -830,7 +832,7 @@ export default function AddProductPage() {
                 formData.append('image_types', img.imageType);
               }
             });
-            
+
             try {
               // Import and use the upload function
               const { galleriesApi } = await import('@/lib/api/inventory');
@@ -847,14 +849,14 @@ export default function AddProductPage() {
         }
       }
 
-      const hasImages = galleries.some((g) => 
+      const hasImages = galleries.some((g) =>
         g.images.some((img) => img.file !== null)
       );
 
       toast({
         title: "Success",
-        description: hasImages 
-          ? "Product and images created successfully" 
+        description: hasImages
+          ? "Product and images created successfully"
           : "Product created successfully",
       });
 
@@ -1031,11 +1033,11 @@ export default function AddProductPage() {
                   />
                   <FormField
                     control={form.control}
-                    name="online_category"
+                    name="online_categories"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel className="text-gray-700">
-                          Online Category (Optional)
+                          Online Categories (Optional)
                         </FormLabel>
                         <FormControl>
                           {isLoadingOnlineCategories ? (
@@ -1076,11 +1078,11 @@ export default function AddProductPage() {
                             </div>
                           ) : (
                             <div className="space-y-2">
-                              <HierarchicalCategorySelect
+                              <MultiOnlineCategorySelect
                                 categories={onlineCategories}
-                                value={field.value}
-                                onValueChange={field.onChange}
-                                placeholder="Select online category"
+                                values={field.value}
+                                onValuesChange={field.onChange}
+                                placeholder="Select online categories"
                               />
                               <Button
                                 type="button"
@@ -1443,7 +1445,7 @@ export default function AddProductPage() {
                                                   style={{
                                                     backgroundColor:
                                                       COLORS[
-                                                        name as keyof typeof COLORS
+                                                      name as keyof typeof COLORS
                                                       ],
                                                   }}
                                                 />
