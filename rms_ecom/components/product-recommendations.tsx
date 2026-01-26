@@ -1,4 +1,5 @@
 import { ProductCard, ProductCardSkeleton } from "@/components/product-card"
+import { DiscountInfo } from "@/lib/api"
 
 interface Product {
   id: string
@@ -7,6 +8,7 @@ interface Product {
   originalPrice?: number
   image: string
   discount?: number
+  discountInfo?: DiscountInfo | null
 }
 
 interface ProductRecommendationsProps {

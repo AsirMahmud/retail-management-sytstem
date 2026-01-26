@@ -131,8 +131,8 @@ export default function ProductByColorPage() {
     const productInfo = {
         name: `${data.product.name} - ${data.color.name}`,
         price: Math.round(Number(data.product.price)),
-        originalPrice: undefined as number | undefined,
-        discount: undefined as number | undefined,
+        originalPrice: data.discount_info?.original_price,
+        discount: data.discount_info?.discount_value,
         description: productDescription,
         colors: [{ name: data.color.name, value: "#000000" }],
         sizes: data.sizes.map(s => s.size),
@@ -172,6 +172,7 @@ export default function ProductByColorPage() {
                             <ProductInfo
                                 productId={`${data.product.id}/${data.color.slug}`}
                                 product={productInfo}
+                                discountInfo={data.discount_info}
                                 colorLinks={colorToggler.map(c => ({ name: c.name, value: c.hex, href: c.href, active: c.active, oos: c.oos }))}
                                 onAddToCart={(payload) => {
                                     const price = Number(data.product.price) || undefined
@@ -231,9 +232,10 @@ export default function ProductByColorPage() {
                                 id: `${entry.product_id}/${entry.color_slug}`,
                                 name: `${entry.product_name} - ${entry.color_name}`,
                                 price: Number(entry.product_price),
-                                originalPrice: undefined,
+                                originalPrice: entry.discount_info?.original_price,
                                 image: entry.cover_image_url || "/placeholder.jpg",
-                                discount: undefined,
+                                discount: entry.discount_info?.discount_value,
+                                discountInfo: entry.discount_info,
                             }))}
                             isLoading={isLoading}
                         />
