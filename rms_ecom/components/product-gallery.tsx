@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { ImageZoomModal } from "@/components/image-zoom-modal"
@@ -8,9 +8,19 @@ import { Maximize2, ChevronLeft, ChevronRight } from "lucide-react"
 
 interface ProductGalleryProps {
   images: string[]
+  productName: string
 }
 
-export function ProductGallery({ images }: ProductGalleryProps) {
+export function ProductGallery({ images, productName }: ProductGalleryProps) {
+  // Reorder images: if 4 or more, move the 1st image (which user identifies as 4th) to the last position
+  const reorderedImages = useMemo(() => {
+    if (images.length < 4) return images
+    const newImages = [...images]
+    const firstImage = newImages.shift()
+    if (firstImage) newImages.push(firstImage)
+    return newImages
+  }, [images])
+
   const [selectedImage, setSelectedImage] = useState(0)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [touchStart, setTouchStart] = useState<number | null>(null)
@@ -23,21 +33,21 @@ export function ProductGallery({ images }: ProductGalleryProps) {
 
   // Handle next image with smooth animation
   const handleNext = useCallback(() => {
-    if (images.length > 0 && !isTransitioning) {
+    if (reorderedImages.length > 0 && !isTransitioning) {
       setIsTransitioning(true)
-      setSelectedImage((prev) => (prev + 1) % images.length)
+      setSelectedImage((prev) => (prev + 1) % reorderedImages.length)
       setTimeout(() => setIsTransitioning(false), 500)
     }
-  }, [images.length, isTransitioning])
+  }, [reorderedImages.length, isTransitioning])
 
   // Handle previous image with smooth animation
   const handlePrevious = useCallback(() => {
-    if (images.length > 0 && !isTransitioning) {
+    if (reorderedImages.length > 0 && !isTransitioning) {
       setIsTransitioning(true)
-      setSelectedImage((prev) => (prev - 1 + images.length) % images.length)
+      setSelectedImage((prev) => (prev - 1 + reorderedImages.length) % reorderedImages.length)
       setTimeout(() => setIsTransitioning(false), 500)
     }
-  }, [images.length, isTransitioning])
+  }, [reorderedImages.length, isTransitioning])
 
   // Touch handlers for swipe gestures
   const onTouchStart = (e: React.TouchEvent) => {
@@ -95,7 +105,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [])
 
-  if (images.length === 0) {
+  if (reorderedImages.length === 0) {
     return null
   }
 
@@ -103,7 +113,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
     <div className="flex flex-col lg:flex-row gap-3 lg:gap-4" ref={galleryRef}>
       {/* Thumbnail gallery - vertical on desktop, horizontal on mobile */}
       <div className="flex lg:flex-col gap-3 order-2 lg:order-1 overflow-x-auto lg:overflow-visible px-4 lg:px-0 scrollbar-hide">
-        {images.map((image, index) => (
+        {reorderedImages.map((image, index) => (
           <button
             key={index}
             onClick={() => {
@@ -118,7 +128,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
               selectedImage === index ? "border-foreground" : "border-border hover:border-foreground/50",
             )}
           >
-            <Image src={image || "/placeholder.svg"} alt={`Product view ${index + 1}`} fill className="object-cover" />
+            <Image src={image || "/placeholder.svg"} alt={`${productName} view ${index + 1}`} fill className="object-cover" />
           </button>
         ))}
       </div>
@@ -136,22 +146,22 @@ export function ProductGallery({ images }: ProductGalleryProps) {
           <div
             className="absolute inset-0 flex will-change-transform"
             style={{
-              width: `${images.length * 100}%`,
-              transform: `translateX(-${(selectedImage * 100) / images.length}%)`,
+              width: `${reorderedImages.length * 100}%`,
+              transform: `translateX(-${(selectedImage * 100) / reorderedImages.length}%)`,
               transition: "transform 500ms cubic-bezier(0.4, 0, 0.2, 1)",
             }}
           >
-            {images.map((image, index) => (
+            {reorderedImages.map((image, index) => (
               <div
                 key={index}
                 className="relative flex-shrink-0"
                 style={{
-                  width: `${100 / images.length}%`,
+                  width: `${100 / reorderedImages.length}%`,
                 }}
               >
                 <Image
                   src={image || "/placeholder.svg"}
-                  alt={`Product image ${index + 1}`}
+                  alt={`${productName} view ${index + 1}`}
                   fill
                   className="object-cover"
                   priority={index === 0}
@@ -163,7 +173,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
         </div>
 
         {/* Navigation arrows */}
-        {images.length > 1 && (
+        {reorderedImages.length > 1 && (
           <>
             {/* Previous button */}
             <button
@@ -192,9 +202,9 @@ export function ProductGallery({ images }: ProductGalleryProps) {
         )}
 
         {/* Image counter */}
-        {images.length > 1 && (
+        {reorderedImages.length > 1 && (
           <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            {selectedImage + 1} / {images.length}
+            {selectedImage + 1} / {reorderedImages.length}
           </div>
         )}
 
@@ -205,7 +215,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
       </div>
 
       <ImageZoomModal
-        images={images}
+        images={reorderedImages}
         initialIndex={selectedImage}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

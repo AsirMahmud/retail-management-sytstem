@@ -167,7 +167,7 @@ export default function ProductByColorPage() {
 
                 <div className="container px-4 pb-12 lg:pb-16">
                     <div className="grid gap-8 lg:gap-12 grid-cols-1 lg:grid-cols-2">
-                        <ProductGallery images={galleryImages} />
+                        <ProductGallery images={galleryImages} productName={data.product.name} />
                         <div className="flex flex-col gap-4 lg:gap-5">
                             <ProductInfo
                                 productId={`${data.product.id}/${data.color.slug}`}

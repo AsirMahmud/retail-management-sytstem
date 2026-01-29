@@ -161,26 +161,29 @@ export function ProductDetails({ product }: ProductDetailsProps) {
         <Card className="p-6">
           <h2 className="text-lg font-semibold mb-4">Product Images</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {product.image && (
-              <div className="relative aspect-square">
-                <Image
-                  src={product.image}
-                  alt={product.name}
-                  fill
-                  className="object-cover rounded-lg"
-                />
-              </div>
-            )}
-            {product.images.map((img, index) => (
-              <div key={index} className="relative aspect-square">
-                <Image
-                  src={img}
-                  alt={`${product.name} - ${index + 1}`}
-                  fill
-                  className="object-cover rounded-lg"
-                />
-              </div>
-            ))}
+            {(() => {
+              // Collect all images: main image first, then additional images
+              const allImages: string[] = []
+              if (product.image) allImages.push(product.image)
+              if (product.images.length > 0) allImages.push(...product.images)
+
+              // Reorder: if 4 or more, move 1st (index 0) to last
+              if (allImages.length >= 4) {
+                const first = allImages.shift()
+                if (first) allImages.push(first)
+              }
+
+              return allImages.map((img, index) => (
+                <div key={index} className="relative aspect-square">
+                  <Image
+                    src={img}
+                    alt={`${product.name} - view ${index + 1}`}
+                    fill
+                    className="object-cover rounded-lg"
+                  />
+                </div>
+              ))
+            })()}
           </div>
         </Card>
       )}
