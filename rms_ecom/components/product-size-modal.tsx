@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from "react"
 import { Minus, Plus, Check, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { cn } from "@/lib/utils"
+import { cn, sortSizes } from "@/lib/utils"
 import { ProductVariant, ecommerceApi } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
 import { useCartStore } from "@/hooks/useCartStore"
@@ -145,7 +145,7 @@ export function ProductSizeModal({
       }))
     }
 
-    return productData.sizes.map((size, index) => {
+    return (sortSizes(productData.sizes)).map((size, index) => {
       // Find variant for this specific size + color combination
       const variant = productData.variants.find(
         (v) => v.size === size && v.color === currentColor?.name
