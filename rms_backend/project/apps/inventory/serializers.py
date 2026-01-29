@@ -683,6 +683,10 @@ class ProductCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         variations_data = validated_data.pop('variations', [])
         online_categories = validated_data.pop('online_categories', [])
+        galleries_data = validated_data.pop('galleries', [])
+        material_data = validated_data.pop('material_composition', [])
+        who_data = validated_data.pop('who_is_this_for', [])
+        features_data = validated_data.pop('features', [])
         
         # Create the product first
         product = Product.objects.create(**validated_data)

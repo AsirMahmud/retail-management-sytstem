@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react"
 import { Minus, Plus, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { cn, sortSizes } from "@/lib/utils"
 import { ProductVariant } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
 import { useCartStore } from "@/hooks/useCartStore"
@@ -71,7 +71,7 @@ export function ProductInfo({ productId, product, colorLinks, onAddToCart, onBuy
       }))
     }
 
-    return product.sizes.map((size, index) => {
+    return (sortSizes(product.sizes)).map((size, index) => {
       // Find variant for this specific size + color combination
       const variant = product.variants.find(
         v => v.size === size && v.color === currentColor.name
