@@ -6,10 +6,12 @@ import {
   homePageSettingsApi,
   productEcommerceApi,
   heroSlidesApi,
+  productStatusesApi,
   Discount,
   Brand,
   HomePageSettings,
   HeroSlide,
+  ProductStatus,
   CreateDiscountDTO,
   UpdateDiscountDTO,
   CreateBrandDTO,
@@ -18,6 +20,8 @@ import {
   CreateHeroSlideDTO,
   UpdateHeroSlideDTO
 } from '@/lib/api/ecommerce';
+
+export type { ProductStatus };
 
 // Query Keys
 export const ecommerceKeys = {
@@ -50,6 +54,12 @@ export const ecommerceKeys = {
     list: (filters: string) => [...ecommerceKeys.heroSlides.lists(), { filters }] as const,
     details: () => [...ecommerceKeys.heroSlides.all(), 'detail'] as const,
     detail: (id: number) => [...ecommerceKeys.heroSlides.details(), id] as const,
+  },
+  productStatuses: {
+    all: () => [...ecommerceKeys.all, 'product-statuses'] as const,
+    lists: () => [...ecommerceKeys.productStatuses.all(), 'list'] as const,
+    details: () => [...ecommerceKeys.productStatuses.all(), 'detail'] as const,
+    detail: (id: number) => [...ecommerceKeys.productStatuses.details(), id] as const,
   },
 };
 
@@ -171,14 +181,104 @@ export const useUpdateHomePageSettings = () => {
 export const useUpdateProductEcommerceStatus = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ productId, status }: { 
-      productId: number; 
-      status: { is_new_arrival?: boolean; is_trending?: boolean; is_featured?: boolean } 
+    mutationFn: ({ productId, status }: {
+      productId: number;
+      status: {
+        is_new_arrival?: boolean;
+        is_trending?: boolean;
+        is_featured?: boolean;
+        ecommerce_statuses?: number[];
+      }
     }) => productEcommerceApi.updateStatus(productId, status),
-    onSuccess: (_, { productId }) => {
-      // Invalidate product queries to refresh data
+    onMutate: async ({ productId, status }) => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['inventory', 'products', 'list'] });
+
+      // Snapshot the previous value
+      const previousProducts = queryClient.getQueryData(['inventory', 'products', 'list']);
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(['inventory', 'products', 'list'], (old: any) => {
+        if (!old) return old;
+        return old.map((product: any) => {
+          if (product.id === productId) {
+            return {
+              ...product,
+              ...status,
+              // If ecommerce_statuses is being updated, transform IDs to objects
+              ...(status.ecommerce_statuses !== undefined && {
+                ecommerce_statuses: status.ecommerce_statuses.map(id => {
+                  // Try to find existing status object, or create minimal one
+                  const existing = product.ecommerce_statuses?.find((s: any) => s.id === id);
+                  return existing || { id, name: 'Loading...' };
+                })
+              })
+            };
+          }
+          return product;
+        });
+      });
+
+      return { previousProducts };
+    },
+    onError: (err, variables, context) => {
+      // Rollback on error
+      if (context?.previousProducts) {
+        queryClient.setQueryData(['inventory', 'products', 'list'], context.previousProducts);
+      }
+    },
+    onSettled: () => {
+      // Always refetch after error or success to ensure sync
       queryClient.invalidateQueries({ queryKey: ['inventory', 'products', 'list'] });
-      queryClient.invalidateQueries({ queryKey: ['inventory', 'products', 'detail', productId] });
+    },
+  });
+};
+
+// Product Status Hooks (Sections)
+export const useProductStatuses = () => {
+  return useQuery({
+    queryKey: ecommerceKeys.productStatuses.lists(),
+    queryFn: productStatusesApi.getAll,
+  });
+};
+
+export const useProductStatus = (id: number) => {
+  return useQuery({
+    queryKey: ecommerceKeys.productStatuses.detail(id),
+    queryFn: () => productStatusesApi.getById(id),
+    enabled: !!id,
+  });
+};
+
+export const useCreateProductStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: productStatusesApi.create,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ecommerceKeys.productStatuses.lists() });
+    },
+  });
+};
+
+export const useUpdateProductStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: number; status: Partial<ProductStatus> }) =>
+      productStatusesApi.update(id, status),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ecommerceKeys.productStatuses.lists() });
+      queryClient.invalidateQueries({ queryKey: ecommerceKeys.productStatuses.detail(data.id) });
+    },
+  });
+};
+
+export const useDeleteProductStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: productStatusesApi.delete,
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: ecommerceKeys.productStatuses.lists() });
+      queryClient.invalidateQueries({ queryKey: ecommerceKeys.productStatuses.detail(id) });
     },
   });
 };

@@ -9,6 +9,31 @@ from django.db.models.signals import post_delete
 from django.dispatch import receiver
 
 
+class ProductStatus(models.Model):
+    """Model for defining dynamic product sections on the home page"""
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=100, unique=True, blank=True)
+    display_on_home = models.BooleanField(default=False)
+    display_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['display_order', 'name']
+        verbose_name = 'Product Status'
+        verbose_name_plural = 'Product Statuses'
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            from django.utils.text import slugify
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+
 class Discount(models.Model):
     """
     Discount model for managing discount campaigns
@@ -39,29 +64,23 @@ class Discount(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='ACTIVE')
     
     # Specific target for category or product discounts
-    category = models.ForeignKey(
+    categories = models.ManyToManyField(
         Category,
-        on_delete=models.CASCADE,
         related_name='discounts',
-        null=True,
         blank=True,
         help_text="Required for CATEGORY discount type"
     )
     
-    online_category = models.ForeignKey(
+    online_categories = models.ManyToManyField(
         OnlineCategory,
-        on_delete=models.CASCADE,
         related_name='discounts',
-        null=True,
         blank=True,
         help_text="Online category for ecommerce discounts"
     )
     
-    product = models.ForeignKey(
+    products = models.ManyToManyField(
         Product,
-        on_delete=models.CASCADE,
         related_name='discounts',
-        null=True,
         blank=True,
         help_text="Required for PRODUCT discount type"
     )
@@ -99,12 +118,10 @@ class Discount(models.Model):
         """Validate discount configuration"""
         from django.core.exceptions import ValidationError
         
-        # Validate discount type and related fields
-        if self.discount_type == 'CATEGORY' and not self.category and not self.online_category:
-            raise ValidationError("Category discount must have a category or online category assigned")
-        
-        if self.discount_type == 'PRODUCT' and not self.product:
-            raise ValidationError("Product discount must have a product assigned")
+        # Note: ManyToMany relationships cannot be checked easily in clean() 
+        # because they are usually set after the instance is saved.
+        # Most validation should happen in the serializer or admin form.
+        pass
         
         # Validate dates
         if self.start_date >= self.end_date:
@@ -366,3 +383,70 @@ class HeroSlide(models.Model):
                 pass
         super().delete(*args, **kwargs)
 
+
+class PromotionalModal(models.Model):
+    """Model for managing promotional modals"""
+    LAYOUT_CHOICES = [
+        ('centered', 'Centered'),
+        ('split-left', 'Split Left (Image Left)'),
+        ('split-right', 'Split Right (Image Right)'),
+        ('full-cover', 'Full Cover Image'),
+        ('image-only', 'Image Only'),
+    ]
+    
+    COLOR_THEME_CHOICES = [
+        ('light', 'Light Mode'),
+        ('dark', 'Dark Mode'),
+        ('brand', 'Brand Colors'),
+    ]
+
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True, null=True, help_text="Supports rich text/HTML")
+    discount_code = models.CharField(max_length=50, blank=True, null=True)
+    cta_text = models.CharField(max_length=50, default="Shop Now")
+    cta_url = models.CharField(max_length=500, blank=True, null=True)
+    image = models.ImageField(upload_to='promo_modals/', null=True, blank=True)
+    
+    # Visual Settings
+    layout = models.CharField(max_length=50, choices=LAYOUT_CHOICES, default='centered')
+    color_theme = models.CharField(max_length=50, choices=COLOR_THEME_CHOICES, default='light')
+    
+    # Configuration JSONs
+    # display_rules example: {"trigger": "timer", "delay_seconds": 5, "frequency": "once_per_session"}
+    display_rules = models.JSONField(default=dict, blank=True, help_text="Rules: timer, exit_intent, first_visit etc.")
+    
+    # targeting example: {"devices": ["mobile", "desktop"], "users": ["all"]}
+    targeting_rules = models.JSONField(default=dict, blank=True, help_text="Device and User targeting rules")
+
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField()
+    is_active = models.BooleanField(default=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Promotional Modal'
+        verbose_name_plural = 'Promotional Modals'
+
+    def __str__(self):
+        return self.title
+
+    def save(self, *args, **kwargs):
+        if self.image:
+            optimize_image(self.image)
+        super().save(*args, **kwargs)
+
+    def is_currently_active(self):
+        now = timezone.now()
+        return self.is_active and self.start_date <= now <= self.end_date
+
+    def delete(self, *args, **kwargs):
+        if self.image:
+            try:
+                if os.path.isfile(self.image.path):
+                    os.remove(self.image.path)
+            except (ValueError, OSError):
+                pass
+        super().delete(*args, **kwargs)

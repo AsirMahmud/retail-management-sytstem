@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { Search, ShoppingCart, User, Menu, ChevronRight, ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -67,6 +67,7 @@ export function SiteHeader() {
   const [searchLoading, setSearchLoading] = useState(false)
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const router = useRouter()
+  const pathname = usePathname()
   const [shouldAnimateCart, setShouldAnimateCart] = useState(false)
   const prevTotalItems = useRef(totalItems)
 
@@ -75,7 +76,15 @@ export function SiteHeader() {
     const fetchCategories = async () => {
       setLoadingCategories(true)
       try {
-        const allCategories = await ecommerceApi.getOnlineCategories()
+        // Determine gender from path, default to men
+        let gender = 'MALE'
+        if (pathname.includes('/women')) {
+          gender = 'FEMALE'
+        } else if (pathname.includes('/men')) {
+          gender = 'MALE'
+        }
+
+        const allCategories = await ecommerceApi.getOnlineCategories({ gender })
         setOnlineCategories(allCategories)
       } catch (error) {
         console.error("Failed to fetch categories:", error)
@@ -86,7 +95,7 @@ export function SiteHeader() {
     }
 
     fetchCategories()
-  }, [])
+  }, [pathname])
 
   useEffect(() => {
     const fetchBranding = async () => {
@@ -460,9 +469,10 @@ function MobileNavigationSheet() {
 
       setLoading(true)
       try {
-        // Fetch ALL categories - categories are independent of gender
-        // Gender filtering will be applied when products are fetched
-        const allCategories = await ecommerceApi.getOnlineCategories()
+        // Fetch categories filtered by selected gender
+        const allCategories = await ecommerceApi.getOnlineCategories({
+          gender: selectedGender === 'women' ? 'FEMALE' : 'MALE'
+        })
         setOnlineCategories(allCategories)
       } catch (error) {
         console.error('Failed to fetch categories:', error)

@@ -79,7 +79,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useSales } from "@/hooks/queries/use-sales";
-import type { SaleStatus, PaymentMethod, Sale, SaleItem, SalePayment, DuePayment } from "@/types/sales";
+import type { SaleStatus, PaymentMethod, Sale, SaleItem, SalePayment, DuePayment, SaleType } from "@/types/sales";
 import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
@@ -136,6 +136,7 @@ function useDebounce<T>(value: T, delay: number): T {
 export default function SalesHistory() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<SaleStatus | "all">("all");
+  const [saleTypeFilter, setSaleTypeFilter] = useState<SaleType | "all">("all");
   const [paymentFilter, setPaymentFilter] = useState<PaymentMethod | "all">(
     "all"
   );
@@ -144,7 +145,7 @@ export default function SalesHistory() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [selectedOrder, setSelectedOrder] =
     useState<SaleWithCustomerDetails | null>(null);
-  const [selectedDuePayment, setSelectedDuePayment] = 
+  const [selectedDuePayment, setSelectedDuePayment] =
     useState<SaleWithCustomerDetails | null>(null);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentNotes, setPaymentNotes] = useState("");
@@ -191,6 +192,7 @@ export default function SalesHistory() {
     isDeletingAll,
   } = useSales({
     status: statusFilter !== "all" ? statusFilter : undefined,
+    sale_type: saleTypeFilter !== "all" ? saleTypeFilter : undefined,
     payment_method: paymentFilter !== "all" ? paymentFilter : undefined,
     payment_status: paymentStatusFilter !== "all" ? paymentStatusFilter : undefined,
     search: debouncedSearchTerm || undefined,
@@ -255,6 +257,36 @@ export default function SalesHistory() {
     return <Badge className={`${config.color}`}>{config.label}</Badge>;
   };
 
+  const getSaleTypeBadge = (type: SaleType | undefined) => {
+    // Determine icon and label based on sale type
+    let icon, label, style;
+
+    switch (type) {
+      case "online_preorder":
+        style = "bg-indigo-100 text-indigo-800 border-indigo-200";
+        label = "Online Order";
+        icon = <Smartphone className="w-3 h-3 mr-1" />;
+        break;
+      case "offline_preorder":
+        style = "bg-purple-100 text-purple-800 border-purple-200";
+        label = "Preorder";
+        icon = <Clock className="w-3 h-3 mr-1" />;
+        break;
+      case "shop":
+      default:
+        style = "bg-gray-100 text-gray-800 border-gray-200";
+        label = "In-Store";
+        icon = <Package className="w-3 h-3 mr-1" />;
+        break;
+    }
+
+    return (
+      <Badge className={`${style} flex items-center w-fit whitespace-nowrap`}>
+        {icon} {label}
+      </Badge>
+    );
+  };
+
   const formatDate = (dateString: string | undefined) => {
     if (!dateString) return "";
     const date = new Date(dateString);
@@ -315,7 +347,7 @@ export default function SalesHistory() {
     }
 
     // Calculate actual payment totals from individual payments (most reliable)
-    const actualPaymentsTotal = sale.sale_payments && sale.sale_payments.length > 0 ? 
+    const actualPaymentsTotal = sale.sale_payments && sale.sale_payments.length > 0 ?
       sale.sale_payments
         .filter(payment => payment.status === 'completed') // Only count completed payments
         .reduce((sum: number, payment: SalePayment) => sum + (parseFloat(payment.amount.toString()) || 0), 0) : 0;
@@ -324,16 +356,16 @@ export default function SalesHistory() {
     const hasSplitPayments = sale.sale_payments && sale.sale_payments.length > 1;
     const hasAnyPayments = sale.sale_payments && sale.sale_payments.length > 0;
     const totalPaidAmount = sale.amount_paid || 0;
-    
+
     // Use the most reliable payment total (prefer calculated from individual payments)
     const effectivePaymentTotal = hasAnyPayments ? actualPaymentsTotal : totalPaidAmount;
-    
+
     // Determine if payment is complete (with small tolerance for decimal precision)
     const isPaymentComplete = effectivePaymentTotal >= (sale.total - 0.01);
-    
+
     // Calculate remaining amount
     const remainingAmount = Math.max(0, sale.total - effectivePaymentTotal);
-    
+
     // Split payment completed
     if (hasSplitPayments && isPaymentComplete) {
       return <Badge className="bg-blue-100 text-blue-800 border-blue-200">
@@ -341,7 +373,7 @@ export default function SalesHistory() {
         Split Completed
       </Badge>;
     }
-    
+
     // Regular payment completed
     if (isPaymentComplete && !hasSplitPayments) {
       return <Badge className="bg-green-100 text-green-800 border-green-200">
@@ -349,7 +381,7 @@ export default function SalesHistory() {
         Paid
       </Badge>;
     }
-    
+
     // Partially paid (has some payment but not complete)
     if (effectivePaymentTotal > 0 && remainingAmount > 0) {
       return <Badge className="bg-orange-100 text-orange-800 border-orange-200">
@@ -357,7 +389,7 @@ export default function SalesHistory() {
         ${remainingAmount.toFixed(2)} Due
       </Badge>;
     }
-    
+
     // Completely unpaid
     return <Badge className="bg-red-100 text-red-800 border-red-200">
       <AlertCircle className="w-3 h-3 mr-1" />
@@ -381,10 +413,10 @@ export default function SalesHistory() {
 
   const handleMakePayment = async () => {
     if (!selectedDuePayment || !paymentAmount) return;
-    
+
     const paymentAmountNum = parseFloat(paymentAmount);
     const amountDue = selectedDuePayment.amount_due || 0;
-    
+
     if (paymentAmountNum <= 0) {
       toast({
         title: "Invalid Amount",
@@ -393,7 +425,7 @@ export default function SalesHistory() {
       });
       return;
     }
-    
+
     if (paymentAmountNum > amountDue) {
       toast({
         title: "Amount Too High",
@@ -402,7 +434,7 @@ export default function SalesHistory() {
       });
       return;
     }
-    
+
     setIsProcessingPayment(true);
     try {
       // Call the API to add payment to the sale
@@ -412,22 +444,22 @@ export default function SalesHistory() {
         notes: paymentNotes || `${paymentMethod} payment on due amount`,
         status: 'completed'
       });
-      
+
       // Determine if this completes the payment
       const isCompletePayment = paymentAmountNum >= amountDue;
-      
+
       toast({
         title: isCompletePayment ? "Payment Completed" : "Partial Payment Processed",
-        description: isCompletePayment 
+        description: isCompletePayment
           ? `Payment of ${formatCurrency(paymentAmountNum)} completed. Sale status updated to completed.`
           : `Partial payment of ${formatCurrency(paymentAmountNum)} processed. Remaining due: ${formatCurrency(amountDue - paymentAmountNum)}.`,
       });
-      
+
       setSelectedDuePayment(null);
       setPaymentAmount("");
       setPaymentNotes("");
       setPaymentMethod("cash");
-      
+
       // Refresh the sales data to show updated status
       queryClient.invalidateQueries({ queryKey: ['sales'] });
     } catch (error) {
@@ -469,7 +501,7 @@ export default function SalesHistory() {
   const handleCompletePayment = async () => {
     try {
       setIsProcessingPayment(true);
-      
+
       // Call the API to add payment to the sale
       await addPayment(completeSaleData.saleId, {
         amount: completeSaleData.amount,
@@ -477,12 +509,12 @@ export default function SalesHistory() {
         notes: completeSaleData.notes,
         status: 'completed'
       });
-      
+
       toast({
         title: "Payment Completed",
         description: `Payment of ${formatCurrency(completeSaleData.amount)} has been processed successfully.`,
       });
-      
+
       setShowCompletePaymentDialog(false);
       // Refresh the sales data
       queryClient.invalidateQueries({ queryKey: ['sales'] });
@@ -790,6 +822,23 @@ export default function SalesHistory() {
                 </SelectContent>
               </Select>
               <Select
+                value={saleTypeFilter}
+                onValueChange={(value: SaleType | "all") =>
+                  setSaleTypeFilter(value)
+                }
+                disabled={isLoading}
+              >
+                <SelectTrigger className="w-48 h-12 bg-gray-50 border-gray-200">
+                  <SelectValue placeholder="Sale Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="shop">In-Store</SelectItem>
+                  <SelectItem value="online_preorder">Online Preorder</SelectItem>
+                  <SelectItem value="offline_preorder">Offline Preorder</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
                 value={paymentFilter}
                 onValueChange={(value: PaymentMethod | "all") =>
                   setPaymentFilter(value)
@@ -835,7 +884,7 @@ export default function SalesHistory() {
                 <Filter className="w-4 h-4 mr-2" />
                 More Filters
               </Button>
-              {(statusFilter !== "all" || paymentFilter !== "all" || paymentStatusFilter !== "all" || searchTerm || dateRange.from || dateRange.to) && (
+              {(statusFilter !== "all" || saleTypeFilter !== "all" || paymentFilter !== "all" || paymentStatusFilter !== "all" || searchTerm || dateRange.from || dateRange.to) && (
                 <Button
                   variant="outline"
                   className="h-12 px-4 bg-red-50 border-red-200 hover:bg-red-100 text-red-600"
@@ -865,8 +914,7 @@ export default function SalesHistory() {
                       Loading transactions...
                     </span>
                   ) : (
-                    `Showing ${sales.length} of ${
-                      pagination?.count || 0
+                    `Showing ${sales.length} of ${pagination?.count || 0
                     } transactions`
                   )}
                 </CardDescription>
@@ -927,6 +975,9 @@ export default function SalesHistory() {
                         Date
                         <ArrowUpDown className="ml-2 h-4 w-4" />
                       </Button>
+                    </TableHead>
+                    <TableHead className="font-semibold text-gray-700">
+                      Type
                     </TableHead>
                     <TableHead className="font-semibold text-gray-700">
                       Items
@@ -995,8 +1046,14 @@ export default function SalesHistory() {
                             </div>
                           </div>
                         </TableCell>
+                        <TableCell>
+                          {getSaleTypeBadge(sale.sale_type)}
+                        </TableCell>
                         <TableCell className="text-sm text-gray-600">
                           {formatDate(sale.date)}
+                        </TableCell>
+                        <TableCell>
+                          {getSaleTypeBadge(sale.sale_type)}
                         </TableCell>
                         <TableCell>
                           <Badge
@@ -1350,7 +1407,7 @@ export default function SalesHistory() {
                     </Button>
                   </div>
                 </div>
-                
+
                 <div>
                   <Label htmlFor="payment-method">Payment Method</Label>
                   <Select
@@ -1367,7 +1424,7 @@ export default function SalesHistory() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
                   <Label htmlFor="payment-notes">Notes (Optional)</Label>
                   <Textarea
@@ -1626,13 +1683,13 @@ export default function SalesHistory() {
                       <div>
                         <h4 className="font-semibold text-blue-900">Complete Payment</h4>
                         <p className="text-sm text-blue-700">
-                          {selectedOrder.status === 'pending' 
+                          {selectedOrder.status === 'pending'
                             ? `Complete the payment of ${formatCurrency(selectedOrder.total)}`
                             : `Pay remaining balance of ${formatCurrency(selectedOrder.amount_due)}`
                           }
                         </p>
                       </div>
-                      <Button 
+                      <Button
                         onClick={() => handleCompleteSale(selectedOrder)}
                         className="bg-blue-600 hover:bg-blue-700"
                       >
@@ -1712,7 +1769,7 @@ export default function SalesHistory() {
               Complete the payment for this sale
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div>
               <Label className="text-sm font-medium">Amount to Pay</Label>
@@ -1728,7 +1785,7 @@ export default function SalesHistory() {
                 min="0"
               />
             </div>
-            
+
             <div>
               <Label className="text-sm font-medium">Payment Method</Label>
               <Select
@@ -1748,7 +1805,7 @@ export default function SalesHistory() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
               <Label className="text-sm font-medium">Notes (Optional)</Label>
               <Textarea
@@ -1763,16 +1820,16 @@ export default function SalesHistory() {
               />
             </div>
           </div>
-          
+
           <DialogFooter className="gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => setShowCompletePaymentDialog(false)}
             >
               Cancel
             </Button>
-            <Button 
-              onClick={handleCompletePayment} 
+            <Button
+              onClick={handleCompletePayment}
               className="bg-blue-600 hover:bg-blue-700"
               disabled={isProcessingPayment}
             >

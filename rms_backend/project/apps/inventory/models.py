@@ -11,7 +11,11 @@ from apps.supplier.models import Supplier  # Import Supplier from supplier app
 from django.db.models import Sum
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
-from apps.utils import optimize_image
+GENDER_CHOICES = [
+    ('MALE', 'Male'),
+    ('FEMALE', 'Female'),
+    ('UNISEX', 'Unisex'),
+]
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -40,6 +44,7 @@ class OnlineCategory(models.Model):
     description = models.TextField(blank=True)
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
     order = models.PositiveIntegerField(default=0, db_index=True)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='MALE')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -58,12 +63,6 @@ class OnlineCategory(models.Model):
 
 
 class Product(models.Model):
-    GENDER_CHOICES = [
-        ('MALE', 'Male'),
-        ('FEMALE', 'Female'),
-        ('UNISEX', 'Unisex'),
-    ]
-
     name = models.CharField(max_length=200)
     sku = models.CharField(max_length=50, unique=True, blank=True)
     barcode = models.CharField(max_length=50, unique=True, blank=True, null=True)
@@ -81,12 +80,13 @@ class Product(models.Model):
     is_active = models.BooleanField(default=True)
     size_type = models.CharField(max_length=50, null=True, blank=True)
     size_category=models.CharField(max_length=50, null=True, blank=True)
-    gender = models.CharField(max_length=6, choices=GENDER_CHOICES, default='UNISEX')
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default='UNISEX')
     assign_to_online = models.BooleanField(default=False, null=True)
     # Ecommerce status fields
     is_new_arrival = models.BooleanField(default=False)
     is_trending = models.BooleanField(default=False)
     is_featured = models.BooleanField(default=False)
+    ecommerce_statuses = models.ManyToManyField('ecommerce.ProductStatus', blank=True, related_name='products')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

@@ -70,23 +70,9 @@ import {
   useUpdateDiscount,
   useDeleteDiscount
 } from "@/hooks/queries/useEcommerce";
+import { Discount } from "@/lib/api/ecommerce";
 import { categoriesApi, onlineCategoriesApi, productsApi } from "@/lib/api/inventory";
 import { Category, Product } from "@/types/inventory";
-
-interface Discount {
-  id: number;
-  name: string;
-  discount_type: string;
-  value: number;
-  start_date: string;
-  end_date: string;
-  status: string;
-  description: string;
-  is_active: boolean;
-  category?: number;
-  online_category?: number;
-  product?: number;
-}
 
 export default function DiscountManagementPage() {
   const [isCreating, setIsCreating] = useState(false);
@@ -99,9 +85,9 @@ export default function DiscountManagementPage() {
     startDate: "",
     endDate: "",
     description: "",
-    category: "",
-    onlineCategory: "",
-    product: "",
+    categories: [] as string[],
+    onlineCategories: [] as string[],
+    products: [] as string[],
   });
 
   // Data for selectors
@@ -152,9 +138,9 @@ export default function DiscountManagementPage() {
       startDate: "",
       endDate: "",
       description: "",
-      category: "",
-      onlineCategory: "",
-      product: "",
+      categories: [],
+      onlineCategories: [],
+      products: [],
     });
   };
 
@@ -165,12 +151,12 @@ export default function DiscountManagementPage() {
     }
 
     // Validate category/product selection based on type
-    if (formData.type === "CATEGORY" && !formData.category && !formData.onlineCategory) {
-      toast.error("Please select a category for category discount");
+    if (formData.type === "CATEGORY" && formData.categories.length === 0 && formData.onlineCategories.length === 0) {
+      toast.error("Please select at least one category for category discount");
       return;
     }
-    if (formData.type === "PRODUCT" && !formData.product) {
-      toast.error("Please select a product for product discount");
+    if (formData.type === "PRODUCT" && formData.products.length === 0) {
+      toast.error("Please select at least one product for product discount");
       return;
     }
 
@@ -178,15 +164,15 @@ export default function DiscountManagementPage() {
       await createDiscountMutation.mutateAsync({
         name: formData.name,
         discount_type: formData.type as 'APP_WIDE' | 'CATEGORY' | 'PRODUCT',
-        value: parseInt(formData.value),
+        value: parseFloat(formData.value),
         start_date: formData.startDate,
         end_date: formData.endDate,
         description: formData.description,
         is_active: true,
         status: 'ACTIVE',
-        category: formData.category ? parseInt(formData.category) : undefined,
-        online_category: formData.onlineCategory ? parseInt(formData.onlineCategory) : undefined,
-        product: formData.product ? parseInt(formData.product) : undefined,
+        categories: formData.categories.map(c => Number(c)),
+        online_categories: formData.onlineCategories.map(c => Number(c)),
+        products: formData.products.map(p => Number(p)),
       });
 
       resetForm();
@@ -201,16 +187,22 @@ export default function DiscountManagementPage() {
   const handleEditDiscount = (id: number) => {
     const discount = discounts.find((d: Discount) => d.id === id);
     if (discount) {
+      // Format dates for input type="date" (YYYY-MM-DD)
+      const formatDate = (dateStr: string) => {
+        if (!dateStr) return "";
+        return dateStr.split('T')[0];
+      };
+
       setFormData({
         name: discount.name,
         type: discount.discount_type,
         value: discount.value.toString(),
-        startDate: discount.start_date,
-        endDate: discount.end_date,
+        startDate: formatDate(discount.start_date),
+        endDate: formatDate(discount.end_date),
         description: discount.description || "",
-        category: discount.category?.toString() || "",
-        onlineCategory: discount.online_category?.toString() || "",
-        product: discount.product?.toString() || "",
+        categories: discount.categories?.map(id => id.toString()) || [],
+        onlineCategories: discount.online_categories?.map(id => id.toString()) || [],
+        products: discount.products?.map(id => id.toString()) || [],
       });
       setEditingId(id);
     }
@@ -227,13 +219,13 @@ export default function DiscountManagementPage() {
         id: editingId!,
         name: formData.name,
         discount_type: formData.type as 'APP_WIDE' | 'CATEGORY' | 'PRODUCT',
-        value: parseInt(formData.value),
+        value: parseFloat(formData.value),
         start_date: formData.startDate,
         end_date: formData.endDate,
         description: formData.description,
-        category: formData.category ? parseInt(formData.category) : undefined,
-        online_category: formData.onlineCategory ? parseInt(formData.onlineCategory) : undefined,
-        product: formData.product ? parseInt(formData.product) : undefined,
+        categories: formData.categories.map(c => Number(c)),
+        online_categories: formData.onlineCategories.map(c => Number(c)),
+        products: formData.products.map(p => Number(p)),
       });
 
       resetForm();
@@ -294,23 +286,48 @@ export default function DiscountManagementPage() {
     }
   };
 
-  const getTargetName = (discount: Discount) => {
+  const getTargetName = (discount: any) => {
     if (discount.discount_type === "APP_WIDE") return "All Products";
+
     if (discount.discount_type === "CATEGORY") {
-      if (discount.online_category) {
-        const cat = onlineCategories.find(c => String(c.id) === String(discount.online_category));
-        return cat?.name || `Online Category #${discount.online_category}`;
+      const names: string[] = [];
+
+      if (discount.online_categories_detail && discount.online_categories_detail.length > 0) {
+        discount.online_categories_detail.forEach((c: any) => names.push(c.name));
+      } else if (discount.online_categories && discount.online_categories.length > 0) {
+        discount.online_categories.forEach((id: number) => {
+          const cat = onlineCategories.find((c) => c.id === id);
+          names.push(cat?.name || `Online Category #${id}`);
+        });
       }
-      if (discount.category) {
-        const cat = categories.find(c => String(c.id) === String(discount.category));
-        return cat?.name || `Category #${discount.category}`;
+
+      if (discount.categories_detail && discount.categories_detail.length > 0) {
+        discount.categories_detail.forEach((c: any) => names.push(c.name));
+      } else if (discount.categories && discount.categories.length > 0) {
+        discount.categories.forEach((id: number) => {
+          const cat = categories.find((c) => c.id === id);
+          names.push(cat?.name || `Category #${id}`);
+        });
       }
-      return "Unknown Category";
+
+      return names.length > 0 ? names.join(", ") : "Unknown Category";
     }
+
     if (discount.discount_type === "PRODUCT") {
-      const prod = products.find(p => String(p.id) === String(discount.product));
-      return prod?.name || `Product #${discount.product}`;
+      const names: string[] = [];
+
+      if (discount.products_detail && discount.products_detail.length > 0) {
+        discount.products_detail.forEach((p: any) => names.push(p.name));
+      } else if (discount.products && discount.products.length > 0) {
+        discount.products.forEach((id: number) => {
+          const prod = products.find((p) => p.id === id);
+          names.push(prod?.name || `Product #${id}`);
+        });
+      }
+
+      return names.length > 0 ? names.join(", ") : "Unknown Product";
     }
+
     return "-";
   };
 
@@ -386,13 +403,13 @@ export default function DiscountManagementPage() {
                         onValueChange={(value) => setFormData({
                           ...formData,
                           type: value,
-                          category: "",
-                          onlineCategory: "",
-                          product: ""
+                          categories: [],
+                          onlineCategories: [],
+                          products: []
                         })}
                       >
                         <SelectTrigger>
-                          <SelectValue />
+                          <SelectValue placeholder="Select type..." />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="APP_WIDE">🌐 Global (App-Wide)</SelectItem>
@@ -408,65 +425,119 @@ export default function DiscountManagementPage() {
                         <div className="space-y-2">
                           <Label htmlFor="online-category">
                             <FolderTree className="inline h-4 w-4 mr-1" />
-                            Online Category
+                            Online Categories
                           </Label>
-                          <Select
-                            value={formData.onlineCategory}
-                            onValueChange={(value) => setFormData({
-                              ...formData,
-                              onlineCategory: value === "_none" ? "" : value,
-                              category: ""
-                            })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select online category..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="_none">None</SelectItem>
-                              {onlineCategories.map((cat) => (
-                                <SelectItem key={cat.id} value={cat.id.toString()}>
-                                  {cat.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" className="w-full justify-between h-10">
+                                {formData.onlineCategories.length > 0
+                                  ? `${formData.onlineCategories.length} selected`
+                                  : "Select online categories..."}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[300px] p-0" align="start">
+                              <Command>
+                                <CommandInput placeholder="Search online categories..." />
+                                <CommandList>
+                                  <CommandEmpty>No category found.</CommandEmpty>
+                                  <CommandGroup>
+                                    {onlineCategories.map((cat) => (
+                                      <CommandItem
+                                        key={cat.id}
+                                        onSelect={() => {
+                                          const current = [...formData.onlineCategories];
+                                          const index = current.indexOf(cat.id.toString());
+                                          if (index > -1) {
+                                            current.splice(index, 1);
+                                          } else {
+                                            current.push(cat.id.toString());
+                                          }
+                                          setFormData({ ...formData, onlineCategories: current });
+                                        }}
+                                      >
+                                        <div className="flex items-center gap-2 w-full">
+                                          <div className={cn(
+                                            "flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                            formData.onlineCategories.includes(cat.id.toString())
+                                              ? "bg-primary text-primary-foreground"
+                                              : "opacity-50 [&_svg]:invisible"
+                                          )}>
+                                            <Check className="h-4 w-4" />
+                                          </div>
+                                          <span>{cat.name}</span>
+                                        </div>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
                         </div>
 
                         <div className="space-y-2">
                           <Label htmlFor="category">
                             <FolderTree className="inline h-4 w-4 mr-1" />
-                            Or Inventory Category
+                            Inventory Categories
                           </Label>
-                          <Select
-                            value={formData.category}
-                            onValueChange={(value) => setFormData({
-                              ...formData,
-                              category: value === "_none" ? "" : value,
-                              onlineCategory: ""
-                            })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select inventory category..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="_none">None</SelectItem>
-                              {categories.map((cat) => (
-                                <SelectItem key={cat.id} value={cat.id.toString()}>
-                                  {cat.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button variant="outline" className="w-full justify-between h-10">
+                                {formData.categories.length > 0
+                                  ? `${formData.categories.length} selected`
+                                  : "Select inventory categories..."}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[300px] p-0" align="start">
+                              <Command>
+                                <CommandInput placeholder="Search inventory categories..." />
+                                <CommandList>
+                                  <CommandEmpty>No category found.</CommandEmpty>
+                                  <CommandGroup>
+                                    {categories.map((cat) => (
+                                      <CommandItem
+                                        key={cat.id}
+                                        onSelect={() => {
+                                          const current = [...formData.categories];
+                                          const index = current.indexOf(cat.id.toString());
+                                          if (index > -1) {
+                                            current.splice(index, 1);
+                                          } else {
+                                            current.push(cat.id.toString());
+                                          }
+                                          setFormData({ ...formData, categories: current });
+                                        }}
+                                      >
+                                        <div className="flex items-center gap-2 w-full">
+                                          <div className={cn(
+                                            "flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                            formData.categories.includes(cat.id.toString())
+                                              ? "bg-primary text-primary-foreground"
+                                              : "opacity-50 [&_svg]:invisible"
+                                          )}>
+                                            <Check className="h-4 w-4" />
+                                          </div>
+                                          <span>{cat.name}</span>
+                                        </div>
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
                         </div>
                       </>
                     )}
 
-                    {/* Product Selector - Searchable Combobox */}
+                    {/* Product Selector - Searchable Multi-select Combobox */}
                     {formData.type === "PRODUCT" && (
                       <div className="space-y-2 md:col-span-2">
                         <Label htmlFor="product">
                           <Package className="inline h-4 w-4 mr-1" />
-                          Select Product (Searchable)
+                          Select Products (Searchable)
                         </Label>
                         <Popover open={openProductCombobox} onOpenChange={setOpenProductCombobox}>
                           <PopoverTrigger asChild>
@@ -476,36 +547,37 @@ export default function DiscountManagementPage() {
                               aria-expanded={openProductCombobox}
                               className="w-full justify-between h-14"
                             >
-                              {formData.product ? (
+                              {formData.products.length > 0 ? (
                                 <div className="flex items-center gap-2">
-                                  {(() => {
-                                    const selectedProduct = products.find((p) => p.id.toString() === formData.product);
-                                    return selectedProduct ? (
-                                      <>
-                                        <div className="h-10 w-10 relative rounded overflow-hidden border">
-                                          <img
-                                            src={getProductImage(selectedProduct)}
-                                            alt={selectedProduct.name}
-                                            className="h-full w-full object-cover"
-                                          />
-                                        </div>
-                                        <div className="flex flex-col items-start">
-                                          <span className="font-medium text-sm">{selectedProduct.name}</span>
-                                          <span className="text-xs text-muted-foreground">SKU: {selectedProduct.sku}</span>
-                                        </div>
-                                      </>
+                                  <Badge variant="secondary" className="rounded-sm px-1 font-normal lg:hidden">
+                                    {formData.products.length} selected
+                                  </Badge>
+                                  <div className="hidden space-x-1 lg:flex">
+                                    {formData.products.length > 2 ? (
+                                      <Badge variant="secondary" className="rounded-sm px-1 font-normal">
+                                        {formData.products.length} selected
+                                      </Badge>
                                     ) : (
-                                      "Select a product..."
-                                    );
-                                  })()}
+                                      formData.products.map((id) => {
+                                        const prod = products.find((p) => p.id.toString() === id);
+                                        const editingDiscount = editingId ? (discounts as any).find((d: any) => d.id === editingId) : null;
+                                        const detail = prod || (editingDiscount as any)?.products_detail?.find((pd: any) => pd.id.toString() === id);
+                                        return (
+                                          <Badge variant="secondary" key={id} className="rounded-sm px-1 font-normal max-w-[150px] truncate">
+                                            {detail?.name || `Product #${id}`}
+                                          </Badge>
+                                        );
+                                      })
+                                    )}
+                                  </div>
                                 </div>
                               ) : (
-                                "Select a product..."
+                                "Select products..."
                               )}
                               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
                           </PopoverTrigger>
-                          <PopoverContent className="w-[400px] p-0" align="start">
+                          <PopoverContent className="w-[450px] p-0" align="start">
                             <Command>
                               <CommandInput placeholder="Search product by name or SKU..." />
                               <CommandList>
@@ -516,13 +588,27 @@ export default function DiscountManagementPage() {
                                       key={product.id}
                                       value={`${product.name} ${product.sku}`}
                                       onSelect={() => {
-                                        setFormData({ ...formData, product: product.id.toString() });
-                                        setOpenProductCombobox(false);
+                                        const current = [...formData.products];
+                                        const index = current.indexOf(product.id.toString());
+                                        if (index > -1) {
+                                          current.splice(index, 1);
+                                        } else {
+                                          current.push(product.id.toString());
+                                        }
+                                        setFormData({ ...formData, products: current });
                                       }}
                                     >
                                       <HoverCard openDelay={200} closeDelay={100}>
                                         <HoverCardTrigger asChild>
                                           <div className="flex items-center gap-2 w-full cursor-pointer">
+                                            <div className={cn(
+                                              "flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                                              formData.products.includes(product.id.toString())
+                                                ? "bg-primary text-primary-foreground"
+                                                : "opacity-50 [&_svg]:invisible"
+                                            )}>
+                                              <Check className="h-4 w-4" />
+                                            </div>
                                             <div className="h-8 w-8 relative rounded overflow-hidden border shrink-0">
                                               <img
                                                 src={getProductImage(product)}
@@ -534,12 +620,6 @@ export default function DiscountManagementPage() {
                                               <span className="font-medium text-sm">{product.name}</span>
                                               <span className="text-xs text-muted-foreground">SKU: {product.sku}</span>
                                             </div>
-                                            <Check
-                                              className={cn(
-                                                "ml-auto h-4 w-4",
-                                                formData.product === product.id.toString() ? "opacity-100" : "opacity-0"
-                                              )}
-                                            />
                                           </div>
                                         </HoverCardTrigger>
                                         <HoverCardContent className="w-80 p-0" side="right" align="start">

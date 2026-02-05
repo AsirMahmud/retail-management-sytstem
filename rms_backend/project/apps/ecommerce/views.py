@@ -8,8 +8,12 @@ from django.utils import timezone
 from django.db.models import Q
 from django.db import IntegrityError
 from datetime import datetime
-from .models import Discount, Brand, HomePageSettings, DeliverySettings, HeroSlide
-from .serializers import DiscountSerializer, DiscountListSerializer, BrandSerializer, HomePageSettingsSerializer, DeliverySettingsSerializer, HeroSlideSerializer
+from .models import Discount, Brand, HomePageSettings, DeliverySettings, HeroSlide, PromotionalModal, ProductStatus
+from .serializers import (
+    DiscountSerializer, DiscountListSerializer, BrandSerializer, 
+    HomePageSettingsSerializer, DeliverySettingsSerializer, 
+    HeroSlideSerializer, PromotionalModalSerializer, ProductStatusSerializer
+)
 from django.utils.text import slugify
 from apps.inventory.models import Product, ProductVariation, Gallery, Image, OnlineCategory
 from apps.inventory.serializers import EcommerceProductSerializer
@@ -76,6 +80,9 @@ class DiscountViewSet(viewsets.ModelViewSet):
         active_discounts = self.queryset.filter(
             is_active=True,
             status='ACTIVE',
+            products__isnull=True,
+            categories__isnull=True,
+            online_categories__isnull=True,
             start_date__lte=now,
             end_date__gte=now
         )
@@ -101,7 +108,7 @@ class DiscountViewSet(viewsets.ModelViewSet):
         )
         serializer = self.get_serializer(scheduled_discounts, many=True)
         return Response(serializer.data)
-    
+
     @action(detail=True, methods=['post'])
     def activate(self, request, pk=None):
         """Activate a discount"""
@@ -109,6 +116,30 @@ class DiscountViewSet(viewsets.ModelViewSet):
         discount.is_active = True
         discount.save()
         serializer = self.get_serializer(discount)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def deactivate(self, request, pk=None):
+        """Deactivate a discount"""
+        discount = self.get_object()
+        discount.is_active = False
+        discount.save()
+        serializer = self.get_serializer(discount)
+        return Response(serializer.data)
+
+
+class ProductStatusViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing product statuses (home page sections)
+    """
+    queryset = ProductStatus.objects.all()
+    serializer_class = ProductStatusSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [AllowAny()]
+        return super().get_permissions()
         return Response(serializer.data)
     
     @action(detail=True, methods=['post'])
@@ -573,6 +604,37 @@ class PublicHeroSlidesView(APIView):
     def get(self, request):
         slides = HeroSlide.objects.filter(is_active=True).order_by('display_order', 'created_at')
         serializer = HeroSlideSerializer(slides, many=True, context={'request': request})
+        return Response(serializer.data)
+
+
+class PromotionalModalViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing promotional modals
+    """
+    queryset = PromotionalModal.objects.all()
+    serializer_class = PromotionalModalSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def get_queryset(self):
+        return PromotionalModal.objects.all().order_by('-created_at')
+
+
+class PublicPromotionalModalView(APIView):
+    """Public API endpoint for active promotional modals"""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        now = timezone.now()
+        active_modals = PromotionalModal.objects.filter(
+            is_active=True,
+            start_date__lte=now,
+            end_date__gte=now
+        ).order_by('-created_at')
+        
+        # We might only want to return one or all depending on requirements.
+        # Returning all allows frontend to decide priority or display rules.
+        serializer = PromotionalModalSerializer(active_modals, many=True, context={'request': request})
         return Response(serializer.data)
 
 

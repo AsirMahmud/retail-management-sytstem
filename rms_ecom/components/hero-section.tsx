@@ -97,7 +97,7 @@ export function HeroSection() {
     const fetchCategories = async () => {
       setLoadingCategories(true)
       try {
-        const allCategories = await ecommerceApi.getOnlineCategories()
+        const allCategories = await ecommerceApi.getOnlineCategories({ gender: 'MALE' })
         setOnlineCategories(allCategories)
       } catch (error) {
         console.error('Failed to fetch categories:', error)

@@ -1,15 +1,23 @@
 from rest_framework import serializers
-from .models import Discount, Brand, HomePageSettings, DeliverySettings, HeroSlide
+from .models import Discount, Brand, HomePageSettings, DeliverySettings, HeroSlide, PromotionalModal, ProductStatus
 from apps.inventory.serializers import ProductSerializer, CategorySerializer, OnlineCategorySerializer
+
+
+class ProductStatusSerializer(serializers.ModelSerializer):
+    """Serializer for ProductStatus model"""
+    class Meta:
+        model = ProductStatus
+        fields = ['id', 'name', 'slug', 'display_on_home', 'display_order', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at', 'slug']
 
 
 class DiscountSerializer(serializers.ModelSerializer):
     """Serializer for Discount model"""
     
     # Include nested serializers for better API response
-    category_detail = CategorySerializer(source='category', read_only=True)
-    online_category_detail = OnlineCategorySerializer(source='online_category', read_only=True)
-    product_detail = ProductSerializer(source='product', read_only=True)
+    categories_detail = CategorySerializer(source='categories', read_only=True, many=True)
+    online_categories_detail = OnlineCategorySerializer(source='online_categories', read_only=True, many=True)
+    products_detail = ProductSerializer(source='products', read_only=True, many=True)
     
     # Add display fields
     discount_type_display = serializers.SerializerMethodField()
@@ -28,12 +36,12 @@ class DiscountSerializer(serializers.ModelSerializer):
             'end_date',
             'status',
             'status_display',
-            'category',
-            'category_detail',
-            'online_category',
-            'online_category_detail',
-            'product',
-            'product_detail',
+            'categories',
+            'categories_detail',
+            'online_categories',
+            'online_categories_detail',
+            'products',
+            'products_detail',
             'is_active',
             'created_at',
             'updated_at',
@@ -51,29 +59,50 @@ class DiscountSerializer(serializers.ModelSerializer):
     def validate(self, data):
         """Custom validation for discount"""
         # Check if start_date is before end_date
-        start_date = data.get('start_date')
-        end_date = data.get('end_date')
+        # Use existing instance data if fields are missing (for partial updates)
+        start_date = data.get('start_date', getattr(self.instance, 'start_date', None))
+        end_date = data.get('end_date', getattr(self.instance, 'end_date', None))
         
-        if start_date and end_date and start_date >= end_date:
+        if start_date and end_date and start_date > end_date:
             raise serializers.ValidationError({
                 'end_date': 'End date must be after start date.'
             })
         
         # Validate discount_type specific requirements
-        discount_type = data.get('discount_type')
-        category = data.get('category')
-        online_category = data.get('online_category')
-        product = data.get('product')
+        discount_type = data.get('discount_type', getattr(self.instance, 'discount_type', 'APP_WIDE'))
         
-        if discount_type == 'CATEGORY' and not category and not online_category:
-            raise serializers.ValidationError({
-                'category': 'Category or online category is required for CATEGORY discount type.'
-            })
+        # For M2M fields in validate(), they might be lists of PKs or objects
+        # We check both the new data and the existing instance if it's a partial update
+        categories = data.get('categories')
+        online_categories = data.get('online_categories')
+        products = data.get('products')
         
-        if discount_type == 'PRODUCT' and not product:
-            raise serializers.ValidationError({
-                'product': 'Product is required for PRODUCT discount type.'
-            })
+        if discount_type == 'CATEGORY':
+            # Check if at least one category selection exists (either new or existing)
+            has_cats = False
+            if categories or online_categories:
+                has_cats = True
+            elif self.instance:
+                if self.instance.categories.exists() or self.instance.online_categories.exists():
+                    has_cats = True
+            
+            if not has_cats:
+                raise serializers.ValidationError({
+                    'categories': 'At least one category or online category is required for CATEGORY discount type.'
+                })
+        
+        if discount_type == 'PRODUCT':
+            # Check if at least one product selection exists
+            has_prods = False
+            if products:
+                has_prods = True
+            elif self.instance and self.instance.products.exists():
+                has_prods = True
+                
+            if not has_prods:
+                raise serializers.ValidationError({
+                    'products': 'At least one product is required for PRODUCT discount type.'
+                })
         
         return data
     
@@ -117,6 +146,11 @@ class DiscountSerializer(serializers.ModelSerializer):
 class DiscountListSerializer(serializers.ModelSerializer):
     """Simplified serializer for listing discounts"""
     
+    # Include nested serializers for better API response
+    categories_detail = CategorySerializer(source='categories', read_only=True, many=True)
+    online_categories_detail = OnlineCategorySerializer(source='online_categories', read_only=True, many=True)
+    products_detail = ProductSerializer(source='products', read_only=True, many=True)
+
     # Add display fields
     discount_type_display = serializers.SerializerMethodField()
     status_display = serializers.SerializerMethodField()
@@ -133,6 +167,12 @@ class DiscountListSerializer(serializers.ModelSerializer):
             'end_date',
             'status',
             'status_display',
+            'categories',
+            'categories_detail',
+            'online_categories',
+            'online_categories_detail',
+            'products',
+            'products_detail',
             'is_active',
             'created_at',
         ]
@@ -354,3 +394,49 @@ class HeroSlideSerializer(serializers.ModelSerializer):
             return obj.image.url
         return None
 
+
+class PromotionalModalSerializer(serializers.ModelSerializer):
+    """Serializer for PromotionalModal model"""
+    image_url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = PromotionalModal
+        fields = [
+            'id',
+            'title',
+            'description',
+            'discount_code',
+            'cta_text',
+            'cta_url',
+            'image',
+            'image_url',
+            'layout',
+            'color_theme',
+            'display_rules',
+            'targeting_rules',
+            'start_date',
+            'end_date',
+            'is_active',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+    
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+    
+    def validate(self, data):
+        """Custom validation"""
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+        
+        if start_date and end_date and start_date >= end_date:
+            raise serializers.ValidationError({
+                'end_date': 'End date must be after start date.'
+            })
+        return data

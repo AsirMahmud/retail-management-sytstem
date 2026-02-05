@@ -109,6 +109,7 @@ const mainNavItems = [
       { title: "Discount Management", href: "/ecommerce-settings/discounts" },
       { title: "Product Status", href: "/ecommerce-settings/product-status" },
       { title: "Delivery Charges", href: "/ecommerce-settings/delivery-charges" },
+      { title: "Promotional Modals", href: "/ecommerce-settings/promotional-modals" },
       { title: "Open Ecommerce Site", href: "https:/rawstitch.com.bd" },
     ],
   },

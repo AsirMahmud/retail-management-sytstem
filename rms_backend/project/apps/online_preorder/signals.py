@@ -43,6 +43,7 @@ def convert_online_preorder_to_sale(sender, instance: OnlinePreorder, created: b
             'total': float(subtotal),
             'payment_method': 'cash',
             'status': 'completed',
+            'sale_type': 'online_preorder',
             'notes': f"Converted from online preorder #{instance.id}",
             'items': items_payload,
         }

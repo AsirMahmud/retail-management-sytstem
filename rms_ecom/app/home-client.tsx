@@ -9,36 +9,21 @@ import { ProductSection } from "@/components/product-section"
 import { FeaturesSection } from "@/components/features-section"
 import { NewsletterSection } from "@/components/newsletter-section"
 import { SiteFooter } from "@/components/site-footer"
-import { ecommerceApi, EcommerceProduct, ProductByColorEntry } from "@/lib/api"
+import { ecommerceApi, EcommerceProduct, ProductByColorEntry, ShowcaseResponse, ShowcaseSection } from "@/lib/api"
 import { StructuredData } from "@/components/structured-data"
 import { generateOrganizationStructuredData, generateWebsiteStructuredData } from "@/lib/seo"
 import { useLoading } from "@/hooks/useLoading"
 
 export default function HomePageClient() {
-  const [showcaseData, setShowcaseData] = useState<{
-    new_arrivals: EcommerceProduct[];
-    top_selling: EcommerceProduct[];
-    featured: EcommerceProduct[];
-    trending: EcommerceProduct[];
-  } | null>(null);
+  const [showcaseData, setShowcaseData] = useState<ShowcaseResponse | null>(null);
   const { startLoading, stopLoading } = useLoading();
 
   useEffect(() => {
     const fetchShowcaseData = async () => {
       try {
         startLoading();
-        const data = await ecommerceApi.getShowcase({
-          new_arrivals_limit: 4,
-          top_selling_limit: 4,
-          featured_limit: 4,
-          trending_limit: 4,
-        });
-        setShowcaseData({
-          new_arrivals: data.new_arrivals.products,
-          top_selling: data.top_selling.products,
-          featured: data.featured.products,
-          trending: data.trending.products,
-        });
+        const data = await ecommerceApi.getShowcase({ limit: 4 });
+        setShowcaseData(data);
       } catch (error) {
         console.error('Failed to fetch showcase data:', error);
       } finally {
@@ -59,6 +44,28 @@ export default function HomePageClient() {
     discountInfo: entry.discount_info,  // Pass backend discount info
   })
 
+  // Get sections as an array, sorted by a predefined order or alphabetically
+  const getSortedSections = (data: ShowcaseResponse): Array<{ key: string; section: ShowcaseSection }> => {
+    const entries = Object.entries(data).map(([key, section]) => ({ key, section }));
+
+    // Define a preferred order for known sections
+    const preferredOrder = ['new-arrivals', 'top-selling', 'trending', 'featured'];
+
+    return entries.sort((a, b) => {
+      const aIndex = preferredOrder.indexOf(a.key);
+      const bIndex = preferredOrder.indexOf(b.key);
+
+      // If both are in preferred order, sort by index
+      if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+      // If only a is in preferred order, it comes first
+      if (aIndex !== -1) return -1;
+      // If only b is in preferred order, it comes first
+      if (bIndex !== -1) return 1;
+      // Otherwise, sort alphabetically
+      return a.key.localeCompare(b.key);
+    });
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       <StructuredData data={generateOrganizationStructuredData()} />
@@ -70,37 +77,24 @@ export default function HomePageClient() {
         <BrandShowcase />
         {showcaseData ? (
           <>
-            {showcaseData.new_arrivals.length > 0 && (
-              <ColorSection title="NEW ARRIVALS" baseProducts={showcaseData.new_arrivals} toCard={toCard} />
-            )}
-            {showcaseData.top_selling.length > 0 && (
-              <>
-                <div className="container px-4"><hr className="border-border" /></div>
-                <ColorSection title="TOP SELLING" baseProducts={showcaseData.top_selling} toCard={toCard} />
-              </>
-            )}
-            {showcaseData.trending.length > 0 && (
-              <>
-                <div className="container px-4"><hr className="border-border" /></div>
-                <ColorSection title="TRENDING" baseProducts={showcaseData.trending} toCard={toCard} />
-              </>
-            )}
-            {showcaseData.featured.length > 0 && (
-              <>
-                <div className="container px-4"><hr className="border-border" /></div>
-                <ColorSection title="FEATURED" baseProducts={showcaseData.featured} toCard={toCard} />
-              </>
-            )}
+            {getSortedSections(showcaseData).map(({ key, section }, index) => (
+              <div key={key}>
+                {index > 0 && <div className="container px-4"><hr className="border-border" /></div>}
+                {section?.products && section?.name && Array.isArray(section.products) && section.products.length > 0 && (
+                  <ColorSection
+                    title={section.name.toUpperCase()}
+                    baseProducts={section.products}
+                    toCard={toCard}
+                  />
+                )}
+              </div>
+            ))}
           </>
         ) : (
           <>
-            <ProductSection title="NEW ARRIVALS" products={[]} isLoading={true} />
+            <ProductSection title="LOADING..." products={[]} isLoading={true} />
             <div className="container px-4"><hr className="border-border" /></div>
-            <ProductSection title="TOP SELLING" products={[]} isLoading={true} />
-            <div className="container px-4"><hr className="border-border" /></div>
-            <ProductSection title="TRENDING" products={[]} isLoading={true} />
-            <div className="container px-4"><hr className="border-border" /></div>
-            <ProductSection title="FEATURED" products={[]} isLoading={true} />
+            <ProductSection title="LOADING..." products={[]} isLoading={true} />
           </>
         )}
         <FeaturesSection />

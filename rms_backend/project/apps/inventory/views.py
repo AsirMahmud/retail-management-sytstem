@@ -1,4 +1,4 @@
-from rest_framework import viewsets, filters, status, permissions
+from rest_framework import viewsets, filters, status, permissions, pagination
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
@@ -31,6 +31,11 @@ from .serializers import (
 )
 from rest_framework.exceptions import ValidationError
 from apps.sales.models import SaleItem
+
+class StandardResultsSetPagination(pagination.PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -88,6 +93,7 @@ class SupplierViewSet(viewsets.ModelViewSet):
 
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
+    pagination_class = StandardResultsSetPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['category', 'online_category', 'supplier', 'is_active']
     search_fields = ['name', 'sku', 'barcode', 'description']
@@ -708,88 +714,134 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], permission_classes=[])
     def showcase(self, request):
-        """Get all showcase data in one API call"""
-        new_arrivals_limit = int(request.query_params.get('new_arrivals_limit', 4))
-        top_selling_limit = int(request.query_params.get('top_selling_limit', 4))
-        featured_limit = int(request.query_params.get('featured_limit', 4))
+        """Get all showcase data including dynamic status sections"""
+        from apps.ecommerce.models import ProductStatus
+        
+        limit = int(request.query_params.get('limit', 4))
         online_category = request.query_params.get('online_category', None)
         
-        # New Arrivals (explicit flag)
-        new_arrivals = Product.objects.filter(
+        # Get all active statuses to be displayed on home
+        active_statuses = ProductStatus.objects.filter(
             is_active=True,
-            assign_to_online=True,
-            is_new_arrival=True,
-        )
-        if online_category:
-            new_arrivals = new_arrivals.filter(online_categories__id=online_category)
-        new_arrivals = new_arrivals.order_by('-updated_at', '-created_at')[:new_arrivals_limit]
+            display_on_home=True
+        ).order_by('display_order', 'name')
         
-        # Top Selling (last 30 days)
-        end_date = timezone.now()
-        start_date = end_date - timedelta(days=30)
-        top_selling = Product.objects.filter(
-            is_active=True,
-            assign_to_online=True,
-            saleitem__sale__date__range=[start_date, end_date]
-        ).annotate(
-            total_sold=Sum('saleitem__quantity')
-        ).filter(
-            total_sold__gt=0
-        ).order_by('-total_sold')
+        sections_data = {}
+        processed_slugs = []
+
+        for status in active_statuses:
+            products = Product.objects.filter(
+                is_active=True,
+                assign_to_online=True,
+                ecommerce_statuses=status
+            )
+            
+            if online_category:
+                products = products.filter(online_categories__id=online_category)
+            
+            # Use specific limit if provided as query param for this slug
+            # e.g. ?new-arrivals_limit=8
+            status_limit = int(request.query_params.get(f'{status.slug}_limit', limit))
+            
+            products = products.order_by('-updated_at', '-created_at')[:status_limit]
+            
+            products_data = EcommerceProductSerializer(
+                products, 
+                many=True, 
+                context={'request': request}
+            ).data
+            
+            sections_data[status.slug] = {
+                'name': status.name,
+                'products': products_data,
+                'count': len(products_data)
+            }
+            processed_slugs.append(status.slug)
+
+        # Maintain backward compatibility for hardcoded frontend keys if they don't exist in dynamic sections
+        # But try to encourage dynamic use. 
+        # For now, we return EVERYTHING in a flat structure as before, but dynamically populated.
         
-        if online_category:
-            top_selling = top_selling.filter(online_categories__id=online_category)
-        top_selling = top_selling[:top_selling_limit]
-        
-        # Featured (explicit flag)
-        featured = Product.objects.filter(
-            is_active=True,
-            assign_to_online=True,
-            is_featured=True,
-            stock_quantity__gt=0,
-        ).order_by('-updated_at')
-        
-        if online_category:
-            featured = featured.filter(online_categories__id=online_category)
-        featured = featured[:featured_limit]
-        
-        # Trending (explicit flag)
-        trending_limit = int(request.query_params.get('trending_limit', 4))
-        trending = Product.objects.filter(
-            is_active=True,
-            assign_to_online=True,
-            is_trending=True,
-            stock_quantity__gt=0,
-        )
-        if online_category:
-            trending = trending.filter(online_categories__id=online_category)
-        trending = trending.order_by('-updated_at')[:trending_limit]
-        
-        # Serialize all data
-        new_arrivals_data = EcommerceProductSerializer(new_arrivals, many=True, context={'request': request}).data
-        top_selling_data = EcommerceProductSerializer(top_selling, many=True, context={'request': request}).data
-        featured_data = EcommerceProductSerializer(featured, many=True, context={'request': request}).data
-        trending_data = EcommerceProductSerializer(trending, many=True, context={'request': request}).data
-        
-        return Response({
-            'new_arrivals': {
+        # New Arrivals (legacy support if needed)
+        if 'new-arrivals' not in sections_data:
+            new_arrivals = Product.objects.filter(
+                is_active=True,
+                assign_to_online=True,
+                is_new_arrival=True,
+            )
+            if online_category:
+                new_arrivals = new_arrivals.filter(online_categories__id=online_category)
+            new_arrivals = new_arrivals.order_by('-updated_at', '-created_at')[:int(request.query_params.get('new_arrivals_limit', 4))]
+            new_arrivals_data = EcommerceProductSerializer(new_arrivals, many=True, context={'request': request}).data
+            sections_data['new_arrivals'] = {
                 'products': new_arrivals_data,
                 'count': len(new_arrivals_data)
-            },
-            'top_selling': {
+            }
+
+        # Top Selling (special logic, usually not a status)
+        if 'top-selling' not in sections_data:
+            end_date = timezone.now()
+            start_date = end_date - timedelta(days=30)
+            top_selling = Product.objects.filter(
+                is_active=True,
+                assign_to_online=True,
+                saleitem__sale__date__range=[start_date, end_date]
+            ).annotate(
+                total_sold=Sum('saleitem__quantity')
+            ).filter(
+                total_sold__gt=0
+            ).order_by('-total_sold')
+            
+            if online_category:
+                top_selling = top_selling.filter(online_categories__id=online_category)
+            top_selling = top_selling[:int(request.query_params.get('top_selling_limit', 4))]
+            top_selling_data = EcommerceProductSerializer(top_selling, many=True, context={'request': request}).data
+            sections_data['top_selling'] = {
                 'products': top_selling_data,
                 'count': len(top_selling_data)
-            },
-            'featured': {
+            }
+
+        # Featured (legacy support)
+        if 'featured' not in sections_data:
+            featured = Product.objects.filter(
+                is_active=True,
+                assign_to_online=True,
+                is_featured=True,
+                stock_quantity__gt=0,
+            ).order_by('-updated_at')
+            if online_category:
+                featured = featured.filter(online_categories__id=online_category)
+            featured = featured[:int(request.query_params.get('featured_limit', 4))]
+            featured_data = EcommerceProductSerializer(featured, many=True, context={'request': request}).data
+            sections_data['featured'] = {
                 'products': featured_data,
                 'count': len(featured_data)
-            },
-            'trending': {
+            }
+
+        # Trending (legacy support)
+        if 'trending' not in sections_data:
+            trending = Product.objects.filter(
+                is_active=True,
+                assign_to_online=True,
+                is_trending=True,
+                stock_quantity__gt=0,
+            )
+            if online_category:
+                trending = trending.filter(online_categories__id=online_category)
+            trending = trending.order_by('-updated_at')[:int(request.query_params.get('trending_limit', 4))]
+            trending_data = EcommerceProductSerializer(trending, many=True, context={'request': request}).data
+            sections_data['trending'] = {
                 'products': trending_data,
                 'count': len(trending_data)
-            },
+            }
+
+        response_data = {
+            **sections_data,
+            'dynamic_section_slugs': processed_slugs,
             'online_category': online_category
-        })
+        }
+        
+        return Response(response_data)
 
     @action(detail=True, methods=['get'], permission_classes=[])
     def showcase_detail(self, request, pk=None):
@@ -830,7 +882,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['patch'])
     def update_ecommerce_status(self, request, pk=None):
-        """Update ecommerce status fields (is_new_arrival, is_trending, is_featured)"""
+        """Update ecommerce status fields (is_new_arrival, is_trending, is_featured, ecommerce_statuses)"""
         product = self.get_object()
         
         # Allowed fields for ecommerce status
@@ -839,6 +891,11 @@ class ProductViewSet(viewsets.ModelViewSet):
         for field in allowed_fields:
             if field in request.data:
                 setattr(product, field, request.data[field])
+        
+        # Handle Many-to-Many ecommerce_statuses
+        if 'ecommerce_statuses' in request.data:
+            status_ids = request.data.get('ecommerce_statuses', [])
+            product.ecommerce_statuses.set(status_ids)
         
         product.save()
         serializer = ProductSerializer(product, context={'request': request})
@@ -1280,7 +1337,7 @@ class OnlineCategoryViewSet(viewsets.ModelViewSet):
     queryset = OnlineCategory.objects.all()
     serializer_class = OnlineCategorySerializer
     permission_classes = [permissions.IsAuthenticated]
-    filterset_fields = ['name', 'parent']
+    filterset_fields = ['name', 'parent', 'gender']
     search_fields = ['name', 'description']
     ordering_fields = ['name', 'order', 'created_at']
     ordering = ['order', 'name']

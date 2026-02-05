@@ -40,8 +40,8 @@ def get_applicable_discount(product):
     product_discount = Discount.objects.filter(
         base_query,
         discount_type='PRODUCT',
-        product=product
-    ).first()
+        products=product
+    ).order_by('-value').first()
     
     if product_discount:
         return product_discount
@@ -53,10 +53,10 @@ def get_applicable_discount(product):
     category_conditions = Q()
     
     if product.category:
-        category_conditions |= Q(category=product.category)
+        category_conditions |= Q(categories=product.category)
     
     if product.online_categories.exists():
-        category_conditions |= Q(online_category__in=product.online_categories.all())
+        category_conditions |= Q(online_categories__in=product.online_categories.all())
     
     if category_conditions:
         category_discount = Discount.objects.filter(
@@ -67,9 +67,13 @@ def get_applicable_discount(product):
             return category_discount
     
     # 3. Check for app-wide/global discount (lowest priority)
+    # Ensure it's truly global (no specific products or categories)
     global_discount = Discount.objects.filter(
         base_query,
-        discount_type='APP_WIDE'
+        discount_type='APP_WIDE',
+        products__isnull=True,
+        categories__isnull=True,
+        online_categories__isnull=True
     ).order_by('-value').first()  # Get highest value global discount
     
     return global_discount

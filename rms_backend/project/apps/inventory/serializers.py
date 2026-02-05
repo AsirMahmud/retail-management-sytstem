@@ -129,9 +129,15 @@ class EcommerceProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'id', 'name', 'sku', 'description', 'selling_price', 'original_price', 'discount',
-            'stock_quantity', 'image', 'image_url', 'online_categories',
+            'stock_quantity', 'image', 'image_url', 'online_categories', 'ecommerce_statuses',
             'available_colors', 'available_sizes', 'variants', 'primary_image', 'images_ordered',
             'created_at', 'updated_at'
+        ]
+    
+    def get_ecommerce_statuses(self, obj):
+        return [
+            {'id': status.id, 'name': status.name, 'slug': status.slug}
+            for status in obj.ecommerce_statuses.all()
         ]
     
     def get_online_categories(self, obj):
@@ -204,96 +210,24 @@ class EcommerceProductSerializer(serializers.ModelSerializer):
     
     def get_original_price(self, obj):
         """Get original price before discount"""
-        # Check for discounts in order: product > category > app-wide
-        from apps.ecommerce.models import Discount
-        from django.utils import timezone
-        now = timezone.now()
+        # Check for discounts using utility
+        from apps.ecommerce.discount_utils import get_applicable_discount
+        discount = get_applicable_discount(obj)
         
-        # Check product-specific discount
-        product_discount = Discount.objects.filter(
-            product=obj,
-            is_active=True,
-            start_date__lte=now,
-            end_date__gte=now,
-            status='ACTIVE'
-        ).first()
-        
-        if product_discount:
-            return obj.selling_price
-        
-        # Check category discount
-        category_discount = None
-        if obj.online_categories.exists():
-            category_discount = Discount.objects.filter(
-                online_category__in=obj.online_categories.all(),
-                discount_type='CATEGORY',
-                is_active=True,
-                start_date__lte=now,
-                end_date__gte=now,
-                status='ACTIVE'
-            ).order_by('-value').first()
-        
-        if category_discount:
-            return obj.selling_price
-        
-        # Check app-wide discount
-        app_wide_discount = Discount.objects.filter(
-            discount_type='APP_WIDE',
-            is_active=True,
-            start_date__lte=now,
-            end_date__gte=now,
-            status='ACTIVE'
-        ).first()
-        
-        if app_wide_discount:
+        if discount:
             return obj.selling_price
         
         return None
     
     def get_discount(self, obj):
         """Get discount percentage"""
-        from apps.ecommerce.models import Discount
-        from django.utils import timezone
-        now = timezone.now()
+        from apps.ecommerce.discount_utils import get_applicable_discount
+        discount = get_applicable_discount(obj)
         
-        # Check discounts in order: product > category > app-wide
-        product_discount = Discount.objects.filter(
-            product=obj,
-            is_active=True,
-            start_date__lte=now,
-            end_date__gte=now,
-            status='ACTIVE'
-        ).first()
+        if discount:
+            return float(discount.value)
         
-        if product_discount:
-            return float(product_discount.value)
-        
-        category_discount = None
-        if obj.online_categories.exists():
-            category_discount = Discount.objects.filter(
-                online_category__in=obj.online_categories.all(),
-                discount_type='CATEGORY',
-                is_active=True,
-                start_date__lte=now,
-                end_date__gte=now,
-                status='ACTIVE'
-            ).order_by('-value').first()
-        
-        if category_discount:
-            return float(category_discount.value)
-        
-        app_wide_discount = Discount.objects.filter(
-            discount_type='APP_WIDE',
-            is_active=True,
-            start_date__lte=now,
-            end_date__gte=now,
-            status='ACTIVE'
-        ).first()
-        
-        if app_wide_discount:
-            return float(app_wide_discount.value)
-        
-        return None
+        return 0
 
 class EcommerceProductDetailSerializer(EcommerceProductSerializer):
     """Comprehensive serializer for detailed product view - extends EcommerceProductSerializer"""
@@ -448,6 +382,7 @@ class ProductVariationSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     variations = ProductVariationSerializer(many=True, read_only=True)
     galleries = GallerySerializer(many=True, read_only=True)
+    ecommerce_statuses = serializers.SerializerMethodField()
     category = serializers.SerializerMethodField()
     category_name = serializers.CharField(source='category.name', read_only=True, allow_null=True)
     online_categories = serializers.SerializerMethodField()
@@ -466,6 +401,7 @@ class ProductSerializer(serializers.ModelSerializer):
     first_variation_size = serializers.SerializerMethodField()
     first_variation_image = serializers.SerializerMethodField()
     first_variation_color_slug = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -473,8 +409,8 @@ class ProductSerializer(serializers.ModelSerializer):
             'id', 'name', 'sku', 'barcode', 'description', 'category', 'category_name',
             'online_categories',
             'supplier', 'supplier_name', 'cost_price', 'selling_price', 'stock_quantity',
-            'minimum_stock', 'image', 'is_active', 'size_type', 'size_category', 'gender', 'assign_to_online', 
-            'is_new_arrival', 'is_trending', 'is_featured',
+            'minimum_stock', 'image', 'image_url', 'is_active', 'size_type', 'size_category', 'gender', 'assign_to_online', 
+            'is_new_arrival', 'is_trending', 'is_featured', 'ecommerce_statuses',
             'variations', 
             'galleries', 'color_galleries', 
             'material_composition', 'material_composition_string',
@@ -492,6 +428,16 @@ class ProductSerializer(serializers.ModelSerializer):
             'minimum_stock': {'required': False},
             'is_active': {'required': False}
         }
+
+    def get_ecommerce_statuses(self, obj):
+        return [
+            {
+                'id': status.id,
+                'name': status.name,
+                'slug': status.slug
+            }
+            for status in obj.ecommerce_statuses.all()
+        ]
 
     def get_category(self, obj):
         if obj.category:
@@ -551,32 +497,8 @@ class ProductSerializer(serializers.ModelSerializer):
         return ", ".join([f"{m.percentige}% {m.title}" for m in materials if m.title])
 
     def _get_active_discount(self, obj):
-        from apps.ecommerce.models import Discount
-        from django.utils import timezone
-        now = timezone.now()
-        
-        # 1. Product Discount
-        discount = Discount.objects.filter(
-            product=obj, is_active=True, status='ACTIVE',
-            start_date__lte=now, end_date__gte=now
-        ).first()
-        if discount: return discount
-        
-        # 2. Category Discount
-        if obj.online_categories.exists():
-            discount = Discount.objects.filter(
-                online_category__in=obj.online_categories.all(), discount_type='CATEGORY',
-                is_active=True, status='ACTIVE',
-                start_date__lte=now, end_date__gte=now
-            ).order_by('-value').first()
-            if discount: return discount
-        
-        # 3. App-Wide Discount
-        discount = Discount.objects.filter(
-            discount_type='APP_WIDE', is_active=True, status='ACTIVE',
-            start_date__lte=now, end_date__gte=now
-        ).first()
-        return discount
+        from apps.ecommerce.discount_utils import get_applicable_discount
+        return get_applicable_discount(obj)
 
     def get_discount_percentage(self, obj):
         discount = self._get_active_discount(obj)
@@ -618,6 +540,14 @@ class ProductSerializer(serializers.ModelSerializer):
         first_variant = obj.variations.first()
         return slugify(first_variant.color) if first_variant and first_variant.color else None
 
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
+
 
 
 class ProductCreateSerializer(serializers.ModelSerializer):
@@ -638,7 +568,7 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'sku', 'barcode', 'description', 'category', 'online_categories', 'supplier',
             'cost_price', 'selling_price', 'stock_quantity', 'minimum_stock', 'image',
-            'is_active', 'size_type', 'size_category', 'gender', 'variations', 'galleries',
+            'is_active', 'size_type', 'size_category', 'gender', 'ecommerce_statuses', 'variations', 'galleries',
             'material_composition', 'who_is_this_for', 'features'
         ]
         extra_kwargs = {
@@ -687,6 +617,7 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         material_data = validated_data.pop('material_composition', [])
         who_data = validated_data.pop('who_is_this_for', [])
         features_data = validated_data.pop('features', [])
+        ecommerce_statuses = validated_data.pop('ecommerce_statuses', [])
         
         # Create the product first
         product = Product.objects.create(**validated_data)
@@ -694,6 +625,9 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         # Add many-to-many relationships
         if online_categories:
             product.online_categories.set(online_categories)
+        
+        if ecommerce_statuses:
+            product.ecommerce_statuses.set(ecommerce_statuses)
         
         # Create variations and calculate total stock
         total_stock = 0
@@ -743,6 +677,7 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         who_data = validated_data.pop('who_is_this_for', None)
         features_data = validated_data.pop('features', None)
         online_categories = validated_data.pop('online_categories', None)
+        ecommerce_statuses = validated_data.pop('ecommerce_statuses', None)
         
         # Update product fields
         for attr, value in validated_data.items():
@@ -751,6 +686,9 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         # Update many-to-many if provided
         if online_categories is not None:
             instance.online_categories.set(online_categories)
+        
+        if ecommerce_statuses is not None:
+            instance.ecommerce_statuses.set(ecommerce_statuses)
         
         # Handle variations if provided
         if variations_data is not None:
@@ -897,7 +835,7 @@ class OnlineCategorySerializer(serializers.ModelSerializer):
         model = OnlineCategory
         fields = [
             'id', 'name', 'slug', 'description', 'parent', 'parent_name',
-            'children_count', 'order', 'created_at', 'updated_at'
+            'children_count', 'order', 'gender', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'slug', 'created_at', 'updated_at']
     

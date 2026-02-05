@@ -21,7 +21,9 @@ export const getSales = async (params?: {
     start_date?: string;
     end_date?: string;
     status?: string;
+    sale_type?: string;
     payment_method?: string;
+    payment_status?: string;
     customer_phone?: string;
     search?: string;
     ordering?: string;
@@ -99,7 +101,7 @@ export const addPayment = async (saleId: number, data: Partial<Payment>) => {
                 return method || 'cash';
         }
     };
-    
+
     // Transform the data to match backend's CompletePaymentSerializer format
     const transformedData = {
         payment_data: [
@@ -111,7 +113,7 @@ export const addPayment = async (saleId: number, data: Partial<Payment>) => {
             }
         ]
     };
-    
+
     const response = await axios.post<Payment>(`/sales/sales/${saleId}/add_payment/`, transformedData);
     return response.data;
 };

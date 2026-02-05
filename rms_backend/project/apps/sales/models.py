@@ -31,11 +31,18 @@ class Sale(models.Model):
         ('cancelled', 'Cancelled'),
         ('refunded', 'Refunded')
     ]
+
+    SALE_TYPE_CHOICES = [
+        ('shop', 'Shop'),
+        ('online_preorder', 'Online Preorder'),
+        ('offline_preorder', 'Offline Preorder (Just Preorder)')
+    ]
     
     invoice_number = models.CharField(max_length=50, unique=True, default=generate_invoice_number)
     customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True)
     customer_phone = models.CharField(max_length=15, null=True, blank=True)
     date = models.DateTimeField(default=timezone.now)
+    sale_type = models.CharField(max_length=20, choices=SALE_TYPE_CHOICES, default='shop')
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))])
     tax = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.00'))])
     discount = models.DecimalField(max_digits=10, decimal_places=2, default=0, validators=[MinValueValidator(Decimal('0.00'))])

@@ -17,7 +17,8 @@ import {
     UpdateGalleryImageDTO,
     DashboardOverview,
     CategoryMetrics,
-    StockMovementAnalysis
+    StockMovementAnalysis,
+    PaginatedResponse
 } from '@/types/inventory';
 
 // Product Analytics Types
@@ -191,8 +192,23 @@ export const onlineCategoriesApi = {
 
 // Products API
 export const productsApi = {
-    getAll: async (): Promise<Product[]> => {
-        const { data } = await axiosInstance.get('/inventory/products/?expand=category,online_categories&page_size=1000');
+    getAll: async (params?: {
+        page?: number;
+        page_size?: number;
+        search?: string;
+        category?: number;
+        online_category?: number[];
+        supplier?: number;
+        is_active?: boolean;
+        stock_status?: string;
+        expand?: string;
+    }): Promise<PaginatedResponse<Product>> => {
+        const { data } = await axiosInstance.get('/inventory/products/', {
+            params: {
+                ...params,
+                expand: params?.expand || 'category,online_categories,ecommerce_statuses'
+            }
+        });
         return data;
     },
 

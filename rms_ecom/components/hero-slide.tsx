@@ -16,6 +16,18 @@ const getAbsoluteImageUrl = (url: string | null | undefined): string => {
     return `${baseUrl}/media/${url.startsWith("/") ? url.slice(1) : url}`
 }
 
+// Map Tailwind background classes to hex colors for fallback styling
+const BG_COLOR_MAP: Record<string, string> = {
+    "bg-slate-950": "#020617",
+    "bg-orange-950": "#431407",
+    "bg-purple-950": "#3b0764",
+    "bg-emerald-950": "#022c22",
+    "bg-slate-900": "#0f172a",
+    "bg-blue-950": "#172554",
+    "bg-red-950": "#450a0a",
+    "bg-green-950": "#022c22",
+}
+
 export interface HeroSlideProps {
     slide: {
         id: number
@@ -41,6 +53,9 @@ export function HeroSlide({ slide }: HeroSlideProps) {
         "relative w-full overflow-hidden flex items-center min-h-[600px] h-[calc(100vh-80px)] max-h-[800px]",
         bg_color,
     )
+
+    // Fallback background color if the Tailwind class is not found in the bundle
+    const fallbackBgColor = BG_COLOR_MAP[bg_color]
 
     const renderContent = () => {
         if (layout === "clean-left" || layout === "bold-left") {
@@ -221,7 +236,7 @@ export function HeroSlide({ slide }: HeroSlideProps) {
     }
 
     return (
-        <div className={containerClasses}>
+        <div className={containerClasses} style={fallbackBgColor ? { backgroundColor: fallbackBgColor } : {}}>
             {image_url && (
                 <div className="absolute inset-0 z-0">
                     <Image src={displayImage || "/placeholder.svg"} alt="Background" fill className="object-cover opacity-40" />

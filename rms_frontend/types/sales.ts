@@ -1,5 +1,6 @@
 export type PaymentMethod = 'cash' | 'card' | 'mobile_money' | 'credit' | 'mobile' | 'gift' | 'split';
 export type SaleStatus = 'pending' | 'completed' | 'cancelled' | 'refunded' | 'partially_paid' | 'gifted';
+export type SaleType = 'shop' | 'online_preorder' | 'offline_preorder';
 export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded';
 export type ReturnStatus = 'pending' | 'approved' | 'rejected' | 'completed';
 
@@ -53,12 +54,12 @@ export interface Sale {
         | number
         | null
         | {
-              id: number;
-              first_name: string;
-              last_name: string;
-              email?: string;
-              phone?: string;
-          }
+            id: number;
+            first_name: string;
+            last_name: string;
+            email?: string;
+            phone?: string;
+        }
     );
     customer_phone: string | null;
     date?: string;
@@ -68,21 +69,22 @@ export interface Sale {
     total: number;
     payment_method: PaymentMethod;
     status?: SaleStatus;
-    
+    sale_type?: SaleType;
+
     // New payment system fields
     amount_paid?: number;
     amount_due?: number;
     gift_amount?: number;
     is_fully_paid?: boolean;
     payment_status?: 'unpaid' | 'partially_paid' | 'fully_paid' | 'overpaid';
-    
+
     total_profit?: number;
     total_loss?: number;
     notes?: string;
     created_at?: string;
     updated_at?: string;
     items: SaleItem[];
-    
+
     // Payment data for split payments
     payment_data?: Array<{
         method: string;
@@ -90,7 +92,7 @@ export interface Sale {
         notes?: string;
         transaction_id?: string;
     }>;
-    
+
     // Related payment data
     sale_payments?: SalePayment[];
     due_payments?: DuePayment[];
