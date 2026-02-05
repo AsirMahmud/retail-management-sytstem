@@ -191,7 +191,7 @@ class SaleSerializer(serializers.ModelSerializer):
         model = Sale
         fields = [
             'id', 'invoice_number', 'customer', 'customer_id', 'customer_phone', 'customer_name',
-            'date', 'subtotal', 'tax', 'discount', 'total', 'total_profit', 'total_loss',
+            'date', 'sale_type', 'subtotal', 'tax', 'discount', 'total', 'total_profit', 'total_loss',
             'payment_method', 'status', 'amount_paid', 'amount_due', 'gift_amount',
             'is_fully_paid', 'payment_status', 'notes', 'items', 'payments', 'sale_payments',
             'due_payments', 'returns', 'payment_data'

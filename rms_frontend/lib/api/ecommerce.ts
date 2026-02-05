@@ -11,9 +11,12 @@ export interface Discount {
   status: 'ACTIVE' | 'INACTIVE' | 'EXPIRED';
   description: string;
   is_active: boolean;
-  category?: number;
-  online_category?: number;
-  product?: number;
+  categories?: number[];
+  categories_detail?: { id: number, name: string }[];
+  online_categories?: number[];
+  online_categories_detail?: { id: number, name: string }[];
+  products?: number[];
+  products_detail?: { id: number; name: string; sku?: string; image?: string }[];
   created_at: string;
   updated_at: string;
 }
@@ -25,6 +28,17 @@ export interface Brand {
   logo_image_url?: string;
   logo_text?: string;
   website_url?: string;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProductStatus {
+  id: number;
+  name: string;
+  slug: string;
+  display_on_home: boolean;
   display_order: number;
   is_active: boolean;
   created_at: string;
@@ -72,9 +86,9 @@ export interface CreateDiscountDTO {
   description?: string;
   is_active?: boolean;
   status?: 'ACTIVE' | 'INACTIVE';
-  category?: number;
-  online_category?: number;
-  product?: number;
+  categories?: number[];
+  online_categories?: number[];
+  products?: number[];
 }
 
 export interface UpdateDiscountDTO {
@@ -87,9 +101,9 @@ export interface UpdateDiscountDTO {
   description?: string;
   is_active?: boolean;
   status?: 'ACTIVE' | 'INACTIVE';
-  category?: number;
-  online_category?: number;
-  product?: number;
+  categories?: number[];
+  online_categories?: number[];
+  products?: number[];
 }
 
 export interface CreateBrandDTO {
@@ -279,9 +293,37 @@ export const productEcommerceApi = {
     is_new_arrival?: boolean;
     is_trending?: boolean;
     is_featured?: boolean;
+    ecommerce_statuses?: number[]; // List of ProductStatus IDs
   }): Promise<any> => {
     const { data } = await axiosInstance.patch(`/inventory/products/${productId}/update_ecommerce_status/`, status);
     return data;
+  },
+};
+
+// Product Statuses API (Sections)
+export const productStatusesApi = {
+  getAll: async (): Promise<ProductStatus[]> => {
+    const { data } = await axiosInstance.get('/ecommerce/product-statuses/');
+    return data.results || data;
+  },
+
+  getById: async (id: number): Promise<ProductStatus> => {
+    const { data } = await axiosInstance.get(`/ecommerce/product-statuses/${id}/`);
+    return data;
+  },
+
+  create: async (status: Partial<ProductStatus>): Promise<ProductStatus> => {
+    const { data } = await axiosInstance.post('/ecommerce/product-statuses/', status);
+    return data;
+  },
+
+  update: async (id: number, status: Partial<ProductStatus>): Promise<ProductStatus> => {
+    const { data } = await axiosInstance.patch(`/ecommerce/product-statuses/${id}/`, status);
+    return data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await axiosInstance.delete(`/ecommerce/product-statuses/${id}/`);
   },
 };
 
@@ -339,5 +381,123 @@ export const heroSlidesApi = {
 
   delete: async (id: number): Promise<void> => {
     await axiosInstance.delete(`/ecommerce/hero-slides/${id}/`);
+  },
+};
+
+// Promotional Modals API
+export interface PromotionalModal {
+  id: number;
+  title: string;
+  description: string;
+  discount_code: string;
+  cta_text: string;
+  cta_url: string;
+  image: string | null;
+  image_url: string | null;
+  layout: "centered" | "split-left" | "split-right" | "full-cover" | "image-only";
+  color_theme: "light" | "dark" | "brand";
+  display_rules: {
+    trigger?: "timer" | "exit_intent" | "first_visit";
+    delay_seconds?: number;
+    frequency?: "once_per_session" | "once_ever" | "always";
+  };
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
+}
+
+export interface CreatePromotionalModalDTO {
+  title: string;
+  description: string;
+  discount_code?: string;
+  cta_text: string;
+  cta_url?: string;
+  image?: File;
+  layout: string;
+  color_theme: string;
+  display_rules: any;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
+}
+
+export interface UpdatePromotionalModalDTO {
+  id: number;
+  title?: string;
+  description?: string;
+  discount_code?: string;
+  cta_text?: string;
+  cta_url?: string;
+  image?: File;
+  layout?: string;
+  color_theme?: string;
+  display_rules?: any;
+  start_date?: string;
+  end_date?: string;
+  is_active?: boolean;
+}
+
+export const promotionalModalsApi = {
+  getAll: async (): Promise<PromotionalModal[]> => {
+    const { data } = await axiosInstance.get('/ecommerce/promotional-modals/');
+    return data;
+  },
+
+  getById: async (id: number): Promise<PromotionalModal> => {
+    const { data } = await axiosInstance.get(`/ecommerce/promotional-modals/${id}/`);
+    return data;
+  },
+
+  create: async (modal: CreatePromotionalModalDTO): Promise<PromotionalModal> => {
+    const formData = new FormData();
+    formData.append('title', modal.title);
+    formData.append('description', modal.description);
+    if (modal.discount_code) formData.append('discount_code', modal.discount_code);
+    formData.append('cta_text', modal.cta_text);
+    if (modal.cta_url) formData.append('cta_url', modal.cta_url);
+    if (modal.image) formData.append('image', modal.image);
+    formData.append('layout', modal.layout);
+    formData.append('color_theme', modal.color_theme);
+    formData.append('display_rules', JSON.stringify(modal.display_rules));
+    formData.append('start_date', modal.start_date);
+    formData.append('end_date', modal.end_date);
+    formData.append('is_active', String(modal.is_active));
+
+    // Targeting rules default
+    formData.append("targeting_rules", JSON.stringify({ devices: ["all"], users: ["all"] }));
+
+    const { data } = await axiosInstance.post('/ecommerce/promotional-modals/', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return data;
+  },
+
+  update: async ({ id, ...modal }: UpdatePromotionalModalDTO): Promise<PromotionalModal> => {
+    const formData = new FormData();
+    if (modal.title) formData.append('title', modal.title);
+    if (modal.description) formData.append('description', modal.description);
+    if (modal.discount_code !== undefined) formData.append('discount_code', modal.discount_code);
+    if (modal.cta_text) formData.append('cta_text', modal.cta_text);
+    if (modal.cta_url !== undefined) formData.append('cta_url', modal.cta_url);
+    if (modal.image) formData.append('image', modal.image);
+    if (modal.layout) formData.append('layout', modal.layout);
+    if (modal.color_theme) formData.append('color_theme', modal.color_theme);
+    if (modal.display_rules) formData.append('display_rules', JSON.stringify(modal.display_rules));
+    if (modal.start_date) formData.append('start_date', modal.start_date);
+    if (modal.end_date) formData.append('end_date', modal.end_date);
+    if (modal.is_active !== undefined) formData.append('is_active', String(modal.is_active));
+
+    const { data } = await axiosInstance.patch(`/ecommerce/promotional-modals/${id}/`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await axiosInstance.delete(`/ecommerce/promotional-modals/${id}/`);
   },
 };

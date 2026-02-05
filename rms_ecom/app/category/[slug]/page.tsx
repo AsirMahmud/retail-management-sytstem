@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input"
 import { Search, SlidersHorizontal } from "lucide-react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { ActiveFilters } from "@/components/active-filters"
 
 export default function CategoryPage() {
   const searchParams = useSearchParams()
@@ -248,6 +249,21 @@ export default function CategoryPage() {
 
             {/* Main Content */}
             <div className="flex-1 min-w-0">
+              <ActiveFilters
+                selectedCategory={selectedCategory}
+                selectedGender={selectedGender}
+                selectedColor={selectedColor}
+                selectedSize={selectedSize}
+                priceRange={priceRange}
+                onRemoveFilter={(type) => {
+                  if (type === 'category') setSelectedCategory(null)
+                  if (type === 'gender') setSelectedGender(null)
+                  if (type === 'color') setSelectedColor(null)
+                  if (type === 'size') setSelectedSize(null)
+                  if (type === 'price') setPriceRange([0, 10000])
+                }}
+                onClearAll={handleResetFilters}
+              />
               {isLoading ? (
                 <ProductGrid
                   category={categoryName}

@@ -16,6 +16,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { StructuredData } from "@/components/structured-data"
 import { generateBreadcrumbStructuredData } from "@/lib/seo"
 import { useLoading } from "@/hooks/useLoading"
+import { ActiveFilters } from "@/components/active-filters"
 
 export default function AllProductsPage() {
   const [products, setProducts] = useState<ProductByColorEntry[]>([])
@@ -189,6 +190,21 @@ export default function AllProductsPage() {
 
             {/* Main Content */}
             <div className="flex-1 min-w-0">
+              <ActiveFilters
+                selectedCategory={selectedCategorySlug}
+                selectedGender={selectedGender}
+                selectedColor={selectedColor}
+                selectedSize={selectedSize}
+                priceRange={priceRange}
+                onRemoveFilter={(type) => {
+                  if (type === 'category') setSelectedCategorySlug(null)
+                  if (type === 'gender') setSelectedGender(null)
+                  if (type === 'color') setSelectedColor(null)
+                  if (type === 'size') setSelectedSize(null)
+                  if (type === 'price') setPriceRange([0, 10000])
+                }}
+                onClearAll={handleResetFilters}
+              />
               {isLoading ? (
                 <ProductGrid
                   category={`All Products`}

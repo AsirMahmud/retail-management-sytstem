@@ -25,7 +25,9 @@ export const useSales = (params?: {
     start_date?: string;
     end_date?: string;
     status?: string;
+    sale_type?: string;
     payment_method?: string;
+    payment_status?: string;
     customer_phone?: string;
     search?: string;
     ordering?: string;

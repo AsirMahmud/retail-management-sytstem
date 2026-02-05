@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Discount, Brand, HomePageSettings
+from .models import Discount, Brand, HomePageSettings, ProductStatus
 
 
 @admin.register(Discount)

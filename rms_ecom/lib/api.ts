@@ -96,24 +96,14 @@ export interface ProductDetailByColorResponse {
   total_stock_for_color: number;
 }
 
+export interface ShowcaseSection {
+  name: string;
+  products: EcommerceProduct[];
+  count: number;
+}
+
 export interface ShowcaseResponse {
-  new_arrivals: {
-    products: EcommerceProduct[];
-    count: number;
-  };
-  top_selling: {
-    products: EcommerceProduct[];
-    count: number;
-  };
-  featured: {
-    products: EcommerceProduct[];
-    count: number;
-  };
-  trending: {
-    products: EcommerceProduct[];
-    count: number;
-  };
-  online_category?: number;
+  [key: string]: ShowcaseSection;
 }
 
 export interface Discount {
@@ -134,18 +124,18 @@ export interface Discount {
 export const ecommerceApi = {
   // Get all showcase data
   getShowcase: async (params?: {
-    new_arrivals_limit?: number;
-    top_selling_limit?: number;
-    featured_limit?: number;
-    trending_limit?: number;
+    limit?: number;
     online_category?: number;
+    [key: string]: number | undefined; // Allow dynamic section limits like 'summer-sale_limit'
   }): Promise<ShowcaseResponse> => {
     const searchParams = new URLSearchParams();
-    if (params?.new_arrivals_limit) searchParams.set('new_arrivals_limit', params.new_arrivals_limit.toString());
-    if (params?.top_selling_limit) searchParams.set('top_selling_limit', params.top_selling_limit.toString());
-    if (params?.featured_limit) searchParams.set('featured_limit', params.featured_limit.toString());
-    if (params?.trending_limit) searchParams.set('trending_limit', params.trending_limit.toString());
-    if (params?.online_category) searchParams.set('online_category', params.online_category.toString());
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined) {
+          searchParams.set(key, value.toString());
+        }
+      });
+    }
 
     const response = await fetch(`${API_BASE_URL}/inventory/products/showcase/?${searchParams}`);
     if (!response.ok) throw new Error('Failed to fetch showcase data');
@@ -287,8 +277,11 @@ export const ecommerceApi = {
   },
 
   // Get online categories
-  getOnlineCategories: async (): Promise<Array<{ id: number; name: string; slug: string; parent: number | null; parent_name?: string; children_count?: number }>> => {
-    const response = await fetch(`${API_BASE_URL}/inventory/online-categories/`);
+  getOnlineCategories: async (params?: { gender?: string }): Promise<Array<{ id: number; name: string; slug: string; parent: number | null; parent_name?: string; children_count?: number }>> => {
+    const searchParams = new URLSearchParams();
+    if (params?.gender) searchParams.set('gender', params.gender.toUpperCase());
+
+    const response = await fetch(`${API_BASE_URL}/inventory/online-categories/?${searchParams}`);
     if (!response.ok) throw new Error('Failed to fetch online categories');
     return response.json();
   },

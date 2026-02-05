@@ -69,6 +69,12 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+const GENDER_OPTIONS = [
+  { label: "Male", value: "MALE" },
+  { label: "Female", value: "FEMALE" },
+  { label: "Unisex", value: "UNISEX" },
+];
+
 // Sortable Category Item Component (for children)
 function SortableCategoryItem({ category, onEdit, onDelete }: {
   category: Category;
@@ -94,9 +100,8 @@ function SortableCategoryItem({ category, onEdit, onDelete }: {
     <div
       ref={setNodeRef}
       style={style}
-      className={`bg-gray-50 border rounded-lg p-3 mb-2 ml-8 shadow-sm hover:shadow-md transition-shadow ${
-        isDragging ? "ring-2 ring-blue-500" : ""
-      }`}
+      className={`bg-gray-50 border rounded-lg p-3 mb-2 ml-8 shadow-sm hover:shadow-md transition-shadow ${isDragging ? "ring-2 ring-blue-500" : ""
+        }`}
     >
       <div className="flex items-center gap-4">
         <div
@@ -109,6 +114,9 @@ function SortableCategoryItem({ category, onEdit, onDelete }: {
         <div className="flex-1 grid grid-cols-2 gap-4 items-center">
           <div className="font-medium text-sm">{category.name}</div>
           <div className="text-xs text-gray-500">{category.slug}</div>
+          <div className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full w-fit">
+            {category.gender || "MALE"}
+          </div>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => onEdit(category)}>
@@ -124,14 +132,14 @@ function SortableCategoryItem({ category, onEdit, onDelete }: {
 }
 
 // Sortable Parent Category Item with Collapsible Children
-function SortableParentCategoryItem({ 
-  category, 
-  children, 
+function SortableParentCategoryItem({
+  category,
+  children,
   categories,
-  onEdit, 
+  onEdit,
   onDelete,
   expandedParents,
-  onToggleExpand 
+  onToggleExpand
 }: {
   category: Category;
   children: Category[];
@@ -165,9 +173,8 @@ function SortableParentCategoryItem({
         <div
           ref={setNodeRef}
           style={style}
-          className={`bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow ${
-            isDragging ? "ring-2 ring-blue-500" : ""
-          }`}
+          className={`bg-white border rounded-lg shadow-sm hover:shadow-md transition-shadow ${isDragging ? "ring-2 ring-blue-500" : ""
+            }`}
         >
           <div className="p-4">
             <div className="flex items-center gap-4">
@@ -194,6 +201,9 @@ function SortableParentCategoryItem({
               <div className="flex-1 grid grid-cols-3 gap-4 items-center">
                 <div className="font-medium">{category.name}</div>
                 <div className="text-sm text-gray-500">{category.slug}</div>
+                <div className="text-sm font-medium text-blue-600">
+                  {category.gender || "MALE"}
+                </div>
                 <div className="text-sm text-gray-500">
                   {hasChildren ? `${children.length} subcategor${children.length === 1 ? 'y' : 'ies'}` : "—"}
                 </div>
@@ -250,10 +260,12 @@ export default function OnlineCategoriesPage() {
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newParentId, setNewParentId] = useState<string>("none");
+  const [newGender, setNewGender] = useState<string>("MALE");
 
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editParentId, setEditParentId] = useState<string>("none");
+  const [editGender, setEditGender] = useState<string>("MALE");
   const [expandedParents, setExpandedParents] = useState<Set<number>>(new Set());
 
   const sensors = useSensors(
@@ -324,12 +336,12 @@ export default function OnlineCategoriesPage() {
   // Filter parent categories based on search
   const filteredParentCategories = useMemo(() => {
     if (!searchQuery) return parentCategories;
-    
+
     const query = searchQuery.toLowerCase();
     return parentCategories.filter((parent) => {
       // Include parent if it matches search
       if (parent.name.toLowerCase().includes(query)) return true;
-      
+
       // Include parent if any of its children match search
       const children = childrenByParent[parent.id] || [];
       return children.some((child) => child.name.toLowerCase().includes(query));
@@ -344,6 +356,7 @@ export default function OnlineCategoriesPage() {
     setNewName("");
     setNewDescription("");
     setNewParentId("none");
+    setNewGender("MALE");
   };
 
   const handleCreate = async () => {
@@ -356,6 +369,7 @@ export default function OnlineCategoriesPage() {
         name: newName.trim(),
         description: newDescription.trim() || undefined,
         parent: newParentId && newParentId !== "none" ? Number(newParentId) : undefined,
+        gender: newGender,
       } as any);
       toast.success("Online category created");
       setIsAddDialogOpen(false);
@@ -363,7 +377,7 @@ export default function OnlineCategoriesPage() {
     } catch (e: any) {
       // Extract error message from API response
       let errorMessage = "Failed to create online category";
-      
+
       if (e?.response?.data) {
         const errorData = e.response.data;
         // Check for duplicate name error
@@ -379,7 +393,7 @@ export default function OnlineCategoriesPage() {
       } else if (e?.message) {
         errorMessage = e.message;
       }
-      
+
       toast.error(errorMessage);
       // eslint-disable-next-line no-console
       console.error(e);
@@ -391,6 +405,7 @@ export default function OnlineCategoriesPage() {
     setEditName(cat.name || "");
     setEditDescription(cat.description || "");
     setEditParentId(cat.parent ? String(cat.parent) : "none");
+    setEditGender(cat.gender || "MALE");
     setIsEditDialogOpen(true);
   };
 
@@ -406,6 +421,7 @@ export default function OnlineCategoriesPage() {
         name: editName.trim(),
         description: editDescription.trim() || undefined,
         parent: editParentId && editParentId !== "none" ? Number(editParentId) : undefined,
+        gender: editGender,
       } as any);
       toast.success("Online category updated");
       setIsEditDialogOpen(false);
@@ -413,7 +429,7 @@ export default function OnlineCategoriesPage() {
     } catch (e: any) {
       // Extract error message from API response
       let errorMessage = "Failed to update online category";
-      
+
       if (e?.response?.data) {
         const errorData = e.response.data;
         // Check for duplicate name error
@@ -429,7 +445,7 @@ export default function OnlineCategoriesPage() {
       } else if (e?.message) {
         errorMessage = e.message;
       }
-      
+
       toast.error(errorMessage);
       // eslint-disable-next-line no-console
       console.error(e);
@@ -607,9 +623,10 @@ export default function OnlineCategoriesPage() {
               onDragEnd={handleDragEnd}
             >
               <div className="space-y-2">
-                <div className="grid grid-cols-3 gap-4 px-4 py-2 text-sm font-semibold text-gray-600 border-b">
+                <div className="grid grid-cols-4 gap-4 px-4 py-2 text-sm font-semibold text-gray-600 border-b">
                   <div>Name</div>
                   <div>Slug</div>
+                  <div>Gender</div>
                   <div>Subcategories</div>
                 </div>
                 <SortableContext
@@ -621,8 +638,8 @@ export default function OnlineCategoriesPage() {
                     // If searching, filter children too
                     const filteredChildren = searchQuery
                       ? children.filter((child) =>
-                          child.name.toLowerCase().includes(searchQuery.toLowerCase())
-                        )
+                        child.name.toLowerCase().includes(searchQuery.toLowerCase())
+                      )
                       : children;
 
                     return (
@@ -645,8 +662,8 @@ export default function OnlineCategoriesPage() {
         </Card>
 
         {/* Create Dialog */}
-        <Dialog 
-          open={isAddDialogOpen} 
+        <Dialog
+          open={isAddDialogOpen}
           onOpenChange={(open) => {
             setIsAddDialogOpen(open);
             if (!open) {
@@ -667,6 +684,21 @@ export default function OnlineCategoriesPage() {
               <div>
                 <label className="text-sm font-medium text-gray-700">Description</label>
                 <Textarea value={newDescription} onChange={(e) => setNewDescription(e.target.value)} rows={3} placeholder="Optional details" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Gender</label>
+                <Select value={newGender} onValueChange={setNewGender}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GENDER_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Parent (optional)</label>
@@ -691,8 +723,8 @@ export default function OnlineCategoriesPage() {
         </Dialog>
 
         {/* Edit Dialog */}
-        <Dialog 
-          open={isEditDialogOpen} 
+        <Dialog
+          open={isEditDialogOpen}
           onOpenChange={(open) => {
             setIsEditDialogOpen(open);
             if (!open) {
@@ -712,6 +744,21 @@ export default function OnlineCategoriesPage() {
               <div>
                 <label className="text-sm font-medium text-gray-700">Description</label>
                 <Textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} rows={3} />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Gender</label>
+                <Select value={editGender} onValueChange={setEditGender}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GENDER_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700">Parent (optional)</label>

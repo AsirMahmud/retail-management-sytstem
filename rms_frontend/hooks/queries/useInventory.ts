@@ -58,7 +58,7 @@ export const inventoryKeys = {
     products: {
         all: () => [...inventoryKeys.all, 'products'] as const,
         lists: () => [...inventoryKeys.products.all(), 'list'] as const,
-        list: (filters: string) => [...inventoryKeys.products.lists(), { filters }] as const,
+        list: (params?: any) => [...inventoryKeys.products.lists(), { params }] as const,
         details: () => [...inventoryKeys.products.all(), 'detail'] as const,
         detail: (id: number) => [...inventoryKeys.products.details(), id] as const,
         variations: (productId: number) => [...inventoryKeys.products.detail(productId), 'variations'] as const,
@@ -216,10 +216,10 @@ export const useDeleteSupplier = () => {
 };
 
 // Product Hooks
-export const useProducts = (filters?: string) => {
+export const useProducts = (params?: any) => {
     return useQuery({
-        queryKey: inventoryKeys.products.list(filters || ''),
-        queryFn: productsApi.getAll,
+        queryKey: inventoryKeys.products.list(params),
+        queryFn: () => productsApi.getAll(params),
     });
 };
 

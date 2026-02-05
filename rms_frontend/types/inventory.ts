@@ -1,3 +1,10 @@
+export interface PaginatedResponse<T> {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: T[];
+}
+
 export interface Category {
     id: number;
     name: string;
@@ -7,6 +14,7 @@ export interface Category {
     product_count?: number;
     children?: Category[];
     order?: number;
+    gender?: string;
     created_at: string;
     updated_at: string;
 }
@@ -118,6 +126,7 @@ export interface CreateCategoryDTO {
     name: string;
     description?: string;
     parent?: number;
+    gender?: string;
 }
 
 export type CreateSupplierDTO = Omit<Supplier, 'id' | 'created_at' | 'updated_at'>;

@@ -1,11 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { ChevronRight, ChevronUp, SlidersHorizontal, X } from "lucide-react"
+import { ChevronRight, ChevronDown, SlidersHorizontal, X, Check, RotateCcw, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 import { ecommerceApi } from "@/lib/api"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Slider } from "@/components/ui/slider"
+import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 interface CategoryFiltersProps {
   onCategoryChange?: (categorySlug: string | null) => void;
@@ -23,8 +29,6 @@ interface CategoryFiltersProps {
   priceRange?: [number, number];
 }
 
-
-
 interface Category {
   id: number;
   name: string;
@@ -32,6 +36,7 @@ interface Category {
   parent: number | null;
   parent_name?: string;
   children_count?: number;
+  gender: 'MALE' | 'FEMALE' | 'UNISEX';
 }
 
 const genders = [
@@ -77,18 +82,20 @@ export function CategoryFilters({
   const [categories, setCategories] = useState<Category[]>([])
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set())
   const [loading, setLoading] = useState(true)
-  const [expandedSections, setExpandedSections] = useState({
-    categories: true,
-    gender: true,
-    price: true,
-    colors: true,
-    sizes: true,
-  })
+  const [expandedSections, setExpandedSections] = useState<string[]>([
+    "categories",
+    "gender",
+    "price",
+    "colors",
+    "sizes",
+  ])
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const data = await ecommerceApi.getOnlineCategories()
+        setLoading(true)
+        // Fetch all categories to group them by gender
+        const data = await ecommerceApi.getOnlineCategories({}) as Category[]
         setCategories(data)
       } catch (error) {
         console.error('Failed to fetch categories:', error)
@@ -99,21 +106,32 @@ export function CategoryFilters({
     fetchCategories()
   }, [])
 
-  // Organize categories into hierarchical structure
-  const organizedCategories = categories.reduce((acc, category) => {
-    if (!category.parent) {
-      // Root category
-      acc.push({
-        ...category,
-        children: categories.filter(c => c.parent === category.id)
-      })
-    }
-    return acc
-  }, [] as Array<Category & { children: Category[] }>)
+  // Organize categories by gender and then by parent-child hierarchy
+  const groupedCategories = {
+    men: categories.filter(c => c.gender === 'MALE' && !c.parent).map(parent => ({
+      ...parent,
+      children: categories.filter(c => c.parent === parent.id)
+    })),
+    women: categories.filter(c => c.gender === 'FEMALE' && !c.parent).map(parent => ({
+      ...parent,
+      children: categories.filter(c => c.parent === parent.id)
+    })),
+    unisex: categories.filter(c => c.gender === 'UNISEX' && !c.parent).map(parent => ({
+      ...parent,
+      children: categories.filter(c => c.parent === parent.id)
+    }))
+  }
 
-  const handleCategorySelect = (categorySlug: string | null) => {
+  const handleCategorySelect = (categorySlug: string | null, gender?: string | null) => {
     setSelectedCategory(categorySlug)
     onCategoryChange?.(categorySlug)
+
+    // If a gender is provided (or if we are clearing), update gender state too
+    if (gender !== undefined) {
+      setSelectedGender(gender)
+      onGenderChange?.(gender)
+    }
+
     onApplyFilters?.()
   }
 
@@ -138,11 +156,6 @@ export function CategoryFilters({
     if (externalPriceRange) setPriceRange(externalPriceRange)
   }, [externalPriceRange])
 
-  const handleGenderSelect = (gender: string | null) => {
-    setSelectedGender(gender)
-    onGenderChange?.(gender)
-    onApplyFilters?.()
-  }
 
   const handleColorSelect = (color: string | null) => {
     const newVal = selectedColor === color ? null : color
@@ -187,308 +200,337 @@ export function CategoryFilters({
     })
   }
 
-  const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }))
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev =>
+      prev.includes(section)
+        ? prev.filter(s => s !== section)
+        : [...prev, section]
+    )
   }
 
 
+  const activeFiltersCount = [
+    selectedCategory,
+    selectedGender,
+    selectedColor,
+    selectedSize,
+    (priceRange[0] > 0 || priceRange[1] < 10000)
+  ].filter(Boolean).length
+
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold uppercase tracking-wider">Filters</h2>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between pb-2">
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleReset}
-            className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors px-2 py-1 rounded-md hover:bg-secondary/50"
-          >
-            Reset
-          </button>
-          <button
+          <h2 className="text-lg font-bold tracking-tight">FILTERS</h2>
+          {activeFiltersCount > 0 && (
+            <Badge variant="secondary" className="rounded-full px-2 py-0 h-5 text-[10px] font-bold bg-primary/10 text-primary border-none">
+              {activeFiltersCount}
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-1">
+          {activeFiltersCount > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleReset}
+              className="h-8 text-[11px] font-bold uppercase tracking-wider text-muted-foreground hover:text-primary hover:bg-primary/5 px-2"
+            >
+              <RotateCcw className="h-3 w-3 mr-1" />
+              Reset
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            className="lg:hidden p-2 hover:bg-secondary rounded-full transition-colors"
+            className="lg:hidden h-8 w-8 hover:bg-secondary rounded-full"
           >
-            <X className="h-5 w-5 text-muted-foreground" />
-          </button>
-          <SlidersHorizontal className="h-5 w-5 text-muted-foreground lg:block hidden" />
+            <X className="h-4 w-4 text-muted-foreground" />
+          </Button>
         </div>
       </div>
 
-      <Separator />
+      <Accordion
+        type="multiple"
+        defaultValue={expandedSections}
+        className="space-y-2"
+      >
+        {/* Categories Section */}
+        <AccordionItem value="categories" className="border-none">
+          <AccordionTrigger className="hover:no-underline py-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/80">
+            Categories
+          </AccordionTrigger>
+          <AccordionContent className="pt-2">
+            <div className="space-y-1">
+              <button
+                onClick={() => handleCategorySelect(null, null)}
+                className={cn(
+                  "w-full flex items-center transition-all py-3 px-4 rounded-xl text-sm group mb-2",
+                  selectedCategory === null && selectedGender === null
+                    ? "text-primary font-bold bg-primary/5"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/30"
+                )}
+              >
+                <div className={cn(
+                  "w-1.5 h-1.5 rounded-full mr-3 transition-all",
+                  selectedCategory === null ? "bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]" : "bg-primary/30 group-hover:bg-primary/60"
+                )} />
+                <span>All Styles</span>
+              </button>
 
-      {/* Categories - Hierarchical */}
-      <div className="space-y-4">
-        <button
-          onClick={() => toggleSection("categories")}
-          className="w-full flex items-center justify-between font-semibold py-1"
-        >
-          <span>CATEGORIES</span>
-          <ChevronUp className={cn("h-4 w-4 transition-transform", !expandedSections.categories && "rotate-180")} />
-        </button>
-        {expandedSections.categories && (
-          <div className="space-y-1">
-            <button
-              onClick={() => handleCategorySelect(null)}
-              className={cn(
-                "w-full flex items-center transition-colors py-2 px-3 rounded-md text-sm",
-                selectedCategory === null
-                  ? "text-primary font-bold bg-primary/10"
-                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+              {loading ? (
+                <div className="space-y-4 px-3 mt-4">
+                  <Skeleton className="h-6 w-full rounded-xl" />
+                  <Skeleton className="h-6 w-[80%] rounded-xl" />
+                  <Skeleton className="h-6 w-[90%] rounded-xl" />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {(['men', 'women', 'unisex'] as const).map((gender) => {
+                    const genderLabel = gender === 'men' ? 'Men' : gender === 'women' ? 'Women' : 'Unisex'
+                    const categoriesForGender = groupedCategories[gender]
+
+                    if (categoriesForGender.length === 0) return null
+
+                    return (
+                      <Collapsible key={gender} className="border rounded-xl overflow-hidden bg-white shadow-sm">
+                        <CollapsibleTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-between h-12 px-4 hover:bg-secondary/50 font-bold uppercase tracking-widest text-[10px]"
+                          >
+                            <span className="flex items-center gap-2">
+                              {genderLabel}
+                              <Badge variant="secondary" className="rounded-full px-1.5 py-0 h-4 text-[9px] font-medium bg-muted text-muted-foreground border-none">
+                                {categoriesForGender.length}
+                              </Badge>
+                            </span>
+                            <ChevronDown className="h-4 w-4 transition-transform duration-300" />
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="px-2 pb-2 space-y-1 bg-secondary/10">
+                          {categoriesForGender.map((category) => {
+                            const hasChildren = category.children && category.children.length > 0
+                            const isExpanded = expandedCategories.has(category.id)
+                            const isSelected = selectedCategory === category.slug
+
+                            return (
+                              <Collapsible
+                                key={category.id}
+                                open={isExpanded}
+                                onOpenChange={() => toggleCategoryExpand(category.id)}
+                                className="group/collapsible"
+                              >
+                                <div className={cn(
+                                  "flex items-center gap-1 rounded-xl transition-all duration-200",
+                                  isSelected || isExpanded ? "bg-white shadow-sm" : "hover:bg-white/50"
+                                )}>
+                                  <button
+                                    onClick={() => handleCategorySelect(category.slug, gender)}
+                                    className={cn(
+                                      "flex-1 flex items-center gap-3 py-2.5 px-3 text-[13px] transition-all text-left",
+                                      isSelected ? "text-primary font-bold" : "text-foreground font-medium"
+                                    )}
+                                  >
+                                    <div className={cn(
+                                      "w-1.5 h-1.5 rounded-full transition-colors",
+                                      isSelected ? "bg-primary shadow-[0_0_8px_rgba(var(--primary),0.5)]" : "bg-primary/20 group-hover/collapsible:bg-primary/40"
+                                    )} />
+                                    {category.name}
+                                  </button>
+
+                                  {hasChildren && (
+                                    <CollapsibleTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 flex-shrink-0 hover:bg-primary/5 mr-1"
+                                      >
+                                        <ChevronDown
+                                          className={cn(
+                                            "h-3.5 w-3.5 transition-transform duration-300 text-muted-foreground",
+                                            isExpanded && "rotate-180 text-foreground"
+                                          )}
+                                        />
+                                      </Button>
+                                    </CollapsibleTrigger>
+                                  )}
+                                </div>
+
+                                <CollapsibleContent className="animate-in fade-in-0 slide-in-from-top-1 duration-200">
+                                  {hasChildren && (
+                                    <div className="ml-6 mt-1 mb-2 space-y-1 border-l border-primary/10 pl-2">
+                                      {category.children.map((child: any) => {
+                                        const isChildSelected = selectedCategory === child.slug
+                                        return (
+                                          <button
+                                            key={child.id}
+                                            onClick={() => handleCategorySelect(child.slug, gender)}
+                                            className={cn(
+                                              "w-full flex items-center gap-2.5 text-xs font-medium py-2 px-3 rounded-lg transition-all group/sub",
+                                              isChildSelected
+                                                ? "bg-primary/5 text-primary font-bold"
+                                                : "text-muted-foreground hover:bg-white/80 hover:text-foreground"
+                                            )}
+                                          >
+                                            <ArrowRight className={cn(
+                                              "h-3 w-3 transition-transform",
+                                              isChildSelected ? "translate-x-0.5" : "-translate-x-1 opacity-0 group-hover/sub:translate-x-0 group-hover/sub:opacity-100"
+                                            )} />
+                                            {child.name}
+                                          </button>
+                                        )
+                                      })}
+                                    </div>
+                                  )}
+                                </CollapsibleContent>
+                              </Collapsible>
+                            )
+                          })}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    )
+                  })}
+                </div>
               )}
-            >
-              <span>All Categories</span>
-            </button>
-            {loading ? (
-              <div className="text-sm text-muted-foreground px-3">Loading...</div>
-            ) : (
-              organizedCategories.map((category) => {
-                const hasChildren = category.children && category.children.length > 0
-                const isExpanded = expandedCategories.has(category.id)
-                const isSelected = selectedCategory === category.slug
+            </div>
+          </AccordionContent>
+        </AccordionItem>
 
-                return (
-                  <div key={category.id} className="space-y-0.5">
-                    <div className="flex items-center">
-                      {hasChildren ? (
+
+        {/* Price Section */}
+        <AccordionItem value="price" className="border-none">
+          <AccordionTrigger className="hover:no-underline py-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/80">
+            Price Range
+          </AccordionTrigger>
+          <AccordionContent className="pt-6 px-1">
+            <div className="space-y-6">
+              <Slider
+                value={[priceRange[0], priceRange[1]]}
+                max={10000}
+                step={100}
+                onValueChange={(vals) => handlePriceChange(vals[0], vals[1])}
+                className="py-4"
+              />
+
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex-1 space-y-1.5 text-center">
+                  <div className="text-[10px] uppercase font-bold text-muted-foreground/60 tracking-tighter">Min Price</div>
+                  <div className="bg-secondary/50 rounded-lg py-1.5 font-bold text-sm tabular-nums">৳{priceRange[0]}</div>
+                </div>
+                <div className="w-4 h-px bg-border mt-4" />
+                <div className="flex-1 space-y-1.5 text-center">
+                  <div className="text-[10px] uppercase font-bold text-muted-foreground/60 tracking-tighter">Max Price</div>
+                  <div className="bg-secondary/50 rounded-lg py-1.5 font-bold text-sm tabular-nums">৳{priceRange[1]}</div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {[1000, 2000, 5000].map((price) => (
+                  <button
+                    key={price}
+                    onClick={() => handlePriceChange(0, price)}
+                    className="text-[10px] font-bold py-1.5 px-3 bg-secondary/50 hover:bg-primary/10 hover:text-primary rounded-full transition-all border border-transparent shadow-sm"
+                  >
+                    Under ৳{price}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Colors Section */}
+        <AccordionItem value="colors" className="border-none">
+          <AccordionTrigger className="hover:no-underline py-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/80">
+            Colors
+          </AccordionTrigger>
+          <AccordionContent className="pt-2">
+            <TooltipProvider>
+              <div className="grid grid-cols-5 gap-y-4 gap-x-2 px-1">
+                {colors.map((color) => {
+                  const isSelected = selectedColor === color.value
+                  return (
+                    <Tooltip key={color.value}>
+                      <TooltipTrigger asChild>
                         <button
-                          onClick={() => toggleCategoryExpand(category.id)}
-                          className="p-1.5 hover:bg-secondary rounded transition-colors flex-shrink-0"
+                          onClick={() => handleColorSelect(color.value)}
+                          className="group flex flex-col items-center gap-1.5 outline-none"
                         >
-                          <ChevronRight
+                          <div
                             className={cn(
-                              "h-3.5 w-3.5 transition-transform text-muted-foreground",
-                              isExpanded && "rotate-90"
+                              "relative h-10 w-10 rounded-full border-2 transition-all duration-300 flex items-center justify-center overflow-hidden",
+                              isSelected
+                                ? "border-primary scale-110 shadow-lg shadow-black/10 ring-2 ring-primary/20"
+                                : "border-secondary group-hover:border-muted-foreground/30 shadow-sm"
                             )}
-                          />
+                            style={{ backgroundColor: color.hex }}
+                          >
+                            {isSelected && (
+                              <div className={cn(
+                                "absolute inset-0 flex items-center justify-center bg-black/10 transition-opacity",
+                                color.value === 'white' ? 'text-black' : 'text-white'
+                              )}>
+                                <Check className="h-5 w-5 stroke-[3]" />
+                              </div>
+                            )}
+                          </div>
+                          <span className={cn(
+                            "text-[9px] uppercase font-bold tracking-tighter transition-colors w-full text-center truncate",
+                            isSelected ? "text-primary" : "text-muted-foreground/60 group-hover:text-foreground"
+                          )}>
+                            {color.name}
+                          </span>
                         </button>
-                      ) : (
-                        <div className="w-8 flex-shrink-0" />
-                      )}
-                      <button
-                        onClick={() => handleCategorySelect(category.slug)}
-                        className={cn(
-                          "flex-1 flex items-center transition-colors py-1.5 px-2 rounded-md text-sm text-left",
-                          isSelected
-                            ? "text-primary font-bold bg-primary/10"
-                            : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-                        )}
-                      >
-                        <span>{category.name}</span>
-                      </button>
-                    </div>
-
-                    {hasChildren && isExpanded && (
-                      <div className="ml-8 space-y-0.5 border-l border-secondary pl-3 py-1">
-                        {category.children.map((child) => {
-                          const isChildSelected = selectedCategory === child.slug
-                          return (
-                            <button
-                              key={child.id}
-                              onClick={() => handleCategorySelect(child.slug)}
-                              className={cn(
-                                "w-full flex items-center transition-colors py-1.5 px-2 rounded-md text-xs",
-                                isChildSelected
-                                  ? "text-primary font-bold bg-primary/10"
-                                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-                              )}
-                            >
-                              <span>{child.name}</span>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )
-              })
-            )}
-          </div>
-        )}
-      </div>
-
-      <Separator />
-
-      {/* Gender */}
-      <div className="space-y-4">
-        <button
-          onClick={() => toggleSection("gender")}
-          className="w-full flex items-center justify-between font-semibold py-1"
-        >
-          <span>GENDER</span>
-          <ChevronUp className={cn("h-4 w-4 transition-transform", !expandedSections.gender && "rotate-180")} />
-        </button>
-        {expandedSections.gender && (
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => handleGenderSelect(null)}
-              className={cn(
-                "py-2 px-3 rounded-md text-sm border transition-all text-center",
-                selectedGender === null
-                  ? "bg-foreground text-background border-foreground font-medium"
-                  : "bg-transparent text-muted-foreground border-input hover:border-foreground hover:text-foreground"
-              )}
-            >
-              All
-            </button>
-            {genders.map((gender) => {
-              const isSelected = selectedGender === gender.value
-              return (
-                <button
-                  key={gender.value}
-                  onClick={() => handleGenderSelect(gender.value)}
-                  className={cn(
-                    "py-2 px-3 rounded-md text-sm border transition-all text-center",
-                    isSelected
-                      ? "bg-foreground text-background border-foreground font-medium"
-                      : "bg-transparent text-muted-foreground border-input hover:border-foreground hover:text-foreground"
-                  )}
-                >
-                  {gender.label}
-                </button>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      <Separator />
-
-      {/* Price */}
-      <div className="space-y-4">
-        <button
-          onClick={() => toggleSection("price")}
-          className="w-full flex items-center justify-between font-semibold py-1"
-        >
-          <span>PRICE</span>
-          <ChevronUp className={cn("h-4 w-4 transition-transform", !expandedSections.price && "rotate-180")} />
-        </button>
-        {expandedSections.price && (
-          <div className="space-y-4 px-2">
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
-                <span className="text-[10px] text-muted-foreground uppercase font-bold px-1">Min</span>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">৳</span>
-                  <input
-                    type="number"
-                    value={priceRange[0]}
-                    onChange={(e) => handlePriceChange(Number(e.target.value), priceRange[1])}
-                    className="w-full bg-secondary/30 border-none rounded-md py-2 pl-7 pr-3 text-sm focus:ring-1 focus:ring-primary"
-                  />
-                </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="font-bold">
+                        {color.name}
+                      </TooltipContent>
+                    </Tooltip>
+                  )
+                })}
               </div>
-              <div className="flex-1">
-                <span className="text-[10px] text-muted-foreground uppercase font-bold px-1">Max</span>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">৳</span>
-                  <input
-                    type="number"
-                    value={priceRange[1]}
-                    onChange={(e) => handlePriceChange(priceRange[0], Number(e.target.value))}
-                    className="w-full bg-secondary/30 border-none rounded-md py-2 pl-7 pr-3 text-sm focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {[500, 1000, 2000, 5000].map((price) => (
-                <button
-                  key={price}
-                  onClick={() => handlePriceChange(0, price)}
-                  className="text-[10px] font-bold py-1 px-2 bg-secondary/50 hover:bg-secondary rounded-full border border-transparent hover:border-secondary-foreground/20 transition-all"
-                >
-                  Under ৳{price}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+            </TooltipProvider>
+          </AccordionContent>
+        </AccordionItem>
 
-      <Separator />
-
-      {/* Colors */}
-      <div className="space-y-4">
-        <button
-          onClick={() => toggleSection("colors")}
-          className="w-full flex items-center justify-between font-semibold py-1"
-        >
-          <span>COLORS</span>
-          <ChevronUp className={cn("h-4 w-4 transition-transform", !expandedSections.colors && "rotate-180")} />
-        </button>
-        {expandedSections.colors && (
-          <div className="flex flex-wrap gap-3 px-1">
-            {colors.map((color) => {
-              const isSelected = selectedColor === color.value
-              return (
-                <button
-                  key={color.value}
-                  onClick={() => handleColorSelect(color.value)}
-                  className={cn(
-                    "group relative flex flex-col items-center gap-1.5",
-                    "transition-all active:scale-95"
-                  )}
-                  title={color.name}
-                >
-                  <div
+        {/* Sizes Section */}
+        <AccordionItem value="sizes" className="border-none">
+          <AccordionTrigger className="hover:no-underline py-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/80">
+            Sizes
+          </AccordionTrigger>
+          <AccordionContent className="pt-2">
+            <div className="grid grid-cols-4 gap-2">
+              {sizes.map((size) => {
+                const isSelected = selectedSize === size
+                return (
+                  <button
+                    key={size}
+                    onClick={() => handleSizeSelect(size)}
                     className={cn(
-                      "h-8 w-8 rounded-full border-2 transition-all",
-                      isSelected ? "border-primary scale-110 shadow-md" : "border-transparent group-hover:border-muted-foreground/30"
+                      "h-10 rounded-xl border text-xs font-bold transition-all flex items-center justify-center shadow-sm",
+                      isSelected
+                        ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20 scale-105 z-10"
+                        : "bg-white text-muted-foreground border-border hover:border-primary/50 hover:text-primary"
                     )}
-                    style={{ backgroundColor: color.hex }}
-                  />
-                  <span className={cn(
-                    "text-[10px] uppercase font-bold tracking-tighter transition-colors",
-                    isSelected ? "text-primary" : "text-muted-foreground"
-                  )}>
-                    {color.name}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        )}
-      </div>
+                  >
+                    {size}
+                  </button>
+                )
+              })}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
-      <Separator />
-
-      {/* Sizes */}
-      <div className="space-y-4">
-        <button
-          onClick={() => toggleSection("sizes")}
-          className="w-full flex items-center justify-between font-semibold py-1"
-        >
-          <span>SIZES</span>
-          <ChevronUp className={cn("h-4 w-4 transition-transform", !expandedSections.sizes && "rotate-180")} />
-        </button>
-        {expandedSections.sizes && (
-          <div className="grid grid-cols-4 gap-2 px-1">
-            {sizes.map((size) => {
-              const isSelected = selectedSize === size
-              return (
-                <button
-                  key={size}
-                  onClick={() => handleSizeSelect(size)}
-                  className={cn(
-                    "h-10 rounded-md border text-xs font-bold transition-all flex items-center justify-center",
-                    isSelected
-                      ? "bg-foreground text-background border-foreground shadow-sm"
-                      : "bg-transparent text-muted-foreground border-input hover:border-foreground hover:text-foreground"
-                  )}
-                >
-                  {size}
-                </button>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      <div className="pt-4 lg:hidden">
+      {/* Mobile Sidebar Footer */}
+      <div className="pt-6 lg:hidden">
         <Button
           onClick={onClose}
-          className="w-full bg-foreground text-background hover:bg-foreground/90 rounded-full h-12 font-bold uppercase tracking-widest text-xs"
+          className="w-full bg-primary text-primary-foreground hover:bg-primary/95 shadow-xl shadow-primary/20 rounded-2xl h-14 font-bold uppercase tracking-widest text-xs"
         >
-          Show Results
+          View {activeFiltersCount > 0 ? `${activeFiltersCount} Selection${activeFiltersCount > 1 ? 's' : ''}` : 'All Results'}
         </Button>
       </div>
     </div>
