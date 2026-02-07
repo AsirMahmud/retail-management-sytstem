@@ -25,6 +25,11 @@ export function getImageUrl(imagePath: string | null | undefined): string {
     return imagePath;
   }
 
+  // If the path is a known local placeholder, return as is
+  if (imagePath === '/placeholder.svg' || imagePath === '/placeholder.jpg') {
+    return imagePath;
+  }
+
   // If the path starts with /media/, use it as is
   if (imagePath.startsWith('/media/')) {
     const baseUrl = process.env.NEXT_PUBLIC_IMAGEURL || "http://127.0.0.1:8000";
