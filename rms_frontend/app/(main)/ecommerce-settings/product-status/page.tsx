@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { Plus, Trash2, Edit2 } from "lucide-react";
+import { getImageUrl } from "@/lib/utils";
 
 interface Product {
   id: number;
@@ -129,11 +130,14 @@ export default function ProductStatusPage() {
       return { id: s.id, name: s.name || `Section ${s.id}` };
     });
 
+    const imageUrl = getImageUrl(product.image_url || product.image);
+    console.log(`Product: ${product.name}, Original Image: ${product.image_url || product.image}, Resolved: ${imageUrl}`);
+
     return {
       id: product.id,
       name: product.name,
       sku: product.sku,
-      image: product.image_url || product.image || "/placeholder.svg",
+      image: imageUrl,
       category: product.category_name || "Uncategorized",
       price: product.selling_price,
       stock: product.stock_quantity,
@@ -559,7 +563,7 @@ export default function ProductStatusPage() {
                               height={48}
                               className="object-cover w-full h-full"
                               onError={(e) => {
-                                e.currentTarget.src = '/placeholder.jpg';
+                                e.currentTarget.src = '/placeholder.svg';
                               }}
                             />
                           ) : (
@@ -624,8 +628,19 @@ export default function ProductStatusPage() {
                                   Live Sync
                                 </div>
                               </div>
-                              <CardDescription>
-                                Select which sections should feature <strong>{product.name}</strong>
+                              <CardDescription className="flex items-center gap-2 mt-2">
+                                <span className="h-8 w-8 relative rounded overflow-hidden border border-gray-100 block shrink-0">
+                                  <Image
+                                    src={product.image}
+                                    alt={product.name}
+                                    fill
+                                    className="object-cover"
+                                    onError={(e) => {
+                                      e.currentTarget.src = '/placeholder.svg';
+                                    }}
+                                  />
+                                </span>
+                                <span>Select which sections should feature <strong>{product.name}</strong></span>
                               </CardDescription>
                             </DialogHeader>
                             <div className="py-4 space-y-4">
