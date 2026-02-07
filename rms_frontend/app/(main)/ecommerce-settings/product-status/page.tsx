@@ -130,8 +130,9 @@ export default function ProductStatusPage() {
       return { id: s.id, name: s.name || `Section ${s.id}` };
     });
 
-    const imageUrl = getImageUrl(product.image_url || product.image);
-    console.log(`Product: ${product.name}, Original Image: ${product.image_url || product.image}, Resolved: ${imageUrl}`);
+    // Get the first image from galleries if available, similar to the inventory page
+    const firstGalleryImage = product.galleries?.[0]?.images?.[0]?.image;
+    const imageUrl = getImageUrl(firstGalleryImage || product.image_url || product.image);
 
     return {
       id: product.id,
@@ -555,12 +556,10 @@ export default function ProductStatusPage() {
                     <div key={product.id} className="grid grid-cols-12 gap-4 items-center py-4 border-b border-gray-100 hover:bg-gray-50 rounded-lg px-2">
                       <div className="col-span-3 flex items-center space-x-3">
                         <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-                          {product.image && product.image !== "/placeholder.jpg" ? (
-                            <Image
+                          {product.image && product.image !== "/placeholder.svg" ? (
+                            <img
                               src={product.image}
                               alt={product.name}
-                              width={48}
-                              height={48}
                               className="object-cover w-full h-full"
                               onError={(e) => {
                                 e.currentTarget.src = '/placeholder.svg';
@@ -630,11 +629,10 @@ export default function ProductStatusPage() {
                               </div>
                               <CardDescription className="flex items-center gap-2 mt-2">
                                 <span className="h-8 w-8 relative rounded overflow-hidden border border-gray-100 block shrink-0">
-                                  <Image
+                                  <img
                                     src={product.image}
                                     alt={product.name}
-                                    fill
-                                    className="object-cover"
+                                    className="object-cover w-full h-full"
                                     onError={(e) => {
                                       e.currentTarget.src = '/placeholder.svg';
                                     }}
