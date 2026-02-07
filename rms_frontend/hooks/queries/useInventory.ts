@@ -1,5 +1,5 @@
 'use client'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import {
     categoriesApi,
     onlineCategoriesApi,
@@ -220,6 +220,21 @@ export const useProducts = (params?: any) => {
     return useQuery({
         queryKey: inventoryKeys.products.list(params),
         queryFn: () => productsApi.getAll(params),
+    });
+};
+
+export const useInfiniteProducts = (params?: any) => {
+    return useInfiniteQuery({
+        queryKey: [...inventoryKeys.products.lists(), 'infinite', { params }],
+        queryFn: ({ pageParam = 1 }) => productsApi.getAll({ ...params, page: pageParam }),
+        getNextPageParam: (lastPage) => {
+            if (lastPage.next) {
+                const url = new URL(lastPage.next);
+                return parseInt(url.searchParams.get('page') || '1');
+            }
+            return undefined;
+        },
+        initialPageParam: 1,
     });
 };
 
