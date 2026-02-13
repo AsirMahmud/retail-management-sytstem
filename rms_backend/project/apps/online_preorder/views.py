@@ -27,7 +27,8 @@ class PublicCreateOnlinePreorderView(APIView):
         return Response(OnlinePreorderSerializer(online_preorder).data, status=status.HTTP_201_CREATED)
 
 
-class OnlinePreorderViewSet(mixins.ListModelMixin,
+class OnlinePreorderViewSet(mixins.CreateModelMixin,
+                            mixins.ListModelMixin,
                             mixins.RetrieveModelMixin,
                             mixins.UpdateModelMixin,
                             viewsets.GenericViewSet):

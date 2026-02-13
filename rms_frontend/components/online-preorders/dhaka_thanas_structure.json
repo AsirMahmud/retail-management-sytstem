@@ -1,0 +1,838 @@
+{
+  "city": "Dhaka",
+  "city_bn": "ঢাকা",
+  "source": [
+    "Dhaka Metropolitan Police (dmp.gov.bd)",
+    "Wikipedia — Thanas of Dhaka"
+  ],
+  "city_corporations": [
+    {
+      "name": "Dhaka North City Corporation",
+      "name_bn": "ঢাকা উত্তর সিটি কর্পোরেশন",
+      "abbreviation": "DNCC",
+      "thanas": [
+        {
+          "name": "Uttara East",
+          "bn_name": "উত্তরা পূর্ব",
+          "places": [
+            { "name": "Uttara Sector 1", "bn_name": "উত্তরা সেক্টর ১" },
+            { "name": "Uttara Sector 2", "bn_name": "উত্তরা সেক্টর ২" },
+            { "name": "Uttara Sector 3", "bn_name": "উত্তরা সেক্টর ৩" },
+            { "name": "Uttara Sector 4", "bn_name": "উত্তরা সেক্টর ৪" },
+            { "name": "Uttara Sector 5", "bn_name": "উত্তরা সেক্টর ৫" },
+            { "name": "Uttara Sector 6", "bn_name": "উত্তরা সেক্টর ৬" },
+            { "name": "Uttara Sector 7", "bn_name": "উত্তরা সেক্টর ৭" },
+            { "name": "Uttara Sector 8", "bn_name": "উত্তরা সেক্টর ৮" },
+            { "name": "Uttara Sector 9", "bn_name": "উত্তরা সেক্টর ৯" },
+            { "name": "Uttara Sector 10", "bn_name": "উত্তরা সেক্টর ১০" },
+            { "name": "Uttara Sector 11", "bn_name": "উত্তরা সেক্টর ১১" },
+            { "name": "Uttara Sector 12", "bn_name": "উত্তরা সেক্টর ১২" },
+            { "name": "Uttara Sector 13", "bn_name": "উত্তরা সেক্টর ১৩" },
+            { "name": "Uttara Sector 14", "bn_name": "উত্তরা সেক্টর ১৪" },
+            { "name": "Uttara Sector 15", "bn_name": "উত্তরা সেক্টর ১৫" },
+            { "name": "Rajlakhshmi", "bn_name": "রাজলক্ষ্মী" },
+            { "name": "Diabari", "bn_name": "ডিয়াবাড়ি" }
+          ]
+        },
+        {
+          "name": "Uttara West",
+          "bn_name": "উত্তরা পশ্চিম",
+          "places": [
+            { "name": "Uttara Sector 16", "bn_name": "উত্তরা সেক্টর ১৬" },
+            { "name": "Uttara Sector 17", "bn_name": "উত্তরা সেক্টর ১৭" },
+            { "name": "Uttara Sector 18", "bn_name": "উত্তরা সেক্টর ১৮" },
+            { "name": "Mohakhali", "bn_name": "মহাখালী" },
+            { "name": "Banani", "bn_name": "বনানী" },
+            { "name": "Gulshan", "bn_name": "গুলশান" },
+            { "name": "Niketon", "bn_name": "নিকেতন" },
+            { "name": "Badda", "bn_name": "বাড্ডা" },
+            { "name": "Baridhara", "bn_name": "বারিধারা" },
+            { "name": "Banani DOHS", "bn_name": "বনানী ডিওএইচএস" },
+            { "name": "Uttara Model Town", "bn_name": "উত্তরা মডেল টাউন" },
+            { "name": "Airport Road", "bn_name": "এয়ারপোর্ট রোড" },
+            { "name": "Jahurul Islam Avenue", "bn_name": "জাহুরুল ইসলাম এভিনিউ" }
+          ]
+        },
+        {
+          "name": "Badda",
+          "bn_name": "বাড্ডা",
+          "places": [
+            { "name": "Badda", "bn_name": "বাড্ডা" },
+            { "name": "Merul Badda", "bn_name": "মেরুল বাড্ডা" },
+            { "name": "Rampura", "bn_name": "রামপুরা" },
+            { "name": "Madani Avenue", "bn_name": "মাদানি এভিনিউ" },
+            { "name": "Satarkul", "bn_name": "সাতারকুল" },
+            { "name": "Vatara", "bn_name": "ভাটারা" },
+            { "name": "Banasree", "bn_name": "বনশ্রী" },
+            { "name": "Rampura Bridge", "bn_name": "রামপুরা ব্রিজ" },
+            { "name": "Shahjadpur", "bn_name": "শাহজাদপুর" },
+            { "name": "Nikunja", "bn_name": "নিকুঞ্জ" },
+            { "name": "Khilkhet", "bn_name": "খিলক্ষেত" }
+          ]
+        },
+        {
+          "name": "Banani",
+          "bn_name": "বনানী",
+          "places": [
+            { "name": "Banani", "bn_name": "বনানী" },
+            { "name": "Banani Model Town", "bn_name": "বনানী মডেল টাউন" },
+            { "name": "Kemal Ataturk Avenue", "bn_name": "কামাল আতাতুর্ক এভিনিউ" },
+            { "name": "Banani DOHS", "bn_name": "বনানী ডিওএইচএস" },
+            { "name": "Gulshan 1", "bn_name": "গুলশান ১" },
+            { "name": "Gulshan 2", "bn_name": "গুলশান ২" },
+            { "name": "Niketon", "bn_name": "নিকেতন" },
+            { "name": "Banani Road 11", "bn_name": "বনানী রোড ১১" },
+            { "name": "Banani Road 27", "bn_name": "বনানী রোড ২৭" }
+          ]
+        },
+        {
+          "name": "Gulshan",
+          "bn_name": "গুলশান",
+          "places": [
+            { "name": "Gulshan 1", "bn_name": "গুলশান ১" },
+            { "name": "Gulshan 2", "bn_name": "গুলশান ২" },
+            { "name": "Gulshan Avenue", "bn_name": "গুলশান এভিনিউ" },
+            { "name": "Kemal Ataturk Avenue", "bn_name": "কামাল আতাতুর্ক এভিনিউ" },
+            { "name": "Gulshan Circle 1", "bn_name": "গুলশান সার্কেল ১" },
+            { "name": "Gulshan Circle 2", "bn_name": "গুলশান সার্কেল ২" },
+            { "name": "Baridhara", "bn_name": "বারিধারা" },
+            { "name": "Baridhara DOHS", "bn_name": "বারিধারা ডিওএইচএস" },
+            { "name": "Gulshan Lake", "bn_name": "গুলশান লেক" }
+          ]
+        },
+        {
+          "name": "Khilkhet",
+          "bn_name": "খিলক্ষেত",
+          "places": [
+            { "name": "Khilkhet", "bn_name": "খিলক্ষেত" },
+            { "name": "Nikunja", "bn_name": "নিকুঞ্জ" },
+            { "name": "Vatara", "bn_name": "ভাটারা" },
+            { "name": "Kuril Bishwa Road", "bn_name": "কুরিল বিশ্ব রোড" },
+            { "name": "Khilkhet Airport Road", "bn_name": "খিলক্ষেত এয়ারপোর্ট রোড" },
+            { "name": "Diabari", "bn_name": "ডিয়াবাড়ি" },
+            { "name": "Tejgaon Industrial Area", "bn_name": "তেজগাঁও শিল্প এলাকা" },
+            { "name": "Banani", "bn_name": "বনানী" }
+          ]
+        },
+        {
+          "name": "Vatara",
+          "bn_name": "ভাটারা",
+          "places": [
+            { "name": "Vatara", "bn_name": "ভাটারা" },
+            { "name": "Baridhara", "bn_name": "বারিধারা" },
+            { "name": "Banasree", "bn_name": "বনশ্রী" },
+            { "name": "Rampura", "bn_name": "রামপুরা" },
+            { "name": "Merul Badda", "bn_name": "মেরুল বাড্ডা" },
+            { "name": "Aftabnagar", "bn_name": "আফতাবনগর" },
+            { "name": "Kuril", "bn_name": "কুরিল" },
+            { "name": "Khilkhet", "bn_name": "খিলক্ষেত" }
+          ]
+        },
+        {
+          "name": "Tejgaon Industrial",
+          "bn_name": "তেজগাঁও শিল্প",
+          "places": [
+            { "name": "Tejgaon Industrial Area", "bn_name": "তেজগাঁও শিল্প এলাকা" },
+            { "name": "Kakrail", "bn_name": "কাকরাইল" },
+            { "name": "Tejgaon", "bn_name": "তেজগাঁও" },
+            { "name": "Gulshan", "bn_name": "গুলশান" },
+            { "name": "Banani", "bn_name": "বনানী" },
+            { "name": "Karwan Bazar", "bn_name": "কাওরান বাজার" },
+            { "name": "Farmgate", "bn_name": "ফার্মগেট" },
+            { "name": "Mohakhali", "bn_name": "মহাখালী" }
+          ]
+        },
+        {
+          "name": "Tejgaon",
+          "bn_name": "তেজগাঁও",
+          "places": [
+            { "name": "Tejgaon", "bn_name": "তেজগাঁও" },
+            { "name": "Farmgate", "bn_name": "ফার্মগেট" },
+            { "name": "Karwan Bazar", "bn_name": "কাওরান বাজার" },
+            { "name": "Shahbagh", "bn_name": "শাহবাগ" },
+            { "name": "Rampura", "bn_name": "রামপুরা" },
+            { "name": "Malibagh", "bn_name": "মালিবাগ" },
+            { "name": "Kakrail", "bn_name": "কাকরাইল" },
+            { "name": "Ramna", "bn_name": "রমনা" },
+            { "name": "Dhanmondi", "bn_name": "ধানমন্ডি" }
+          ]
+        },
+        {
+          "name": "Kafrul",
+          "bn_name": "কাফরুল",
+          "places": [
+            { "name": "Kafrul", "bn_name": "কাফরুল" },
+            { "name": "Agargaon", "bn_name": "আগারগাঁও" },
+            { "name": "Shyamoli", "bn_name": "শ্যামলী" },
+            { "name": "Sher-e-Bangla Nagar", "bn_name": "শেরেবাংলা নগর" },
+            { "name": "Mirpur", "bn_name": "মিরপুর" },
+            { "name": "Gabtoli", "bn_name": "গাবতলী" },
+            { "name": "Asad Gate", "bn_name": "আসাদ গেট" }
+          ]
+        },
+        {
+          "name": "Mohammadpur",
+          "bn_name": "মোহাম্মদপুর",
+          "places": [
+            { "name": "Mohammadpur", "bn_name": "মোহাম্মদপুর" },
+            { "name": "Asad Gate", "bn_name": "আসাদ গেট" },
+            { "name": "Shyamoli", "bn_name": "শ্যামলী" },
+            { "name": "Dhanmondi", "bn_name": "ধানমন্ডি" },
+            { "name": "Gabtoli", "bn_name": "গাবতলী" },
+            { "name": "Kallyanpur", "bn_name": "কল্যাণপুর" },
+            { "name": "Shahbagh", "bn_name": "শাহবাগ" },
+            { "name": "Agargaon", "bn_name": "আগারগাঁও" }
+          ]
+        },
+        {
+          "name": "Sher-e-Bangla Nagar",
+          "bn_name": "শেরেবাংলা নগর",
+          "places": [
+            { "name": "Sher-e-Bangla Nagar", "bn_name": "শেরেবাংলা নগর" },
+            { "name": "Agargaon", "bn_name": "আগারগাঁও" },
+            { "name": "Mirpur", "bn_name": "মিরপুর" },
+            { "name": "Kafrul", "bn_name": "কাফরুল" },
+            { "name": "Asad Gate", "bn_name": "আসাদ গেট" },
+            { "name": "Mohammadpur", "bn_name": "মোহাম্মদপুর" },
+            { "name": "Gabtoli", "bn_name": "গাবতলী" }
+          ]
+        },
+        {
+          "name": "Cantonment",
+          "bn_name": "ক্যান্টনমেন্ট",
+          "places": [
+            { "name": "Dhaka Cantonment", "bn_name": "ঢাকা ক্যান্টনমেন্ট" },
+            { "name": "Banani", "bn_name": "বনানী" },
+            { "name": "Gulshan", "bn_name": "গুলশান" },
+            { "name": "Tejgaon", "bn_name": "তেজগাঁও" },
+            { "name": "Mohakhali", "bn_name": "মহাখালী" },
+            { "name": "Airport", "bn_name": "এয়ারপোর্ট" },
+            { "name": "Kurmitola", "bn_name": "কুর্মিটোলা" }
+          ]
+        },
+        {
+          "name": "Airport (Bimanbandar)",
+          "bn_name": "এয়ারপোর্ট (বিমানবন্দর)",
+          "places": [
+            { "name": "Hazrat Shahjalal International Airport", "bn_name": "হযরত শাহজালাল আন্তর্জাতিক বিমানবন্দর" },
+            { "name": "Kurmitola", "bn_name": "কুর্মিটোলা" },
+            { "name": "Uttara", "bn_name": "উত্তরা" },
+            { "name": "Nikunja", "bn_name": "নিকুঞ্জ" },
+            { "name": "Diabari", "bn_name": "ডিয়াবাড়ি" },
+            { "name": "Tejgaon", "bn_name": "তেজগাঁও" },
+            { "name": "Cantonment", "bn_name": "ক্যান্টনমেন্ট" }
+          ]
+        },
+        {
+          "name": "Pallabi",
+          "bn_name": "পল্লবী",
+          "places": [
+            { "name": "Pallabi", "bn_name": "পল্লবী" },
+            { "name": "Mirpur", "bn_name": "মিরপুর" },
+            { "name": "Kazipara", "bn_name": "কাজীপাড়া" },
+            { "name": "Shewrapara", "bn_name": "শেওরাপাড়া" },
+            { "name": "Kallyanpur", "bn_name": "কল্যাণপুর" },
+            { "name": "Mohammadpur", "bn_name": "মোহাম্মদপুর" },
+            { "name": "Gabtoli", "bn_name": "গাবতলী" }
+          ]
+        },
+        {
+          "name": "Mirpur Model",
+          "bn_name": "মিরপুর মডেল",
+          "places": [
+            { "name": "Mirpur", "bn_name": "মিরপুর" },
+            { "name": "Mirpur 1", "bn_name": "মিরপুর ১" },
+            { "name": "Mirpur 2", "bn_name": "মিরপুর ২" },
+            { "name": "Mirpur 6", "bn_name": "মিরপুর ৬" },
+            { "name": "Mirpur 10", "bn_name": "মিরপুর ১০" },
+            { "name": "Mirpur 11", "bn_name": "মিরপুর ১১" },
+            { "name": "Mirpur 12", "bn_name": "মিরপুর ১২" },
+            { "name": "Mirpur 13", "bn_name": "মিরপুর ১৩" },
+            { "name": "Mirpur 14", "bn_name": "মিরপুর ১৪" },
+            { "name": "Kazipara", "bn_name": "কাজীপাড়া" },
+            { "name": "Shewrapara", "bn_name": "শেওরাপাড়া" },
+            { "name": "Kallyanpur", "bn_name": "কল্যাণপুর" },
+            { "name": "Pallabi", "bn_name": "পল্লবী" },
+            { "name": "Kochukhet", "bn_name": "কোচুখেত" }
+          ]
+        },
+        {
+          "name": "Rupnagar",
+          "bn_name": "রুপনগর",
+          "places": [
+            { "name": "Rupnagar", "bn_name": "রুপনগর" },
+            { "name": "Mirpur", "bn_name": "মিরপুর" },
+            { "name": "Pallabi", "bn_name": "পল্লবী" },
+            { "name": "Kazipara", "bn_name": "কাজীপাড়া" },
+            { "name": "Gabtoli", "bn_name": "গাবতলী" },
+            { "name": "Mohammadpur", "bn_name": "মোহাম্মদপুর" }
+          ]
+        },
+        {
+          "name": "Turag",
+          "bn_name": "তুরাগ",
+          "places": [
+            { "name": "Turag", "bn_name": "তুরাগ" },
+            { "name": "Ashulia", "bn_name": "আশুলিয়া" },
+            { "name": "Savar", "bn_name": "সাভার" },
+            { "name": "Uttara", "bn_name": "উত্তরা" },
+            { "name": "Mirpur", "bn_name": "মিরপুর" },
+            { "name": "Gabtoli", "bn_name": "গাবতলী" }
+          ]
+        },
+        {
+          "name": "Uttar Khan",
+          "bn_name": "উত্তর খান",
+          "places": [
+            { "name": "Uttar Khan", "bn_name": "উত্তর খান" },
+            { "name": "Dakshin Khan", "bn_name": "দক্ষিণ খান" },
+            { "name": "Uttara", "bn_name": "উত্তরা" },
+            { "name": "Diabari", "bn_name": "ডিয়াবাড়ি" },
+            { "name": "Airport", "bn_name": "এয়ারপোর্ট" }
+          ]
+        },
+        {
+          "name": "Dakshin Khan",
+          "bn_name": "দক্ষিণ খান",
+          "places": [
+            { "name": "Dakshin Khan", "bn_name": "দক্ষিণ খান" },
+            { "name": "Uttar Khan", "bn_name": "উত্তর খান" },
+            { "name": "Uttara", "bn_name": "উত্তরা" },
+            { "name": "Airport", "bn_name": "এয়ারপোর্ট" },
+            { "name": "Diabari", "bn_name": "ডিয়াবাড়ি" }
+          ]
+        },
+        {
+          "name": "Bhashantek",
+          "bn_name": "ভাসানটেক",
+          "places": [
+            { "name": "Bhashantek", "bn_name": "ভাসানটেক" },
+            { "name": "Mirpur", "bn_name": "মিরপুর" },
+            { "name": "Kochukhet", "bn_name": "কোচুখেত" },
+            { "name": "Cantonment", "bn_name": "ক্যান্টনমেন্ট" },
+            { "name": "Uttara", "bn_name": "উত্তরা" }
+          ]
+        },
+        {
+          "name": "Shah Ali",
+          "bn_name": "শাহ আলী",
+          "places": [
+            { "name": "Shah Ali", "bn_name": "শাহ আলী" },
+            { "name": "Mirpur", "bn_name": "মিরপুর" },
+            { "name": "Pallabi", "bn_name": "পল্লবী" },
+            { "name": "Gabtoli", "bn_name": "গাবতলী" },
+            { "name": "Mohammadpur", "bn_name": "মোহাম্মদপুর" }
+          ]
+        },
+        {
+          "name": "Sabujbagh",
+          "bn_name": "সবুজবাগ",
+          "places": [
+            { "name": "Sabujbagh", "bn_name": "সবুজবাগ" },
+            { "name": "Meradia", "bn_name": "মেরাডিয়া" },
+            { "name": "Badda", "bn_name": "বাড্ডা" },
+            { "name": "Malibagh", "bn_name": "মালিবাগ" },
+            { "name": "Rampura", "bn_name": "রামপুরা" },
+            { "name": "Khilgaon", "bn_name": "খিলগাঁও" },
+            { "name": "East Rampura", "bn_name": "পূর্ব রামপুরা" }
+          ]
+        },
+        {
+          "name": "Hatirjheel",
+          "bn_name": "হাতিরঝিল",
+          "places": [
+            { "name": "Hatirjheel", "bn_name": "হাতিরঝিল" },
+            { "name": "Tejgaon", "bn_name": "তেজগাঁও" },
+            { "name": "Rampura", "bn_name": "রামপুরা" },
+            { "name": "Banasree", "bn_name": "বনশ্রী" },
+            { "name": "Badda", "bn_name": "বাড্ডা" },
+            { "name": "Banani", "bn_name": "বনানী" },
+            { "name": "Gulshan", "bn_name": "গুলশান" }
+          ]
+        },
+        {
+          "name": "Shahbag",
+          "bn_name": "শাহবাগ",
+          "places": [
+            { "name": "Shahbagh", "bn_name": "শাহবাগ" },
+            { "name": "Dhanmondi", "bn_name": "ধানমন্ডি" },
+            { "name": "Ramna", "bn_name": "রমনা" },
+            { "name": "New Market", "bn_name": "নতুন বাজার" },
+            { "name": "TSC", "bn_name": "টিএসসি" },
+            { "name": "Dhaka University", "bn_name": "ঢাকা বিশ্ববিদ্যালয়" },
+            { "name": "Motijheel", "bn_name": "মতিঝিল" },
+            { "name": "Tejgaon", "bn_name": "তেজগাঁও" },
+            { "name": "Farmgate", "bn_name": "ফার্মগেট" }
+          ]
+        },
+        {
+          "name": "Ramna Model",
+          "bn_name": "রমনা মডেল",
+          "places": [
+            { "name": "Ramna", "bn_name": "রমনা" },
+            { "name": "Shahbagh", "bn_name": "শাহবাগ" },
+            { "name": "Dhaka University", "bn_name": "ঢাকা বিশ্ববিদ্যালয়" },
+            { "name": "TSC", "bn_name": "টিএসসি" },
+            { "name": "New Market", "bn_name": "নতুন বাজার" },
+            { "name": "Kakrail", "bn_name": "কাকরাইল" },
+            { "name": "Motijheel", "bn_name": "মতিঝিল" },
+            { "name": "Paltan", "bn_name": "পল্টন" }
+          ]
+        },
+        {
+          "name": "Paltan Model",
+          "bn_name": "পল্টন মডেল",
+          "places": [
+            { "name": "Paltan", "bn_name": "পল্টন" },
+            { "name": "Motijheel", "bn_name": "মতিঝিল" },
+            { "name": "Gulistan", "bn_name": "গুলিস্তান" },
+            { "name": "Ramna", "bn_name": "রমনা" },
+            { "name": "Kakrail", "bn_name": "কাকরাইল" },
+            { "name": "Motijheel Commercial Area", "bn_name": "মতিঝিল বাণিজ্যিক এলাকা" },
+            { "name": "Dhaka New Market Area", "bn_name": "ঢাকা নতুন বাজার এলাকা" }
+          ]
+        },
+        {
+          "name": "Motijheel",
+          "bn_name": "মতিঝিল",
+          "places": [
+            { "name": "Motijheel", "bn_name": "মতিঝিল" },
+            { "name": "Motijheel Commercial Area", "bn_name": "মতিঝিল বাণিজ্যিক এলাকা" },
+            { "name": "Dilkusha", "bn_name": "দিলকুশা" },
+            { "name": "Purana Paltan", "bn_name": "পুরানা পল্টন" },
+            { "name": "Gulistan", "bn_name": "গুলিস্তান" },
+            { "name": "Ramna", "bn_name": "রমনা" },
+            { "name": "Kakrail", "bn_name": "কাকরাইল" },
+            { "name": "Fakirapool", "bn_name": "ফকিরাপুল" }
+          ]
+        },
+        {
+          "name": "New Market",
+          "bn_name": "নতুন বাজার",
+          "places": [
+            { "name": "New Market", "bn_name": "নতুন বাজার" },
+            { "name": "Azimpur", "bn_name": "আজিমপুর" },
+            { "name": "Nilkhet", "bn_name": "নীলক্ষেত" },
+            { "name": "Shahbagh", "bn_name": "শাহবাগ" },
+            { "name": "Dhanmondi", "bn_name": "ধানমন্ডি" },
+            { "name": "Ramna", "bn_name": "রমনা" },
+            { "name": "Dhaka University", "bn_name": "ঢাকা বিশ্ববিদ্যালয়" }
+          ]
+        },
+        {
+          "name": "Kalabagan",
+          "bn_name": "কলাবাগান",
+          "places": [
+            { "name": "Kalabagan", "bn_name": "কলাবাগান" },
+            { "name": "Dhanmondi", "bn_name": "ধানমন্ডি" },
+            { "name": "Shyamoli", "bn_name": "শ্যামলী" },
+            { "name": "Asad Gate", "bn_name": "আসাদ গেট" },
+            { "name": "Mohammadpur", "bn_name": "মোহাম্মদপুর" },
+            { "name": "New Market", "bn_name": "নতুন বাজার" },
+            { "name": "Shahbagh", "bn_name": "শাহবাগ" }
+          ]
+        },
+        {
+          "name": "Dhanmondi",
+          "bn_name": "ধানমন্ডি",
+          "places": [
+            { "name": "Dhanmondi", "bn_name": "ধানমন্ডি" },
+            { "name": "Dhanmondi 27", "bn_name": "ধানমন্ডি ২৭" },
+            { "name": "Dhanmondi 32", "bn_name": "ধানমন্ডি ৩২" },
+            { "name": "Kalabagan", "bn_name": "কলাবাগান" },
+            { "name": "Shahbagh", "bn_name": "শাহবাগ" },
+            { "name": "New Market", "bn_name": "নতুন বাজার" },
+            { "name": "Shyamoli", "bn_name": "শ্যামলী" },
+            { "name": "Asad Gate", "bn_name": "আসাদ গেট" },
+            { "name": "Mohammadpur", "bn_name": "মোহাম্মদপুর" }
+          ]
+        },
+        {
+          "name": "Shyamoli",
+          "bn_name": "শ্যামলী",
+          "places": [
+            { "name": "Shyamoli", "bn_name": "শ্যামলী" },
+            { "name": "Asad Gate", "bn_name": "আসাদ গেট" },
+            { "name": "Mohammadpur", "bn_name": "মোহাম্মদপুর" },
+            { "name": "Dhanmondi", "bn_name": "ধানমন্ডি" },
+            { "name": "Agargaon", "bn_name": "আগারগাঁও" },
+            { "name": "Gabtoli", "bn_name": "গাবতলী" },
+            { "name": "Kallyanpur", "bn_name": "কল্যাণপুর" }
+          ]
+        },
+        {
+          "name": "Asad Gate",
+          "bn_name": "আসাদ গেট",
+          "places": [
+            { "name": "Asad Gate", "bn_name": "আসাদ গেট" },
+            { "name": "Shyamoli", "bn_name": "শ্যামলী" },
+            { "name": "Mohammadpur", "bn_name": "মোহাম্মদপুর" },
+            { "name": "Kallyanpur", "bn_name": "কল্যাণপুর" },
+            { "name": "Dhanmondi", "bn_name": "ধানমন্ডি" },
+            { "name": "Gabtoli", "bn_name": "গাবতলী" },
+            { "name": "Agargaon", "bn_name": "আগারগাঁও" }
+          ]
+        },
+        {
+          "name": "Kadamtoli",
+          "bn_name": "কদমতলী",
+          "places": [
+            { "name": "Kadamtoli", "bn_name": "কদমতলী" },
+            { "name": "Shyampur", "bn_name": "শ্যামপুর" },
+            { "name": "Kamrangirchar", "bn_name": "কামরাঙ্গীরচর" },
+            { "name": "Lalbagh", "bn_name": "লালবাগ" },
+            { "name": "Chawkbazar", "bn_name": "চকবাজার" },
+            { "name": "Old Dhaka", "bn_name": "পুরান ঢাকা" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Dhaka South City Corporation",
+      "name_bn": "ঢাকা দক্ষিণ সিটি কর্পোরেশন",
+      "abbreviation": "DSCC",
+      "thanas": [
+        {
+          "name": "Kotwali",
+          "bn_name": "কোতওয়ালি",
+          "places": [
+            { "name": "Kotwali", "bn_name": "কোতওয়ালি" },
+            { "name": "Lalbagh", "bn_name": "লালবাগ" },
+            { "name": "Chawkbazar", "bn_name": "চকবাজার" },
+            { "name": "Sadarghat", "bn_name": "সদরঘাট" },
+            { "name": "Shankhari Bazar", "bn_name": "শাঁখারীবাজার" },
+            { "name": "Tanti Bazar", "bn_name": "তন্তী বাজার" },
+            { "name": "Islampur", "bn_name": "ইসলামপুর" },
+            { "name": "Wari", "bn_name": "ওয়ারী" },
+            { "name": "Gulistan", "bn_name": "গুলিস্তান" },
+            { "name": "Paltan", "bn_name": "পল্টন" }
+          ]
+        },
+        {
+          "name": "Lalbagh",
+          "bn_name": "লালবাগ",
+          "places": [
+            { "name": "Lalbagh", "bn_name": "লালবাগ" },
+            { "name": "Lalbagh Fort", "bn_name": "লালবাগ কেল্লা" },
+            { "name": "Chawkbazar", "bn_name": "চকবাজার" },
+            { "name": "Wari", "bn_name": "ওয়ারী" },
+            { "name": "Old Dhaka", "bn_name": "পুরান ঢাকা" },
+            { "name": "Bangshal", "bn_name": "বংশাল" },
+            { "name": "Kotwali", "bn_name": "কোতওয়ালি" },
+            { "name": "Shyampur", "bn_name": "শ্যামপুর" }
+          ]
+        },
+        {
+          "name": "Chowkbazar",
+          "bn_name": "চকবাজার",
+          "places": [
+            { "name": "Chawkbazar", "bn_name": "চকবাজার" },
+            { "name": "Shankhari Bazar", "bn_name": "শাঁখারীবাজার" },
+            { "name": "Tanti Bazar", "bn_name": "তন্তী বাজার" },
+            { "name": "Islampur", "bn_name": "ইসলামপুর" },
+            { "name": "Lalbagh", "bn_name": "লালবাগ" },
+            { "name": "Kotwali", "bn_name": "কোতওয়ালি" },
+            { "name": "Old Dhaka", "bn_name": "পুরান ঢাকা" },
+            { "name": "Wari", "bn_name": "ওয়ারী" }
+          ]
+        },
+        {
+          "name": "Bangshal",
+          "bn_name": "বংশাল",
+          "places": [
+            { "name": "Bangshal", "bn_name": "বংশাল" },
+            { "name": "Lalbagh", "bn_name": "লালবাগ" },
+            { "name": "Chawkbazar", "bn_name": "চকবাজার" },
+            { "name": "Wari", "bn_name": "ওয়ারী" },
+            { "name": "Gulistan", "bn_name": "গুলিস্তান" },
+            { "name": "Old Dhaka", "bn_name": "পুরান ঢাকা" },
+            { "name": "Kotwali", "bn_name": "কোতওয়ালি" }
+          ]
+        },
+        {
+          "name": "Sutrapur",
+          "bn_name": "সুত্রাপুর",
+          "places": [
+            { "name": "Sutrapur", "bn_name": "সুত্রাপুর" },
+            { "name": "Wari", "bn_name": "ওয়ারী" },
+            { "name": "Gulistan", "bn_name": "গুলিস্তান" },
+            { "name": "Bangshal", "bn_name": "বংশাল" },
+            { "name": "Lalbagh", "bn_name": "লালবাগ" },
+            { "name": "Chawkbazar", "bn_name": "চকবাজার" },
+            { "name": "Old Dhaka", "bn_name": "পুরান ঢাকা" }
+          ]
+        },
+        {
+          "name": "Wari",
+          "bn_name": "ওয়ারী",
+          "places": [
+            { "name": "Wari", "bn_name": "ওয়ারী" },
+            { "name": "Gulistan", "bn_name": "গুলিস্তান" },
+            { "name": "Paltan", "bn_name": "পল্টন" },
+            { "name": "Motijheel", "bn_name": "মতিঝিল" },
+            { "name": "Lalbagh", "bn_name": "লালবাগ" },
+            { "name": "Bangshal", "bn_name": "বংশাল" },
+            { "name": "Sutrapur", "bn_name": "সুত্রাপুর" },
+            { "name": "Chawkbazar", "bn_name": "চকবাজার" },
+            { "name": "Dhanmondi", "bn_name": "ধানমন্ডি" }
+          ]
+        },
+        {
+          "name": "Gandaria",
+          "bn_name": "গেন্ডারিয়া",
+          "places": [
+            { "name": "Gandaria", "bn_name": "গেন্ডারিয়া" },
+            { "name": "Shyampur", "bn_name": "শ্যামপুর" },
+            { "name": "Kamrangirchar", "bn_name": "কামরাঙ্গীরচর" },
+            { "name": "Lalbagh", "bn_name": "লালবাগ" },
+            { "name": "Jatrabari", "bn_name": "যাত্রাবাড়ী" },
+            { "name": "Demra", "bn_name": "ডেমরা" },
+            { "name": "Kadamtoli", "bn_name": "কদমতলী" }
+          ]
+        },
+        {
+          "name": "Hazaribagh",
+          "bn_name": "হাজারীবাগ",
+          "places": [
+            { "name": "Hazaribagh", "bn_name": "হাজারীবাগ" },
+            { "name": "Kamrangirchar", "bn_name": "কামরাঙ্গীরচর" },
+            { "name": "Shyampur", "bn_name": "শ্যামপুর" },
+            { "name": "Lalbagh", "bn_name": "লালবাগ" },
+            { "name": "Kadamtoli", "bn_name": "কদমতলী" },
+            { "name": "Gandaria", "bn_name": "গেন্ডারিয়া" }
+          ]
+        },
+        {
+          "name": "Shyampur",
+          "bn_name": "শ্যামপুর",
+          "places": [
+            { "name": "Shyampur", "bn_name": "শ্যামপুর" },
+            { "name": "Kamrangirchar", "bn_name": "কামরাঙ্গীরচর" },
+            { "name": "Lalbagh", "bn_name": "লালবাগ" },
+            { "name": "Hazaribagh", "bn_name": "হাজারীবাগ" },
+            { "name": "Gandaria", "bn_name": "গেন্ডারিয়া" },
+            { "name": "Jatrabari", "bn_name": "যাত্রাবাড়ী" },
+            { "name": "Kadamtoli", "bn_name": "কদমতলী" }
+          ]
+        },
+        {
+          "name": "Kamrangirchar",
+          "bn_name": "কামরাঙ্গীরচর",
+          "places": [
+            { "name": "Kamrangirchar", "bn_name": "কামরাঙ্গীরচর" },
+            { "name": "Shyampur", "bn_name": "শ্যামপুর" },
+            { "name": "Hazaribagh", "bn_name": "হাজারীবাগ" },
+            { "name": "Lalbagh", "bn_name": "লালবাগ" },
+            { "name": "Kadamtoli", "bn_name": "কদমতলী" },
+            { "name": "Gandaria", "bn_name": "গেন্ডারিয়া" }
+          ]
+        },
+        {
+          "name": "Jatrabari",
+          "bn_name": "যাত্রাবাড়ী",
+          "places": [
+            { "name": "Jatrabari", "bn_name": "যাত্রাবাড়ী" },
+            { "name": "Demra", "bn_name": "ডেমরা" },
+            { "name": "Kadamtoli", "bn_name": "কদমতলী" },
+            { "name": "Gandaria", "bn_name": "গেন্ডারিয়া" },
+            { "name": "Shyampur", "bn_name": "শ্যামপুর" },
+            { "name": "Sabujbagh", "bn_name": "সবুজবাগ" },
+            { "name": "Meradia", "bn_name": "মেরাডিয়া" },
+            { "name": "Malibagh", "bn_name": "মালিবাগ" }
+          ]
+        },
+        {
+          "name": "Demra",
+          "bn_name": "ডেমরা",
+          "places": [
+            { "name": "Demra", "bn_name": "ডেমরা" },
+            { "name": "Jatrabari", "bn_name": "যাত্রাবাড়ী" },
+            { "name": "Shyampur", "bn_name": "শ্যামপুর" },
+            { "name": "Sabujbagh", "bn_name": "সবুজবাগ" },
+            { "name": "Meradia", "bn_name": "মেরাডিয়া" },
+            { "name": "Badda", "bn_name": "বাড্ডা" },
+            { "name": "Malibagh", "bn_name": "মালিবাগ" }
+          ]
+        },
+        {
+          "name": "Sabujbagh",
+          "bn_name": "সবুজবাগ",
+          "places": [
+            { "name": "Sabujbagh", "bn_name": "সবুজবাগ" },
+            { "name": "Meradia", "bn_name": "মেরাডিয়া" },
+            { "name": "Badda", "bn_name": "বাড্ডা" },
+            { "name": "Malibagh", "bn_name": "মালিবাগ" },
+            { "name": "Rampura", "bn_name": "রামপুরা" },
+            { "name": "Khilgaon", "bn_name": "খিলগাঁও" },
+            { "name": "East Rampura", "bn_name": "পূর্ব রামপুরা" },
+            { "name": "Demra", "bn_name": "ডেমরা" },
+            { "name": "Jatrabari", "bn_name": "যাত্রাবাড়ী" }
+          ]
+        },
+        {
+          "name": "Khilgaon",
+          "bn_name": "খিলগাঁও",
+          "places": [
+            { "name": "Khilgaon", "bn_name": "খিলগাঁও" },
+            { "name": "East Rampura", "bn_name": "পূর্ব রামপুরা" },
+            { "name": "Rampura", "bn_name": "রামপুরা" },
+            { "name": "Malibagh", "bn_name": "মালিবাগ" },
+            { "name": "Banasree", "bn_name": "বনশ্রী" },
+            { "name": "Sabujbagh", "bn_name": "সবুজবাগ" },
+            { "name": "Meradia", "bn_name": "মেরাডিয়া" },
+            { "name": "Badda", "bn_name": "বাড্ডা" }
+          ]
+        },
+        {
+          "name": "Rampura",
+          "bn_name": "রামপুরা",
+          "places": [
+            { "name": "Rampura", "bn_name": "রামপুরা" },
+            { "name": "East Rampura", "bn_name": "পূর্ব রামপুরা" },
+            { "name": "Malibagh", "bn_name": "মালিবাগ" },
+            { "name": "Khilgaon", "bn_name": "খিলগাঁও" },
+            { "name": "Banasree", "bn_name": "বনশ্রী" },
+            { "name": "Badda", "bn_name": "বাড্ডা" },
+            { "name": "Merul Badda", "bn_name": "মেরুল বাড্ডা" },
+            { "name": "Tejgaon", "bn_name": "তেজগাঁও" },
+            { "name": "Hatirjheel", "bn_name": "হাতিরঝিল" }
+          ]
+        },
+        {
+          "name": "Mugda",
+          "bn_name": "মুগদা",
+          "places": [
+            { "name": "Mugda", "bn_name": "মুগদা" },
+            { "name": "Meradia", "bn_name": "মেরাডিয়া" },
+            { "name": "Badda", "bn_name": "বাড্ডা" },
+            { "name": "Sabujbagh", "bn_name": "সবুজবাগ" },
+            { "name": "Khilgaon", "bn_name": "খিলগাঁও" },
+            { "name": "Rampura", "bn_name": "রামপুরা" },
+            { "name": "Malibagh", "bn_name": "মালিবাগ" }
+          ]
+        },
+        {
+          "name": "Kalabagan",
+          "bn_name": "কলাবাগান",
+          "places": [
+            { "name": "Kalabagan", "bn_name": "কলাবাগান" },
+            { "name": "Dhanmondi", "bn_name": "ধানমন্ডি" },
+            { "name": "Shyamoli", "bn_name": "শ্যামলী" },
+            { "name": "Asad Gate", "bn_name": "আসাদ গেট" },
+            { "name": "Mohammadpur", "bn_name": "মোহাম্মদপুর" },
+            { "name": "New Market", "bn_name": "নতুন বাজার" },
+            { "name": "Shahbagh", "bn_name": "শাহবাগ" }
+          ]
+        },
+        {
+          "name": "Dhanmondi",
+          "bn_name": "ধানমন্ডি",
+          "places": [
+            { "name": "Dhanmondi", "bn_name": "ধানমন্ডি" },
+            { "name": "Dhanmondi 27", "bn_name": "ধানমন্ডি ২৭" },
+            { "name": "Dhanmondi 32", "bn_name": "ধানমন্ডি ৩২" },
+            { "name": "Kalabagan", "bn_name": "কলাবাগান" },
+            { "name": "Shahbagh", "bn_name": "শাহবাগ" },
+            { "name": "New Market", "bn_name": "নতুন বাজার" },
+            { "name": "Shyamoli", "bn_name": "শ্যামলী" },
+            { "name": "Asad Gate", "bn_name": "আসাদ গেট" },
+            { "name": "Mohammadpur", "bn_name": "মোহাম্মদপুর" }
+          ]
+        },
+        {
+          "name": "Shahbag",
+          "bn_name": "শাহবাগ",
+          "places": [
+            { "name": "Shahbagh", "bn_name": "শাহবাগ" },
+            { "name": "Dhanmondi", "bn_name": "ধানমন্ডি" },
+            { "name": "Ramna", "bn_name": "রমনা" },
+            { "name": "New Market", "bn_name": "নতুন বাজার" },
+            { "name": "TSC", "bn_name": "টিএসসি" },
+            { "name": "Dhaka University", "bn_name": "ঢাকা বিশ্ববিদ্যালয়" },
+            { "name": "Motijheel", "bn_name": "মতিঝিল" },
+            { "name": "Tejgaon", "bn_name": "তেজগাঁও" },
+            { "name": "Farmgate", "bn_name": "ফার্মগেট" }
+          ]
+        },
+        {
+          "name": "Ramna Model",
+          "bn_name": "রমনা মডেল",
+          "places": [
+            { "name": "Ramna", "bn_name": "রমনা" },
+            { "name": "Shahbagh", "bn_name": "শাহবাগ" },
+            { "name": "Dhaka University", "bn_name": "ঢাকা বিশ্ববিদ্যালয়" },
+            { "name": "TSC", "bn_name": "টিএসসি" },
+            { "name": "New Market", "bn_name": "নতুন বাজার" },
+            { "name": "Kakrail", "bn_name": "কাকরাইল" },
+            { "name": "Motijheel", "bn_name": "মতিঝিল" },
+            { "name": "Paltan", "bn_name": "পল্টন" }
+          ]
+        },
+        {
+          "name": "Paltan Model",
+          "bn_name": "পল্টন মডেল",
+          "places": [
+            { "name": "Paltan", "bn_name": "পল্টন" },
+            { "name": "Motijheel", "bn_name": "মতিঝিল" },
+            { "name": "Gulistan", "bn_name": "গুলিস্তান" },
+            { "name": "Ramna", "bn_name": "রমনা" },
+            { "name": "Kakrail", "bn_name": "কাকরাইল" },
+            { "name": "Motijheel Commercial Area", "bn_name": "মতিঝিল বাণিজ্যিক এলাকা" },
+            { "name": "Dhaka New Market Area", "bn_name": "ঢাকা নতুন বাজার এলাকা" }
+          ]
+        },
+        {
+          "name": "Motijheel",
+          "bn_name": "মতিঝিল",
+          "places": [
+            { "name": "Motijheel", "bn_name": "মতিঝিল" },
+            { "name": "Motijheel Commercial Area", "bn_name": "মতিঝিল বাণিজ্যিক এলাকা" },
+            { "name": "Dilkusha", "bn_name": "দিলকুশা" },
+            { "name": "Purana Paltan", "bn_name": "পুরানা পল্টন" },
+            { "name": "Gulistan", "bn_name": "গুলিস্তান" },
+            { "name": "Ramna", "bn_name": "রমনা" },
+            { "name": "Kakrail", "bn_name": "কাকরাইল" },
+            { "name": "Fakirapool", "bn_name": "ফকিরাপুল" }
+          ]
+        },
+        {
+          "name": "New Market",
+          "bn_name": "নতুন বাজার",
+          "places": [
+            { "name": "New Market", "bn_name": "নতুন বাজার" },
+            { "name": "Azimpur", "bn_name": "আজিমপুর" },
+            { "name": "Nilkhet", "bn_name": "নীলক্ষেত" },
+            { "name": "Shahbagh", "bn_name": "শাহবাগ" },
+            { "name": "Dhanmondi", "bn_name": "ধানমন্ডি" },
+            { "name": "Ramna", "bn_name": "রমনা" },
+            { "name": "Dhaka University", "bn_name": "ঢাকা বিশ্ববিদ্যালয়" }
+          ]
+        },
+        {
+          "name": "Darus-Salam",
+          "bn_name": "দারুস সালাম",
+          "places": [
+            { "name": "Darus-Salam", "bn_name": "দারুস সালাম" },
+            { "name": "Shyamoli", "bn_name": "শ্যামলী" },
+            { "name": "Mohammadpur", "bn_name": "মোহাম্মদপুর" },
+            { "name": "Kallyanpur", "bn_name": "কল্যাণপুর" },
+            { "name": "Gabtoli", "bn_name": "গাবতলী" },
+            { "name": "Agargaon", "bn_name": "আগারগাঁও" }
+          ]
+        },
+        {
+          "name": "Adabor",
+          "bn_name": "আদাবর",
+          "places": [
+            { "name": "Adabor", "bn_name": "আদাবর" },
+            { "name": "Shyamoli", "bn_name": "শ্যামলী" },
+            { "name": "Mohammadpur", "bn_name": "মোহাম্মদপুর" },
+            { "name": "Dhanmondi", "bn_name": "ধানমন্ডি" },
+            { "name": "Kalabagan", "bn_name": "কলাবাগান" },
+            { "name": "Asad Gate", "bn_name": "আসাদ গেট" }
+          ]
+        }
+      ]
+    }
+  ]
+}
