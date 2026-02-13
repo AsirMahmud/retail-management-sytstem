@@ -19,6 +19,7 @@ from apps.expenses.models import Expense, ExpenseCategory
 from apps.inventory.models import Product, Category, StockMovement
 from apps.customer.models import Customer
 from apps.preorder.models import Preorder, PreorderProduct
+from apps.online_preorder.models import OnlinePreorder
 import logging
 
 logger = logging.getLogger(__name__)
@@ -610,6 +611,86 @@ class ReportViewSet(viewsets.ModelViewSet):
         }
         serializer = ProductPerformanceReportSerializer(data)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='online-preorder-analytics')
+    def online_preorder_analytics(self, request):
+        """Get analytics for online preorders including top products and categories"""
+        date_from, date_to, error = self._get_date_range(request)
+        if error:
+            return error
+
+        # Get online preorders in date range
+        online_preorders = OnlinePreorder.objects.filter(created_at__range=[date_from, date_to])
+        
+        # Total stats
+        total_orders = online_preorders.count()
+        completed_orders = online_preorders.filter(status='COMPLETED')
+        total_sales_count = completed_orders.count()
+        total_revenue = completed_orders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+        total_profit = completed_orders.aggregate(total=Sum('profit'))['total'] or Decimal('0.00')
+        average_order_value = total_revenue / total_sales_count if total_sales_count > 0 else Decimal('0.00')
+
+        # Get sales from Sale model with sale_type='online_preorder' for more accurate analytics
+        online_sales = Sale.objects.filter(
+            date__range=[date_from, date_to],
+            status='completed',
+            sale_type='online_preorder'
+        )
+        
+        # Top products from online preorder sales
+        top_products = SaleItem.objects.filter(
+            sale__in=online_sales
+        ).values(
+            'product__id',
+            'product__name',
+            'product__category__name'
+        ).annotate(
+            product_id=F('product__id'),
+            product_name=F('product__name'),
+            category_name=F('product__category__name'),
+            total_sales=Sum('total'),
+            quantity_sold=Sum('quantity'),
+            total_profit=Sum('profit')
+        ).order_by('-total_sales')[:10]
+
+        # Top categories from online preorder sales
+        top_categories = SaleItem.objects.filter(
+            sale__in=online_sales
+        ).values(
+            'product__category__name'
+        ).annotate(
+            category_name=F('product__category__name'),
+            total_sales=Sum('total'),
+            quantity_sold=Sum('quantity'),
+            total_profit=Sum('profit'),
+            order_count=Count('sale', distinct=True)
+        ).order_by('-total_sales')[:10]
+
+        # Sales by date
+        sales_by_date = online_sales.values('date__date').annotate(
+            date=F('date__date'),
+            total=Sum('total'),
+            orders_count=Count('id')
+        ).order_by('date__date')
+
+        # Status breakdown
+        status_breakdown = {}
+        for status_choice in OnlinePreorder.STATUS_CHOICES:
+            status_breakdown[status_choice[0]] = online_preorders.filter(status=status_choice[0]).count()
+
+        data = {
+            'total_orders': total_orders,
+            'total_sales_count': total_sales_count,
+            'total_revenue': total_revenue,
+            'total_profit': total_profit,
+            'average_order_value': average_order_value,
+            'top_products': list(top_products),
+            'top_categories': list(top_categories),
+            'sales_by_date': list(sales_by_date),
+            'status_breakdown': status_breakdown,
+        }
+
+        return Response(data)
 
 class SavedReportViewSet(viewsets.ModelViewSet):
     queryset = SavedReport.objects.all()

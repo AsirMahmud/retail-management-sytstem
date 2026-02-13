@@ -52,11 +52,13 @@ interface ManualOrderFormProps {
 
 export function ManualOrderForm({ onSuccess, onCancel, initialData }: ManualOrderFormProps) {
     const [step, setStep] = useState(1);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Customer Search State
     const [customerSearch, setCustomerSearch] = useState("");
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
-    const { data: customerResults } = useSearchCustomers(customerSearch);
+    // For online preorders, only show customers whose type is 'online' or 'both'
+    const { data: customerResults } = useSearchCustomers(customerSearch, 1, 20, { customer_type: 'online' });
 
     // Form States (matching CheckoutForm)
     const [firstName, setFirstName] = useState("");
@@ -267,6 +269,10 @@ export function ManualOrderForm({ onSuccess, onCancel, initialData }: ManualOrde
     const calculateTotal = () => calculateSubtotal() + Number(deliveryCharge || 0);
 
     const handleSubmit = async () => {
+        // Prevent double submission
+        if (isSubmitting) return;
+        
+        setIsSubmitting(true);
         try {
             // Build shipping address
             let shipping_address: any = {};
@@ -317,6 +323,8 @@ export function ManualOrderForm({ onSuccess, onCancel, initialData }: ManualOrde
             onSuccess();
         } catch (error) {
             toast({ title: "Error", description: "Failed to save order", variant: "destructive" });
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -801,9 +809,9 @@ export function ManualOrderForm({ onSuccess, onCancel, initialData }: ManualOrde
                     <Button
                         onClick={step === 3 ? handleSubmit : () => setStep(step + 1)}
                         className="bg-indigo-600 hover:bg-indigo-700 w-32"
-                        disabled={nextDisabled()}
+                        disabled={nextDisabled() || isSubmitting}
                     >
-                        {step === 3 ? "Submit Order" : "Next"} <ArrowRight className="ml-2 h-4 w-4" />
+                        {step === 3 ? (isSubmitting ? "Submitting..." : "Submit Order") : "Next"} <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                 </div>
             </div>

@@ -219,6 +219,35 @@ export interface OverviewReport {
     }>;
 }
 
+export interface OnlinePreorderAnalytics {
+    total_orders: number;
+    total_sales_count: number;
+    total_revenue: string;
+    total_profit: string;
+    average_order_value: string;
+    top_products: Array<{
+        product_id: number;
+        product_name: string;
+        category_name: string;
+        total_sales: string;
+        quantity_sold: number;
+        total_profit: string;
+    }>;
+    top_categories: Array<{
+        category_name: string;
+        total_sales: string;
+        quantity_sold: number;
+        total_profit: string;
+        order_count: number;
+    }>;
+    sales_by_date: Array<{
+        date: string;
+        total: string;
+        orders_count: number;
+    }>;
+    status_breakdown: Record<string, number>;
+}
+
 export const formatDateRange = (dateRange: DateRange | undefined): ReportDateRange | null => {
     if (!dateRange?.from) return null;
     return {
@@ -265,6 +294,11 @@ export const reportsApi = {
 
     getOverviewReport: async (dateRange: ReportDateRange): Promise<OverviewReport> => {
         const response = await axios.get('/reports/overview/', { params: dateRange });
+        return response.data;
+    },
+
+    getOnlinePreorderAnalytics: async (dateRange: ReportDateRange): Promise<OnlinePreorderAnalytics> => {
+        const response = await axios.get('/reports/online-preorder-analytics/', { params: dateRange });
         return response.data;
     },
 }; 

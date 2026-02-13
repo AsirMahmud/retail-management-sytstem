@@ -213,7 +213,7 @@ export const productsApi = {
     },
 
     getById: async (id: number): Promise<Product> => {
-        const { data } = await axiosInstance.get(`/inventory/products/${id}/?expand=category,online_categories`);
+        const { data } = await axiosInstance.get(`/inventory/products/${id}/?expand=category,online_categories,variations`);
         return data;
     },
 
@@ -229,7 +229,18 @@ export const productsApi = {
     },
 
     delete: async (id: number): Promise<void> => {
-        await axiosInstance.delete(`/inventory/products/${id}/`);
+        try {
+            await axiosInstance.delete(`/inventory/products/${id}/`);
+            // DELETE requests typically return 204 No Content or 200 OK with no body
+            // Both are considered successful
+        } catch (error: any) {
+            // If status is 204 or 200, it's a successful deletion
+            if (error?.response?.status === 204 || error?.response?.status === 200) {
+                return;
+            }
+            // Re-throw actual errors
+            throw error;
+        }
     },
 
     // Product Analytics
@@ -279,6 +290,51 @@ export const productsApi = {
             notes,
         });
         return data;
+    },
+
+    getStats: async (params?: {
+        search?: string;
+        category?: number;
+        online_category?: number[];
+        supplier?: number;
+        is_active?: boolean;
+        stock_status?: string;
+    }): Promise<{
+        total_products: number;
+        active_products: number;
+        low_stock_products: number;
+        out_of_stock_products: number;
+        total_cost: number;
+        total_value: number;
+        potential_profit: number;
+    }> => {
+        const { data } = await axiosInstance.get('/inventory/products/stats/', {
+            params: {
+                ...params,
+            }
+        });
+        return data;
+    },
+
+    // Search product by barcode or SKU - returns first matching product
+    searchByBarcode: async (barcodeOrSku: string): Promise<Product | null> => {
+        try {
+            const { data } = await axiosInstance.get('/inventory/products/', {
+                params: {
+                    search: barcodeOrSku,
+                    page_size: 1,
+                    expand: 'category,online_categories,variations'
+                }
+            });
+            // Find exact match by barcode or SKU (backend search is case-insensitive contains)
+            const exactMatch = data.results?.find(
+                (p: Product) => p.barcode === barcodeOrSku || p.sku === barcodeOrSku
+            );
+            return exactMatch || null;
+        } catch (error) {
+            console.error('Error searching product by barcode:', error);
+            return null;
+        }
     },
 };
 

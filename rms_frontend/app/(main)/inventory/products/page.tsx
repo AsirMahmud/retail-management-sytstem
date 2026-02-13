@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useProducts, useDeleteProduct } from "@/hooks/queries/useInventory";
+import { useInfiniteProducts, useDeleteProduct, useProductStats, useCategories } from "@/hooks/queries/useInventory";
 import { productsApi } from "@/lib/api/inventory";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,10 +78,9 @@ import { getImageUrl, slugify } from "@/lib/utils";
 
 export default function ProductsPage() {
   const router = useRouter();
+  const observerTarget = useRef<HTMLDivElement>(null);
 
-  // Pagination and Search State
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  // Search and Filter State
   const [searchQuery, setSearchQuery] = useState("");
   // Debounce search
   const [debouncedSearch] = useDebounce(searchQuery, 300);
@@ -92,24 +91,57 @@ export default function ProductsPage() {
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [debouncedSearch, categoryFilter, statusFilter, stockFilter]);
+  // Fetch categories for filter dropdown
+  const { data: categoriesData = [] } = useCategories();
 
-  // Fetch products with pagination and filters
-  const { data: productsData, isLoading } = useProducts({
-    page: currentPage,
-    page_size: pageSize,
+  // Build filter params for API calls
+  const filterParams = {
     search: debouncedSearch,
-    category: categoryFilter !== "all" ? categoryFilter : undefined,
+    category: categoryFilter !== "all" ? parseInt(categoryFilter) : undefined,
     is_active: statusFilter === "all" ? undefined : statusFilter === "active",
     stock_status: stockFilter !== "all" ? stockFilter : undefined,
+  };
+
+  // Fetch products with infinite scroll
+  const {
+    data: productsData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useInfiniteProducts({
+    ...filterParams,
+    page_size: 20,
   });
 
-  const products = productsData?.results || [];
-  const totalCount = productsData?.count || 0;
-  const totalPages = Math.ceil(totalCount / pageSize);
+  // Fetch product statistics from backend
+  const { data: statsData, isLoading: isStatsLoading } = useProductStats(filterParams);
+
+  // Flatten pages into a single list of products
+  const products = productsData?.pages.flatMap((page) => page.results) || [];
+  const totalCount = productsData?.pages[0]?.count || 0;
+
+  // Infinite scroll observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => {
+      if (observerTarget.current) {
+        observer.unobserve(observerTarget.current);
+      }
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const deleteProduct = useDeleteProduct();
 
@@ -282,47 +314,18 @@ export default function ProductsPage() {
     toast.success("Catalog downloaded successfully");
   };
 
-  // Replace filteredProducts stats with server-side response totals where possible
-  // For total stats across ALL products, normally we need a separate stats API call.
-  // The current UI calculates stats based on "filteredProducts".
-  // Since we are now paginating, "products" only contains 20 items.
-  // We cannot calculate global stats (Active, Low Stock, etc.) on the client anymore.
-  // We'll hide or placeholder these stats for now, or use the "dashboard" API if available.
-  // For now, let's keep the code safe by running it on the current page data, knowing it's partial.
+  // Use backend stats instead of client-side calculations
+  const stats = statsData || {
+    total_products: 0,
+    active_products: 0,
+    low_stock_products: 0,
+    out_of_stock_products: 0,
+    total_cost: 0,
+    total_value: 0,
+    potential_profit: 0,
+  };
+
   const filteredProducts = products; // Alias for compatibility with existing render code
-
-  // Calculate statistics
-  const totalProducts = products.length;
-  const activeProducts = products.filter((p: Product) => p.is_active).length;
-  const lowStockProducts = products.filter(
-    (p: Product) => p.stock_quantity <= p.minimum_stock
-  ).length;
-  const outOfStockProducts = products.filter(
-    (p: Product) => p.stock_quantity === 0
-  ).length;
-  const totalValue = products.reduce(
-    (sum: number, product: Product) =>
-      sum + product.cost_price * product.stock_quantity,
-    0
-  );
-
-  const totalPotentialProfit = products.reduce(
-    (sum: number, product: Product) =>
-      sum +
-      (product.selling_price - product.cost_price) * product.stock_quantity,
-    0
-  );
-
-  const totalPotentialRevenue = products.reduce(
-    (sum: number, product: Product) =>
-      sum + product.selling_price * product.stock_quantity,
-    0
-  );
-
-  // Get unique categories for filter
-  const categories = Array.from(
-    new Set(products.map((p: Product) => p.category?.name).filter(Boolean))
-  );
 
   if (isLoading) {
     return (
@@ -654,10 +657,10 @@ export default function ProductsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-gray-900">
-                {totalProducts}
+                {isStatsLoading ? "..." : stats.total_products}
               </div>
               <p className="text-xs text-blue-600 font-medium mt-1">
-                {activeProducts} Active Products
+                {isStatsLoading ? "Loading..." : `${stats.active_products} Active Products`}
               </p>
             </CardContent>
           </Card>
@@ -673,7 +676,7 @@ export default function ProductsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-gray-900">
-                ${totalValue.toLocaleString()}
+                {isStatsLoading ? "..." : `$${stats.total_cost.toLocaleString()}`}
               </div>
               <p className="text-xs text-blue-600 font-medium mt-1">
                 Cost Value of Current Stock
@@ -692,7 +695,7 @@ export default function ProductsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-gray-900">
-                ${totalPotentialRevenue.toLocaleString()}
+                {isStatsLoading ? "..." : `$${stats.total_value.toLocaleString()}`}
               </div>
               <p className="text-xs text-green-600 font-medium mt-1">
                 Total Selling Value
@@ -711,7 +714,7 @@ export default function ProductsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-green-600">
-                ${totalPotentialProfit.toLocaleString()}
+                {isStatsLoading ? "..." : `$${stats.potential_profit.toLocaleString()}`}
               </div>
               <p className="text-xs text-green-600 font-medium mt-1">
                 Expected Gross Profit
@@ -730,7 +733,7 @@ export default function ProductsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-gray-900">
-                {lowStockProducts}
+                {isStatsLoading ? "..." : stats.low_stock_products}
               </div>
               <p className="text-xs text-blue-600 font-medium mt-1">
                 Needs attention
@@ -749,7 +752,7 @@ export default function ProductsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-gray-900">
-                {outOfStockProducts}
+                {isStatsLoading ? "..." : stats.out_of_stock_products}
               </div>
               <p className="text-xs text-blue-600 font-medium mt-1">
                 Immediate action required
@@ -777,13 +780,11 @@ export default function ProductsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
-                  {categories
-                    .filter((category): category is string => !!category)
-                    .map((category) => (
-                      <SelectItem key={category} value={category}>
-                        {category}
-                      </SelectItem>
-                    ))}
+                  {categoriesData.map((category) => (
+                    <SelectItem key={category.id} value={category.id.toString()}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -1033,45 +1034,25 @@ export default function ProductsPage() {
           </Card>
         )}
 
-        {/* Pagination Controls */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 bg-white/50 backdrop-blur-sm p-4 rounded-xl border border-white/20 shadow-sm">
+        {/* Infinite Scroll Loader and Info */}
+        <div className="flex flex-col items-center justify-center gap-4 py-4 bg-white/50 backdrop-blur-sm p-4 rounded-xl border border-white/20 shadow-sm">
           <div className="text-sm text-muted-foreground">
-            Showing{" "}
-            <span className="font-medium">
-              {Math.min((currentPage - 1) * pageSize + 1, totalCount)}
-            </span>{" "}
-            to{" "}
-            <span className="font-medium">
-              {Math.min(currentPage * pageSize, totalCount)}
-            </span>{" "}
-            of <span className="font-medium">{totalCount}</span> products
+            Showing <span className="font-medium">{products.length}</span> of{" "}
+            <span className="font-medium">{totalCount}</span> products
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1 || isLoading}
-              className="h-8"
-            >
-              Previous
-            </Button>
-            <div className="flex items-center gap-1.5 px-2">
-              <span className="text-sm font-medium">Page {currentPage}</span>
-              <span className="text-sm text-muted-foreground">
-                of {totalPages || 1}
-              </span>
+          {isFetchingNextPage && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              Loading more products...
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage >= totalPages || isLoading}
-              className="h-8"
-            >
-              Next
-            </Button>
-          </div>
+          )}
+          {!hasNextPage && products.length > 0 && (
+            <div className="text-sm text-muted-foreground">
+              All products loaded
+            </div>
+          )}
+          {/* Intersection observer target */}
+          <div ref={observerTarget} className="h-1 w-full" />
         </div>
 
         {/* Delete Confirmation Dialog */}

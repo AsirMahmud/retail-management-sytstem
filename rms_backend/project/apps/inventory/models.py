@@ -11,6 +11,7 @@ from apps.supplier.models import Supplier  # Import Supplier from supplier app
 from django.db.models import Sum
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
+from apps.utils import optimize_image
 GENDER_CHOICES = [
     ('MALE', 'Male'),
     ('FEMALE', 'Female'),

@@ -206,4 +206,30 @@ class ProductPerformanceReportSerializer(serializers.Serializer):
     top_performing_products = ProductPerformanceSerializer(many=True)
     low_performing_products = ProductPerformanceSerializer(many=True)
     sales_by_product = SalesByProductSerializer(many=True)
-    profit_by_product = ProfitByProductSerializer(many=True) 
+    profit_by_product = ProfitByProductSerializer(many=True)
+
+class OnlinePreorderTopProductSerializer(serializers.Serializer):
+    product_id = serializers.IntegerField()
+    product_name = serializers.CharField()
+    category_name = serializers.CharField()
+    total_sales = serializers.DecimalField(max_digits=10, decimal_places=2)
+    quantity_sold = serializers.IntegerField()
+    total_profit = serializers.DecimalField(max_digits=10, decimal_places=2)
+
+class OnlinePreorderTopCategorySerializer(serializers.Serializer):
+    category_name = serializers.CharField()
+    total_sales = serializers.DecimalField(max_digits=10, decimal_places=2)
+    quantity_sold = serializers.IntegerField()
+    total_profit = serializers.DecimalField(max_digits=10, decimal_places=2)
+    order_count = serializers.IntegerField()
+
+class OnlinePreorderAnalyticsSerializer(serializers.Serializer):
+    total_orders = serializers.IntegerField()
+    total_sales_count = serializers.IntegerField()
+    total_revenue = serializers.DecimalField(max_digits=10, decimal_places=2)
+    total_profit = serializers.DecimalField(max_digits=10, decimal_places=2)
+    average_order_value = serializers.DecimalField(max_digits=10, decimal_places=2)
+    top_products = OnlinePreorderTopProductSerializer(many=True)
+    top_categories = OnlinePreorderTopCategorySerializer(many=True)
+    sales_by_date = serializers.ListField(child=serializers.DictField())
+    status_breakdown = serializers.DictField() 

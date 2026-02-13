@@ -158,6 +158,43 @@ class ProductViewSet(viewsets.ModelViewSet):
         self.perform_update(serializer)
         return Response(serializer.data)
 
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Get comprehensive product statistics based on current filters"""
+        # Get filtered queryset (respects search, category, status, stock filters)
+        queryset = self.get_queryset()
+        
+        # Calculate statistics
+        total_products = queryset.count()
+        active_products = queryset.filter(is_active=True).count()
+        low_stock_products = queryset.filter(stock_quantity__lte=F('minimum_stock')).count()
+        out_of_stock_products = queryset.filter(stock_quantity=0).count()
+        
+        # Calculate total cost (cost_price * stock_quantity)
+        total_cost = queryset.aggregate(
+            total=Sum(F('cost_price') * F('stock_quantity'))
+        )['total'] or 0
+        
+        # Calculate total value (selling_price * stock_quantity)
+        total_value = queryset.aggregate(
+            total=Sum(F('selling_price') * F('stock_quantity'))
+        )['total'] or 0
+        
+        # Calculate potential profit ((selling_price - cost_price) * stock_quantity)
+        potential_profit = queryset.aggregate(
+            total=Sum((F('selling_price') - F('cost_price')) * F('stock_quantity'))
+        )['total'] or 0
+        
+        return Response({
+            'total_products': total_products,
+            'active_products': active_products,
+            'low_stock_products': low_stock_products,
+            'out_of_stock_products': out_of_stock_products,
+            'total_cost': float(total_cost),
+            'total_value': float(total_value),
+            'potential_profit': float(potential_profit),
+        })
+
     @action(detail=False, methods=['post'])
     def bulk_price_update(self, request):
         serializer = BulkPriceUpdateSerializer(data=request.data)

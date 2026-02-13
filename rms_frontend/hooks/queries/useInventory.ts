@@ -223,6 +223,13 @@ export const useProducts = (params?: any) => {
     });
 };
 
+export const useProductStats = (params?: any) => {
+    return useQuery({
+        queryKey: [...inventoryKeys.products.lists(), 'stats', { params }],
+        queryFn: () => productsApi.getStats(params),
+    });
+};
+
 export const useInfiniteProducts = (params?: any) => {
     return useInfiniteQuery({
         queryKey: [...inventoryKeys.products.lists(), 'infinite', { params }],
@@ -274,6 +281,12 @@ export const useDeleteProduct = () => {
         onSuccess: (_, id) => {
             queryClient.invalidateQueries({ queryKey: inventoryKeys.products.lists() });
             queryClient.invalidateQueries({ queryKey: inventoryKeys.products.detail(id) });
+        },
+        onError: (error: any) => {
+            // Only log actual errors, not successful 204/200 responses
+            if (error?.response?.status !== 204 && error?.response?.status !== 200) {
+                console.error('Delete product failed:', error.response?.data || error.message);
+            }
         },
     });
 };

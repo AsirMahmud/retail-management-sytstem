@@ -29,6 +29,13 @@ class Customer(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
     ranking = models.PositiveIntegerField(null=True, blank=True, help_text="Customer ranking based on total sales")
+    # Track whether this customer came from shop (POS), online, or both
+    CUSTOMER_TYPE_CHOICES = [
+        ('shop', 'Shop'),
+        ('online', 'Online'),
+        ('both', 'Both'),
+    ]
+    customer_type = models.CharField(max_length=10, choices=CUSTOMER_TYPE_CHOICES, default='shop')
 
     def __str__(self):
         name = f"{self.first_name} {self.last_name}" if self.first_name and self.last_name else "Unknown"

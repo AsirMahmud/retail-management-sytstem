@@ -1,6 +1,11 @@
 from rest_framework import serializers
 from decimal import Decimal
-from .models import OnlinePreorder
+from .models import (
+    OnlinePreorder,
+    OnlinePreorderVerification,
+    OnlinePreorderVerificationItem,
+    OnlinePreorderVerificationScanLog,
+)
 
 
 class OnlinePreorderCreateSerializer(serializers.ModelSerializer):
@@ -147,6 +152,10 @@ class OnlinePreorderCreateSerializer(serializers.ModelSerializer):
                     if not Customer.objects.filter(email=customer_email).exclude(id=customer.id).exists():
                         customer.email = customer_email
             
+            # Mark this customer as online/both
+            if customer.customer_type == 'shop':
+                customer.customer_type = 'both'
+
             customer.save()
 
         except Customer.DoesNotExist:
@@ -157,10 +166,6 @@ class OnlinePreorderCreateSerializer(serializers.ModelSerializer):
             if email_to_use:
                 if Customer.objects.filter(email=email_to_use).exists():
                     # Email taken, fallback or leave blank? 
-                    # For now, let's just not set the email to avoid IntegrityError, or use a dummy.
-                    # Use a dummy based on phone to ensure uniqueness if email is required (model says email nullable unique)
-                    # Model: email = models.EmailField(blank=True, null=True, unique=True)
-                    # So we can set it to None if taken.
                     email_to_use = None
             
             try:
@@ -170,12 +175,10 @@ class OnlinePreorderCreateSerializer(serializers.ModelSerializer):
                     phone=customer_phone,
                     email=email_to_use,
                     address=address_text,
-                    gender='O' # Default
+                    gender='O', # Default
+                    customer_type='online',
                 )
             except IntegrityError:
-                # Race condition: created by another request?
-                customer = Customer.objects.get(phone=customer_phone)
-
                 # Race condition: created by another request?
                 customer = Customer.objects.get(phone=customer_phone)
 
@@ -185,6 +188,91 @@ class OnlinePreorderCreateSerializer(serializers.ModelSerializer):
         
         # Call super create
         return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        from apps.customer.models import Customer
+
+        customer_phone = validated_data.get('customer_phone', instance.customer_phone)
+        customer_name = validated_data.get('customer_name', instance.customer_name)
+        customer_email = validated_data.get('customer_email', instance.customer_email)
+        shipping_address = validated_data.get('shipping_address', instance.shipping_address)
+
+        # Build address string from structured shipping address
+        address_parts = []
+        if shipping_address and isinstance(shipping_address, dict):
+            if shipping_address.get('address'):
+                address_parts.append(str(shipping_address['address']))
+            
+            # Inside Dhaka fields
+            if shipping_address.get('place'):
+                address_parts.append(str(shipping_address['place']))
+            if shipping_address.get('thana'):
+                address_parts.append(str(shipping_address['thana']))
+            if shipping_address.get('city_corporation'):
+                address_parts.append(str(shipping_address['city_corporation']))
+                
+            # Outside Dhaka/Gazipur fields
+            if shipping_address.get('union'):
+                address_parts.append(str(shipping_address['union']))
+            if shipping_address.get('upazila'):
+                address_parts.append(str(shipping_address['upazila']))
+            if shipping_address.get('district'):
+                address_parts.append(str(shipping_address['district']))
+            if shipping_address.get('division'):
+                address_parts.append(str(shipping_address['division']))
+                
+        address_text = ', '.join([p for p in address_parts if p])
+
+        # Parse name
+        name_parts = customer_name.strip().split(maxsplit=1)
+        first_name = name_parts[0] if len(name_parts) > 0 else ''
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+
+        # Update or create customer
+        try:
+            customer = Customer.objects.get(phone=customer_phone)
+            
+            # Update customer info
+            if first_name:
+                customer.first_name = first_name
+            if last_name:
+                customer.last_name = last_name
+            
+            # Update address if provided
+            if address_text:
+                customer.address = address_text
+
+            # Update email if provided and safe
+            if customer_email:
+                if customer.email != customer_email:
+                    # Check uniqueness
+                    if not Customer.objects.filter(email=customer_email).exclude(id=customer.id).exists():
+                        customer.email = customer_email
+
+            # Mark this customer as online/both
+            if customer.customer_type == 'shop':
+                customer.customer_type = 'both'
+
+            customer.save()
+
+        except Customer.DoesNotExist:
+            # Create new customer if phone number changed or customer doesn't exist
+            email_to_use = customer_email
+            if email_to_use and Customer.objects.filter(email=email_to_use).exists():
+                email_to_use = None
+            
+            Customer.objects.create(
+                first_name=first_name,
+                last_name=last_name,
+                phone=customer_phone,
+                email=email_to_use,
+                address=address_text,
+                gender='O',
+                customer_type='online',
+            )
+
+        # Call super update
+        return super().update(instance, validated_data)
 
 
 class OnlinePreorderSerializer(serializers.ModelSerializer):
@@ -235,5 +323,57 @@ class OnlinePreorderSerializer(serializers.ModelSerializer):
                 enriched_items.append(item)
             ret['items'] = enriched_items
         return ret
+
+
+class OnlinePreorderVerificationItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OnlinePreorderVerificationItem
+        fields = [
+            'id',
+            'sku',
+            'product_name',
+            'ordered_qty',
+            'verified_qty',
+        ]
+
+
+class OnlinePreorderVerificationSerializer(serializers.ModelSerializer):
+    items = OnlinePreorderVerificationItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = OnlinePreorderVerification
+        fields = [
+            'id',
+            'online_preorder',
+            'status',
+            'total_units',
+            'verified_units',
+            'skipped_reason',
+            'created_at',
+            'updated_at',
+            'completed_at',
+            'skipped_at',
+            'items',
+        ]
+        read_only_fields = [
+            'online_preorder',
+            'total_units',
+            'verified_units',
+            'created_at',
+            'updated_at',
+            'completed_at',
+            'skipped_at',
+        ]
+
+
+class OnlinePreorderScanResultSerializer(serializers.Serializer):
+    """
+    Lightweight serializer for returning the result of a single scan
+    together with the updated verification payload.
+    """
+    result = serializers.ChoiceField(choices=['MATCHED', 'NOT_IN_ORDER', 'OVER_SCAN'])
+    message = serializers.CharField()
+    verification = OnlinePreorderVerificationSerializer()
+
 
 

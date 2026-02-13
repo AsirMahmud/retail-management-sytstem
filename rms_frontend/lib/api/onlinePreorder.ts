@@ -28,6 +28,34 @@ export interface OnlinePreorder {
   updated_at?: string;
 }
 
+export interface OnlinePreorderVerificationItem {
+  id: number;
+  sku: string;
+  product_name: string;
+  ordered_qty: number;
+  verified_qty: number;
+}
+
+export interface OnlinePreorderVerification {
+  id: number;
+  online_preorder: number;
+  status: 'IN_PROGRESS' | 'COMPLETED' | 'SKIPPED';
+  total_units: number;
+  verified_units: number;
+  skipped_reason?: string;
+  created_at: string;
+  updated_at: string;
+  completed_at?: string | null;
+  skipped_at?: string | null;
+  items: OnlinePreorderVerificationItem[];
+}
+
+export interface OnlinePreorderScanResult {
+  result: 'MATCHED' | 'NOT_IN_ORDER' | 'OVER_SCAN';
+  message: string;
+  verification: OnlinePreorderVerification;
+}
+
 const api = axios;
 
 export const onlinePreordersApi = {
@@ -43,6 +71,18 @@ export const onlinePreordersApi = {
   update: (id: number, data: Partial<OnlinePreorder>) => api.patch<OnlinePreorder>(`/online-preorder/orders/${id}/`, data),
   updateStatus: (id: number, status: string) => api.patch(`/online-preorder/orders/${id}/`, { status }),
   delete: (id: number) => api.delete(`/online-preorder/orders/${id}/`),
+
+  // Verification APIs
+  startVerification: (id: number) =>
+    api.post<OnlinePreorderVerification>(`/online-preorder/orders/${id}/start-verification/`),
+  getVerification: (id: number) =>
+    api.get<OnlinePreorderVerification>(`/online-preorder/orders/${id}/verification/`),
+  verifyScan: (id: number, sku: string) =>
+    api.post<OnlinePreorderScanResult>(`/online-preorder/orders/${id}/verify-scan/`, { sku }),
+  completeVerification: (id: number) =>
+    api.post<OnlinePreorderVerification>(`/online-preorder/orders/${id}/complete-verification/`),
+  skipVerification: (id: number, reason?: string) =>
+    api.post<OnlinePreorderVerification>(`/online-preorder/orders/${id}/skip-verification/`, { reason }),
 };
 
 
