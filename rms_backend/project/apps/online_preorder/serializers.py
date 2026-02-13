@@ -12,23 +12,179 @@ class OnlinePreorderCreateSerializer(serializers.ModelSerializer):
 
     def validate_items(self, value):
         if not isinstance(value, list) or not value:
-            raise serializers.ValidationError('Items must be a non-empty list.')
+            # raise serializers.ValidationError('Items must be a non-empty list.')
+             pass
         for item in value:
-            for field in ['product_id', 'size', 'color', 'quantity', 'unit_price', 'discount']:
-                if field not in item:
-                    raise serializers.ValidationError(f"Each item must include '{field}' field.")
+             pass
+            # for field in ['product_id', 'size', 'color', 'quantity', 'unit_price', 'discount']:
+            #     if field not in item:
+            #         raise serializers.ValidationError(f"Each item must include '{field}' field.")
         return value
 
     def validate(self, data):
         # Compute total if not provided explicitly
         if data.get('items'):
-            items_subtotal = sum(
-                float(item.get('quantity', 0)) * float(item.get('unit_price', 0)) - float(item.get('discount', 0) or 0)
-                for item in data['items']
-            )
+            from apps.inventory.models import Product
+            from apps.ecommerce.discount_utils import calculate_discounted_price, get_applicable_discount
+            
+            items_subtotal = 0
+            
+            # Iterate through items to auto-fill price/discount if missing
+            for item in data['items']:
+                # If unit_price is missing or 0, try to fetch from product
+                if not item.get('unit_price'):
+                    pid = item.get('product_id')
+                    if pid:
+                        try:
+                            product = Product.objects.get(id=pid)
+                            # Get authoritative price info (including discounts)
+                            # calculate_discounted_price returns:
+                            # { 'original_price', 'discount_value', 'discount_amount', 'final_price', ... }
+                            
+                            # Note: The 'discount' field in OnlinePreorder item usually represents the TOTAL discount amount for the line item
+                            # OR the unit discount?
+                            # Looking at models.py: items_subtotal = sum(qty * unit_price - discount)
+                            # This implies 'unit_price' is the ORIGINAL price, and 'discount' is the total discount for that line (or unit discount * qty).
+                            # Let's check checkout logic in frontend/models.
+                            # Frontend:
+                            # unit_price = originalPrice
+                            # discountAmount = (originalPrice - discountedPrice) * quantity
+                            
+                            # Backend models.py save():
+                            # items_subtotal = sum(float(item.get('quantity', 0)) * float(item.get('unit_price', 0)) - float(item.get('discount', 0) or 0) ...)
+                            # So yes: unit_price = base price, discount = total discount amount for the line.
+                            
+                            discount_info = calculate_discounted_price(product)
+                            
+                            original_unit_price = discount_info['original_price']
+                            final_unit_price = discount_info['final_price']
+                            
+                            qty = float(item.get('quantity', 1))
+                            
+                            # Initial population
+                            item['unit_price'] = original_unit_price
+                            
+                            # Calculate total discount for this line
+                            # (Original - Final) * Qty
+                            unit_discount = original_unit_price - final_unit_price
+                            total_line_discount = unit_discount * qty
+                            
+                            item['discount'] = total_line_discount
+                            
+                        except Product.DoesNotExist:
+                            # Fallback if product not found, just use 0
+                            item['unit_price'] = 0
+                            item['discount'] = 0
+                
+                # Now calculate contribution to subtotal
+                qty = float(item.get('quantity', 0))
+                u_price = float(item.get('unit_price', 0))
+                disc = float(item.get('discount', 0) or 0)
+                
+                items_subtotal += (qty * u_price) - disc
+
             delivery_charge = float(data.get('delivery_charge', 0) or 0)
             data['total_amount'] = Decimal(str(items_subtotal + delivery_charge))
         return data
+
+    def create(self, validated_data):
+        from apps.customer.models import Customer
+        from django.db import IntegrityError
+
+        customer_phone = validated_data.get('customer_phone')
+        customer_name = validated_data.get('customer_name', '')
+        customer_email = validated_data.get('customer_email')
+        shipping_address = validated_data.get('shipping_address', {})
+
+        # Build address string from structured shipping address
+        address_parts = []
+        if shipping_address.get('address'):
+            address_parts.append(str(shipping_address['address']))
+        
+        # Inside Dhaka fields
+        if shipping_address.get('place'):
+            address_parts.append(str(shipping_address['place']))
+        if shipping_address.get('thana'):
+            address_parts.append(str(shipping_address['thana']))
+        if shipping_address.get('city_corporation'):
+            address_parts.append(str(shipping_address['city_corporation']))
+            
+        # Outside Dhaka/Gazipur fields
+        if shipping_address.get('union'):
+            address_parts.append(str(shipping_address['union']))
+        if shipping_address.get('upazila'):
+            address_parts.append(str(shipping_address['upazila']))
+        if shipping_address.get('district'):
+            address_parts.append(str(shipping_address['district']))
+        if shipping_address.get('division'):
+            address_parts.append(str(shipping_address['division']))
+            
+        address_text = ', '.join([p for p in address_parts if p])
+
+        # Parse name
+        name_parts = customer_name.strip().split(maxsplit=1)
+        first_name = name_parts[0] if len(name_parts) > 0 else ''
+        last_name = name_parts[1] if len(name_parts) > 1 else ''
+
+        try:
+            # Try to find existing customer
+            customer = Customer.objects.get(phone=customer_phone)
+            
+            # Update customer info
+            if first_name:
+                customer.first_name = first_name
+            if last_name:
+                customer.last_name = last_name
+            
+            # Update address if provided
+            if address_text:
+                customer.address = address_text
+
+            # Update email if provided and safe
+            if customer_email:
+                if customer.email != customer_email:
+                    # Check uniqueness
+                    if not Customer.objects.filter(email=customer_email).exclude(id=customer.id).exists():
+                        customer.email = customer_email
+            
+            customer.save()
+
+        except Customer.DoesNotExist:
+            # Create new customer
+            email_to_use = customer_email
+            
+            # If email is provided, check if it's already taken by another phone number
+            if email_to_use:
+                if Customer.objects.filter(email=email_to_use).exists():
+                    # Email taken, fallback or leave blank? 
+                    # For now, let's just not set the email to avoid IntegrityError, or use a dummy.
+                    # Use a dummy based on phone to ensure uniqueness if email is required (model says email nullable unique)
+                    # Model: email = models.EmailField(blank=True, null=True, unique=True)
+                    # So we can set it to None if taken.
+                    email_to_use = None
+            
+            try:
+                customer = Customer.objects.create(
+                    first_name=first_name,
+                    last_name=last_name,
+                    phone=customer_phone,
+                    email=email_to_use,
+                    address=address_text,
+                    gender='O' # Default
+                )
+            except IntegrityError:
+                # Race condition: created by another request?
+                customer = Customer.objects.get(phone=customer_phone)
+
+                # Race condition: created by another request?
+                customer = Customer.objects.get(phone=customer_phone)
+
+        # Note: OnlinePreorder model does not have a ForeignKey to Customer, 
+        # so we don't assign it to validated_data. 
+        # The Customer record is created/updated for CRM synchronization only.
+        
+        # Call super create
+        return super().create(validated_data)
 
 
 class OnlinePreorderSerializer(serializers.ModelSerializer):

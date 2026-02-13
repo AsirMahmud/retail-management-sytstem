@@ -501,3 +501,18 @@ export const promotionalModalsApi = {
     await axiosInstance.delete(`/ecommerce/promotional-modals/${id}/`);
   },
 };
+
+// Ecommerce API (shared settings & logic)
+export const ecommerceApi = {
+  // Public: Get delivery settings
+  getDeliverySettings: async (): Promise<{ inside_dhaka_charge: number; inside_gazipur_charge: number; outside_dhaka_charge: number; updated_at: string }> => {
+    const { data } = await axiosInstance.get('/ecommerce/public/delivery-settings/');
+    return data;
+  },
+
+  // Public: Price cart items on the server
+  priceCart: async (items: Array<{ productId: string | number; quantity: number; variations?: Record<string, string> }>): Promise<any> => {
+    const { data } = await axiosInstance.post('/ecommerce/public/cart/price/', { items });
+    return data;
+  },
+};
