@@ -17,6 +17,7 @@ interface OrderDetailsSheetProps {
     onClose: () => void;
     onRefresh: () => void;
     onEdit: (order: OnlinePreorder) => void;
+    onStartVerification?: (order: OnlinePreorder) => void;
 }
 
 const statusConfig: Record<string, { color: string; icon: any }> = {
@@ -27,10 +28,11 @@ const statusConfig: Record<string, { color: string; icon: any }> = {
     CANCELLED: { color: "bg-red-100 text-red-800", icon: XCircle },
 };
 
-export function OrderDetailsSheet({ order, isOpen, onClose, onRefresh, onEdit }: OrderDetailsSheetProps) {
+export function OrderDetailsSheet({ order, isOpen, onClose, onRefresh, onEdit, onStartVerification }: OrderDetailsSheetProps) {
     if (!order) return null;
 
     const handleStatusChange = async (newStatus: string) => {
+        // Simple status update; verification can be triggered via separate button
         try {
             await onlinePreordersApi.updateStatus(order.id, newStatus);
             toast({ title: "Success", description: `Order status updated to ${newStatus}` });
@@ -70,6 +72,16 @@ export function OrderDetailsSheet({ order, isOpen, onClose, onRefresh, onEdit }:
                                 <Edit className="w-3 h-3 mr-1.5" />
                                 Edit Order
                             </Button>
+                            {onStartVerification && (
+                                <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => onStartVerification(order)}
+                                    className="h-8 text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white"
+                                >
+                                    Verify Order
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </SheetHeader>
@@ -77,23 +89,54 @@ export function OrderDetailsSheet({ order, isOpen, onClose, onRefresh, onEdit }:
                 <ScrollArea className="flex-1">
                     <div className="p-6 space-y-6">
                         {/* Status Management Section */}
-                        <div className="bg-white p-4 rounded-xl border shadow-sm space-y-3">
-                            <div className="flex items-center gap-2 text-indigo-600 font-semibold mb-1">
-                                <Clock className="w-4 h-4" />
-                                Update Status
+                        <div className="bg-white p-4 rounded-xl border shadow-sm space-y-4">
+                            <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-2 text-indigo-600 font-semibold">
+                                    <Clock className="w-4 h-4" />
+                                    <span>Order Status</span>
+                                </div>
+                                <span className="text-xs text-slate-500">
+                                    Click a step to update the status
+                                </span>
                             </div>
-                            <Select value={order.status} onValueChange={handleStatusChange}>
-                                <SelectTrigger className="w-full">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="PENDING">Pending</SelectItem>
-                                    <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                                    <SelectItem value="DELIVERED">Delivered</SelectItem>
-                                    <SelectItem value="COMPLETED">Completed</SelectItem>
-                                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <div className="flex flex-wrap gap-2">
+                                {["PENDING", "CONFIRMED", "DELIVERED", "COMPLETED", "CANCELLED"].map((statusValue) => {
+                                    const isActive = order.status === statusValue;
+                                    const isDisabled =
+                                        (statusValue === "COMPLETED" && order.status !== "DELIVERED") ||
+                                        (statusValue === "DELIVERED" && !!onStartVerification); // encourage using Verify Order
+
+                                    const baseClasses =
+                                        "px-3 py-1.5 text-xs font-semibold rounded-full border transition-colors";
+
+                                    const activeClasses = "bg-indigo-600 text-white border-indigo-600";
+                                    const inactiveClasses =
+                                        "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100";
+                                    const disabledClasses = "bg-slate-50 text-slate-400 border-slate-100 cursor-not-allowed";
+
+                                    let classes = baseClasses + " " + (isActive ? activeClasses : inactiveClasses);
+                                    if (isDisabled && !isActive) {
+                                        classes = baseClasses + " " + disabledClasses;
+                                    }
+
+                                    const handleClick = () => {
+                                        if (isDisabled || isActive) return;
+                                        handleStatusChange(statusValue);
+                                    };
+
+                                    return (
+                                        <button
+                                            key={statusValue}
+                                            type="button"
+                                            className={classes}
+                                            onClick={handleClick}
+                                            disabled={isDisabled}
+                                        >
+                                            {statusValue.charAt(0) + statusValue.slice(1).toLowerCase()}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
 
                         {/* Customer & Address Section */}

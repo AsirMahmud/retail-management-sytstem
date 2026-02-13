@@ -6,27 +6,7 @@ import { X, Copy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { setCookie, getCookie } from "cookies-next";
-
-// Interface must match backend response
-
-// Interface must match backend response
-interface PromotionalModalData {
-    id: number;
-    title: string;
-    description: string;
-    discount_code: string;
-    cta_text: string;
-    cta_url: string;
-    image: string | null;
-    image_url: string | null;
-    layout: "centered" | "split-left" | "split-right" | "full-cover" | "image-only";
-    color_theme: "light" | "dark" | "brand";
-    display_rules: {
-        trigger?: "timer" | "exit_intent" | "first_visit";
-        delay_seconds?: number;
-        frequency?: "once_per_session" | "once_ever" | "always";
-    };
-}
+import { ecommerceApi, PromotionalModalData } from "@/lib/api";
 
 export function PromotionalModal() {
     const [modal, setModal] = useState<PromotionalModalData | null>(null);
@@ -37,15 +17,10 @@ export function PromotionalModal() {
         // 1. Fetch active modal
         const fetchActiveModal = async () => {
             try {
-                const res = await fetch(
-                    `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/ecommerce/public/promotional-modals/`
-                );
-                if (res.ok) {
-                    const data = await res.json();
-                    // Assuming API returns a list, take the first one
-                    if (Array.isArray(data) && data.length > 0) {
-                        evaluateRules(data[0]);
-                    }
+                const data = await ecommerceApi.getPromotionalModals();
+                // Assuming API returns a list, take the first one
+                if (Array.isArray(data) && data.length > 0) {
+                    evaluateRules(data[0]);
                 }
             } catch (error) {
                 console.error("Failed to fetch promotional modal", error);

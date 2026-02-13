@@ -120,6 +120,29 @@ export interface Discount {
   updated_at: string;
 }
 
+export interface PromotionalModalData {
+  id: number;
+  title: string;
+  description: string;
+  discount_code: string;
+  cta_text: string;
+  cta_url: string;
+  image: string | null;
+  image_url: string | null;
+  layout: "centered" | "split-left" | "split-right" | "full-cover" | "image-only";
+  color_theme: "light" | "dark" | "brand";
+  display_rules: {
+    trigger?: "timer" | "exit_intent" | "first_visit";
+    delay_seconds?: number;
+    frequency?: "once_per_session" | "once_ever" | "always";
+  };
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // API Functions
 export const ecommerceApi = {
   // Get all showcase data
@@ -477,6 +500,13 @@ export const ecommerceApi = {
         throw new Error(`Failed to fetch online preorder (${response.status})`)
       }
     }
+    return response.json()
+  },
+
+  // Public: Get active promotional modals
+  getPromotionalModals: async (): Promise<PromotionalModalData[]> => {
+    const response = await fetch(`${API_BASE_URL}/ecommerce/public/promotional-modals/`)
+    if (!response.ok) throw new Error('Failed to fetch promotional modals')
     return response.json()
   },
 };

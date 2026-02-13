@@ -21,7 +21,7 @@ class CustomerViewSet(viewsets.ModelViewSet):
     serializer_class = CustomerSerializer
     pagination_class = CustomerPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['gender', 'is_active']
+    filterset_fields = ['gender', 'is_active', 'customer_type']
     search_fields = ['first_name', 'last_name', 'email', 'phone']
     ordering_fields = ['created_at', 'first_name', 'last_name', 'ranking', 'total_sales', 'sales_count', 'last_sale_date']
     ordering = ['-created_at']

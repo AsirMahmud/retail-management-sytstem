@@ -51,7 +51,7 @@ import DiscountModal from "./DiscountModal";
 import { usePOSStore } from "@/store/pos-store";
 import { Product, ProductVariation } from "@/types/inventory";
 import ReceiptModal from "./ReceiptModal";
-import { useProducts } from "@/hooks/queries/useInventory";
+import { productsApi } from "@/lib/api/inventory";
 
 // Sample product data
 
@@ -130,8 +130,7 @@ export function ModernPOS() {
     setReceiptData,
   } = usePOSStore();
 
-  // Fetch products for QR code scanning
-  const { data: allProducts = [] } = useProducts();
+  // Note: We no longer fetch all products for scanning - we fetch from backend on each scan
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -656,8 +655,8 @@ export function ModernPOS() {
     }
   };
 
-  // Handle barcode/QR code scanning - optimized for fast response
-  const handleBarcodeScan = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  // Handle barcode/QR code scanning - fetches from backend
+  const handleBarcodeScan = async (event: React.KeyboardEvent<HTMLInputElement>) => {
     // Only process barcode scan if barcode mode is enabled
     if (!barcodeMode && event.key === "Enter") {
       // Normal search behavior - let it work as regular search
@@ -677,9 +676,9 @@ export function ModernPOS() {
       try {
         // Try to decode as QR code first
         const qrData = decodeQRCodeData(scannedValue);
-        
+         
         if (qrData) {
-          // It's a QR code - find product and add to cart
+          // It's a QR code - fetch product from backend by ID
           const productId = parseInt(qrData.productId);
           if (isNaN(productId)) {
             toast({
@@ -691,68 +690,79 @@ export function ModernPOS() {
             return;
           }
 
-          // Fast lookup using find
-          const product = allProducts.find((p: Product) => p.id === productId);
-          
-          if (product) {
-            // Verify variation exists
-            const variation = product.variations?.find(
-              (v: ProductVariation) =>
-                v.is_active &&
-                v.size === qrData.size &&
-                v.color === qrData.color
-            );
+          try {
+            // Fetch product from backend
+            const product = await productsApi.getById(productId);
+            
+            if (product) {
+              // Verify variation exists
+              const variation = product.variations?.find(
+                (v: ProductVariation) =>
+                  v.is_active &&
+                  v.size === qrData.size &&
+                  v.color === qrData.color
+              );
 
-            if (variation && variation.stock > 0) {
-              handleAddToCart(product, qrData.size, qrData.color);
-              toast({
-                title: "Added",
-                description: `${product.name}`,
-              });
+              if (variation && variation.stock > 0) {
+                handleAddToCart(product, qrData.size, qrData.color);
+                toast({
+                  title: "Added",
+                  description: `${product.name}`,
+                });
+              } else {
+                toast({
+                  title: "Out of Stock",
+                  description: `Variant unavailable`,
+                  variant: "destructive",
+                });
+              }
             } else {
               toast({
-                title: "Out of Stock",
-                description: `Variant unavailable`,
+                title: "Not Found",
+                description: `Product ID ${qrData.productId}`,
                 variant: "destructive",
               });
             }
-          } else {
+          } catch (error) {
             toast({
               title: "Not Found",
-              description: `Product ID ${qrData.productId}`,
+              description: `Product ID ${qrData.productId} not found`,
               variant: "destructive",
             });
           }
           setIsProcessingScan(false);
         } else {
-          // Try to find product by SKU or barcode
-          const productBySku = allProducts.find(
-            (p: Product) => p.sku === scannedValue || p.barcode === scannedValue
-          );
-          
-          if (productBySku) {
-            // Get first available variation
-            const firstVariation = productBySku.variations?.find((v: ProductVariation) => v.is_active && v.stock > 0);
+          // Try to find product by SKU or barcode from backend
+          try {
+            const product = await productsApi.searchByBarcode(scannedValue);
             
-            if (firstVariation) {
-              handleAddToCart(productBySku, firstVariation.size, firstVariation.color);
-              toast({
-                title: "Added",
-                description: `${productBySku.name}`,
-              });
+            if (product) {
+              // Get first available variation
+              const firstVariation = product.variations?.find((v: ProductVariation) => v.is_active && v.stock > 0);
+              
+              if (firstVariation) {
+                handleAddToCart(product, firstVariation.size, firstVariation.color);
+                toast({
+                  title: "Added",
+                  description: `${product.name}`,
+                });
+              } else {
+                toast({
+                  title: "Out of Stock",
+                  description: `${product.name}`,
+                  variant: "destructive",
+                });
+              }
             } else {
-              toast({
-                title: "Out of Stock",
-                description: `${productBySku.name}`,
-                variant: "destructive",
-              });
+              // Not found - set it back as search query for text search
+              setSearchQuery(scannedValue);
             }
-            setIsProcessingScan(false);
-          } else {
+          } catch (error) {
+            console.error("Error fetching product by barcode:", error);
             // Not found - set it back as search query for text search
-            setIsProcessingScan(false);
             setSearchQuery(scannedValue);
           }
+          setIsProcessingScan(false);
         }
       } catch (error) {
         console.error("Error processing barcode scan:", error);

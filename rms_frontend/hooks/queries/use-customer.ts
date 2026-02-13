@@ -208,6 +208,7 @@ export const useSearchCustomers = (
         sales_filter?: string;
         recent_filter?: string;
         ordering?: string;
+        customer_type?: string;
     }
 ) => {
     return useQuery({
@@ -223,6 +224,7 @@ export const useSearchCustomers = (
                 if (filters.sales_filter) params.sales_filter = filters.sales_filter;
                 if (filters.recent_filter) params.recent_filter = filters.recent_filter;
                 if (filters.ordering) params.ordering = filters.ordering;
+                if (filters.customer_type) params.customer_type = filters.customer_type;
             }
             
             const response = await axios.get(`${API_URL}/customer/customers/`, { params });

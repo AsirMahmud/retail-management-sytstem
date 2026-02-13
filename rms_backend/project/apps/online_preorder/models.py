@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.conf import settings
 from decimal import Decimal
 
 
@@ -85,4 +86,89 @@ class OnlineConversion(models.Model):
     def __str__(self) -> str:
         return f"OnlineConversion(online_preorder={self.online_preorder_id}, status={self.status})"
 
+
+class OnlinePreorderVerification(models.Model):
+    """
+    Tracks a verification session for an OnlinePreorder before it is delivered.
+    """
+    STATUS_CHOICES = [
+        ('IN_PROGRESS', 'In Progress'),
+        ('COMPLETED', 'Completed'),
+        ('SKIPPED', 'Skipped'),
+    ]
+
+    online_preorder = models.OneToOneField(
+        OnlinePreorder,
+        on_delete=models.CASCADE,
+        related_name='verification'
+    )
+    operator = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='online_preorder_verifications'
+    )
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default='IN_PROGRESS')
+    total_units = models.IntegerField(default=0)
+    verified_units = models.IntegerField(default=0)
+    skipped_reason = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    skipped_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Verification #{self.id} for OnlinePreorder #{self.online_preorder_id}"
+
+
+class OnlinePreorderVerificationItem(models.Model):
+    """
+    Line-level tracking of ordered vs verified quantities per SKU.
+    """
+    verification = models.ForeignKey(
+        OnlinePreorderVerification,
+        on_delete=models.CASCADE,
+        related_name='items'
+    )
+    product = models.ForeignKey(
+        'inventory.Product',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='online_preorder_verification_items'
+    )
+    sku = models.CharField(max_length=64, db_index=True)
+    product_name = models.CharField(max_length=255, blank=True)
+    ordered_qty = models.IntegerField(default=0)
+    verified_qty = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = ('verification', 'sku')
+
+    def __str__(self):
+        return f"{self.sku} ({self.verified_qty}/{self.ordered_qty})"
+
+
+class OnlinePreorderVerificationScanLog(models.Model):
+    """
+    Optional audit log for each scan event.
+    """
+    RESULT_CHOICES = [
+        ('MATCHED', 'Matched'),
+        ('NOT_IN_ORDER', 'Not In Order'),
+        ('OVER_SCAN', 'Over Scan'),
+    ]
+
+    verification = models.ForeignKey(
+        OnlinePreorderVerification,
+        on_delete=models.CASCADE,
+        related_name='scan_logs'
+    )
+    sku = models.CharField(max_length=64)
+    result = models.CharField(max_length=16, choices=RESULT_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Scan {self.sku} -> {self.result}"
 

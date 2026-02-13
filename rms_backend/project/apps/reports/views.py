@@ -19,6 +19,7 @@ from apps.expenses.models import Expense, ExpenseCategory
 from apps.inventory.models import Product, Category, StockMovement
 from apps.customer.models import Customer
 from apps.preorder.models import Preorder, PreorderProduct
+from apps.online_preorder.models import OnlinePreorder
 import logging
 
 logger = logging.getLogger(__name__)
@@ -610,6 +611,201 @@ class ReportViewSet(viewsets.ModelViewSet):
         }
         serializer = ProductPerformanceReportSerializer(data)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='online-preorder-analytics')
+    def online_preorder_analytics(self, request):
+        """Get analytics for online preorders including top products and categories"""
+        date_from, date_to, error = self._get_date_range(request)
+        if error:
+            return error
+
+        # Get online preorders in date range
+        online_preorders = OnlinePreorder.objects.filter(created_at__range=[date_from, date_to])
+        
+        # Total stats
+        total_orders = online_preorders.count()
+        completed_orders = online_preorders.filter(status='COMPLETED')
+        total_sales_count = completed_orders.count()
+        total_revenue = completed_orders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0.00')
+        total_profit = completed_orders.aggregate(total=Sum('profit'))['total'] or Decimal('0.00')
+        average_order_value = total_revenue / total_sales_count if total_sales_count > 0 else Decimal('0.00')
+
+        # Get sales from Sale model with sale_type='online_preorder' for more accurate analytics
+        online_sales = Sale.objects.filter(
+            date__range=[date_from, date_to],
+            status='completed',
+            sale_type='online_preorder'
+        )
+        
+        # Top products from online preorder sales
+        top_products_qs = SaleItem.objects.filter(
+            sale__in=online_sales
+        ).values(
+            'product__id',
+            'product__name',
+            'product__category__name'
+        ).annotate(
+            product_id=F('product__id'),
+            product_name=F('product__name'),
+            category_name=F('product__category__name'),
+            total_sales=Sum('total'),
+            quantity_sold=Sum('quantity'),
+            total_profit=Sum('profit')
+        ).order_by('-total_sales')[:10]
+
+        # Top categories from online preorder sales
+        top_categories_qs = SaleItem.objects.filter(
+            sale__in=online_sales
+        ).values(
+            'product__category__name'
+        ).annotate(
+            category_name=F('product__category__name'),
+            total_sales=Sum('total'),
+            quantity_sold=Sum('quantity'),
+            total_profit=Sum('profit'),
+            order_count=Count('sale', distinct=True)
+        ).order_by('-total_sales')[:10]
+
+        # Sales by date - convert dates to strings
+        sales_by_date = online_sales.annotate(
+            sale_date=Cast('date', DateField())
+        ).values('sale_date').annotate(
+            total=Sum('total'),
+            orders_count=Count('id')
+        ).order_by('sale_date')
+        
+        # Convert dates to strings for JSON serialization
+        sales_by_date_list = []
+        for item in sales_by_date:
+            date_str = str(item['sale_date']) if item['sale_date'] else None
+            sales_by_date_list.append({
+                'date': date_str,
+                'total': str(item['total']),
+                'orders_count': item['orders_count']
+            })
+
+        # Convert QuerySets to lists first
+        top_products_list = list(top_products_qs)
+        top_categories_list = list(top_categories_qs)
+        
+        # If no sales exist, try to get data from OnlinePreorder items directly
+        if len(top_products_list) == 0 and completed_orders.exists():
+            # Extract product data from OnlinePreorder items JSON
+            from collections import defaultdict
+            product_stats = defaultdict(lambda: {'quantity': 0, 'total': Decimal('0.00'), 'profit': Decimal('0.00'), 'name': '', 'category': ''})
+            
+            for order in completed_orders:
+                if order.items:
+                    for item in order.items:
+                        product_id = item.get('product_id')
+                        if product_id:
+                            try:
+                                product = Product.objects.get(id=product_id)
+                                qty = int(item.get('quantity', 0))
+                                unit_price = Decimal(str(item.get('unit_price', 0)))
+                                discount = Decimal(str(item.get('discount', 0) or 0))
+                                total = (unit_price * qty) - discount
+                                cost = Decimal(str(product.cost_price)) * qty
+                                profit = total - cost
+                                
+                                product_stats[product_id]['quantity'] += qty
+                                product_stats[product_id]['total'] += total
+                                product_stats[product_id]['profit'] += profit
+                                product_stats[product_id]['name'] = product.name
+                                product_stats[product_id]['category'] = product.category.name if product.category else 'Uncategorized'
+                            except Product.DoesNotExist:
+                                pass
+            
+            # Convert to list format
+            top_products_list = []
+            for product_id, stats in sorted(product_stats.items(), key=lambda x: x[1]['total'], reverse=True)[:10]:
+                top_products_list.append({
+                    'product_id': product_id,
+                    'product_name': stats['name'],
+                    'category_name': stats['category'],
+                    'total_sales': str(stats['total']),
+                    'quantity_sold': stats['quantity'],
+                    'total_profit': str(stats['profit'])
+                })
+        
+        # Get top categories from products if no sales
+        if len(top_categories_list) == 0 and completed_orders.exists():
+            from collections import defaultdict
+            category_stats = defaultdict(lambda: {'quantity': 0, 'total': Decimal('0.00'), 'profit': Decimal('0.00'), 'orders': set()})
+            
+            for order in completed_orders:
+                if order.items:
+                    for item in order.items:
+                        product_id = item.get('product_id')
+                        if product_id:
+                            try:
+                                product = Product.objects.get(id=product_id)
+                                category_name = product.category.name if product.category else 'Uncategorized'
+                                qty = int(item.get('quantity', 0))
+                                unit_price = Decimal(str(item.get('unit_price', 0)))
+                                discount = Decimal(str(item.get('discount', 0) or 0))
+                                total = (unit_price * qty) - discount
+                                cost = Decimal(str(product.cost_price)) * qty
+                                profit = total - cost
+                                
+                                category_stats[category_name]['quantity'] += qty
+                                category_stats[category_name]['total'] += total
+                                category_stats[category_name]['profit'] += profit
+                                category_stats[category_name]['orders'].add(order.id)
+                            except Product.DoesNotExist:
+                                pass
+            
+            # Convert to list format
+            top_categories_list = []
+            for category_name, stats in sorted(category_stats.items(), key=lambda x: x[1]['total'], reverse=True)[:10]:
+                top_categories_list.append({
+                    'category_name': category_name,
+                    'total_sales': str(stats['total']),
+                    'quantity_sold': stats['quantity'],
+                    'total_profit': str(stats['profit']),
+                    'order_count': len(stats['orders'])
+                })
+
+        # Status breakdown
+        status_breakdown = {}
+        for status_choice in OnlinePreorder.STATUS_CHOICES:
+            status_breakdown[status_choice[0]] = online_preorders.filter(status=status_choice[0]).count()
+
+        # Convert QuerySets to lists and handle None values
+        top_products_final = []
+        for item in top_products_list:
+            top_products_final.append({
+                'product_id': item.get('product_id') or 0,
+                'product_name': item.get('product_name') or 'Unknown',
+                'category_name': item.get('category_name') or 'Uncategorized',
+                'total_sales': str(item.get('total_sales', '0.00')),
+                'quantity_sold': item.get('quantity_sold', 0),
+                'total_profit': str(item.get('total_profit', '0.00'))
+            })
+        
+        top_categories_final = []
+        for item in top_categories_list:
+            top_categories_final.append({
+                'category_name': item.get('category_name') or 'Uncategorized',
+                'total_sales': str(item.get('total_sales', '0.00')),
+                'quantity_sold': item.get('quantity_sold', 0),
+                'total_profit': str(item.get('total_profit', '0.00')),
+                'order_count': item.get('order_count', 0)
+            })
+
+        data = {
+            'total_orders': total_orders,
+            'total_sales_count': total_sales_count,
+            'total_revenue': str(total_revenue),
+            'total_profit': str(total_profit),
+            'average_order_value': str(average_order_value),
+            'top_products': top_products_final,
+            'top_categories': top_categories_final,
+            'sales_by_date': sales_by_date_list,
+            'status_breakdown': status_breakdown,
+        }
+
+        return Response(data)
 
 class SavedReportViewSet(viewsets.ModelViewSet):
     queryset = SavedReport.objects.all()
