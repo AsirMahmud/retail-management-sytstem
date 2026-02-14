@@ -3,6 +3,7 @@ import type React from "react"
 import type { Metadata } from "next"
 import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
+import { Outfit } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import Script from "next/script"
 import "./globals.css"
@@ -12,6 +13,12 @@ import { LoadingProviderWrapper } from "@/components/loading-provider-wrapper"
 import { Toaster } from "sonner"
 import { WhatsAppButton } from "@/components/whatsapp-button"
 import { PromotionalModal } from "@/components/promotional-modal"
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
+  display: "swap",
+})
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://rawstitch.com.bd'),
@@ -83,7 +90,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} antialiased`} suppressHydrationWarning>
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} ${outfit.variable} antialiased`} suppressHydrationWarning>
       <body className=" bg-background font-sans text-foreground">
         {/* Google Tag Manager */}
         <Script

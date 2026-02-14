@@ -77,8 +77,8 @@ export const onlinePreordersApi = {
     api.post<OnlinePreorderVerification>(`/online-preorder/orders/${id}/start-verification/`),
   getVerification: (id: number) =>
     api.get<OnlinePreorderVerification>(`/online-preorder/orders/${id}/verification/`),
-  verifyScan: (id: number, sku: string) =>
-    api.post<OnlinePreorderScanResult>(`/online-preorder/orders/${id}/verify-scan/`, { sku }),
+  verifyScan: (id: number, sku?: string, product_id?: number) =>
+    api.post<OnlinePreorderScanResult>(`/online-preorder/orders/${id}/verify-scan/`, { sku, product_id }),
   completeVerification: (id: number) =>
     api.post<OnlinePreorderVerification>(`/online-preorder/orders/${id}/complete-verification/`),
   skipVerification: (id: number, reason?: string) =>

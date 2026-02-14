@@ -76,7 +76,7 @@
 }
 
 @theme inline {
-  --font-sans: "Century Gothic", "Apple Gothic", "ITC Avant Garde Gothic", sans-serif;
+  --font-sans: var(--font-outfit), "Century Gothic", "Apple Gothic", "ITC Avant Garde Gothic", sans-serif;
   --font-mono: var(--font-geist-mono);
   --color-background: var(--background);
   --color-foreground: var(--foreground);

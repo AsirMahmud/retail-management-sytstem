@@ -68,30 +68,80 @@ export function OnlinePreorderVerificationModal({ order, open, onClose, onComple
     };
   }, [verification]);
 
+  // Decode QR code data - ported from ModernPOS
+  const decodeQRCodeData = (scannedValue: string): { productId: string; color: string; size: string } | null => {
+    try {
+      if (!scannedValue || typeof scannedValue !== 'string' || scannedValue.trim().length === 0) {
+        return null;
+      }
+      let decodedString: string;
+      try {
+        decodedString = atob(scannedValue.trim());
+      } catch (decodeError) {
+        return null;
+      }
+      let cartData: any;
+      try {
+        cartData = JSON.parse(decodedString);
+      } catch (parseError) {
+        return null;
+      }
+      if (cartData && typeof cartData === 'object' && cartData.items && Array.isArray(cartData.items) && cartData.items.length > 0) {
+        const item = cartData.items[0];
+        if (item && typeof item === 'object' && item.productId) {
+          return {
+            productId: String(item.productId),
+            color: item.variations?.color || "",
+            size: item.variations?.size || "",
+          };
+        }
+      }
+      return null;
+    } catch (error) {
+      return null;
+    }
+  };
+
   const handleScanSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!order || !scanValue.trim()) return;
-    const sku = scanValue.trim();
+
+    const scannedInput = scanValue.trim();
     setScanValue("");
+
+    let payload_sku = scannedInput;
+    let payload_product_id: number | undefined = undefined;
+
+    // Check if it's a QR code
+    const qrData = decodeQRCodeData(scannedInput);
+    if (qrData) {
+      payload_product_id = parseInt(qrData.productId);
+      if (isNaN(payload_product_id)) payload_product_id = undefined;
+    }
+
     try {
-      const res = await onlinePreordersApi.verifyScan(order.id, sku);
+      const res = await onlinePreordersApi.verifyScan(order.id, payload_sku, payload_product_id);
       setVerification(res.data.verification);
-      if (res.data.result === "MATCHED") {
+
+      const { result, message } = res.data;
+
+      if (result === "MATCHED") {
         toast({
           title: "Matched",
-          description: res.data.message,
+          description: message,
+          className: "bg-green-50 border-green-200 text-green-800",
         });
-      } else if (res.data.result === "NOT_IN_ORDER") {
+      } else if (result === "NOT_IN_ORDER") {
         toast({
           title: "Not in order",
-          description: res.data.message,
+          description: message,
           variant: "destructive",
         });
-      } else if (res.data.result === "OVER_SCAN") {
+      } else if (result === "OVER_SCAN") {
         toast({
           title: "Already verified",
-          description: res.data.message,
-          variant: "destructive",
+          description: message,
+          className: "bg-blue-50 border-blue-200 text-blue-800",
         });
       }
     } catch (error: any) {
@@ -161,43 +211,128 @@ export function OnlinePreorderVerificationModal({ order, open, onClose, onComple
 
   const disabledComplete = stats.remaining > 0 || !verification || verification.status === "COMPLETED";
 
+  // Fetch branding for logo
+  const [branding, setBranding] = useState<{ logo_image_url?: string; logo_text?: string } | null>(null);
+  useEffect(() => {
+    import("@/lib/api/ecommerce").then(({ homePageSettingsApi }) => {
+      homePageSettingsApi.get().then(setBranding).catch(console.error);
+    });
+  }, []);
+
+  const progressPercentage = useMemo(() => {
+    if (!verification || verification.total_units === 0) return 0;
+    return Math.min(100, (verification.verified_units / verification.total_units) * 100);
+  }, [verification]);
+
+  // Success Animation Component
+  const SuccessOverlay = () => (
+    <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/95 backdrop-blur-sm animate-in fade-in duration-300">
+      <div className="relative flex flex-col items-center animate-in zoom-in-50 duration-500 slide-in-from-bottom-10">
+        <div className="mb-6 relative">
+          <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-75"></div>
+          <div className="relative bg-white p-4 rounded-full shadow-xl border-4 border-green-100">
+            {branding?.logo_image_url ? (
+              <img
+                src={branding.logo_image_url}
+                alt="Logo"
+                className="h-16 w-auto object-contain"
+              />
+            ) : (
+              <CheckCircle2 className="h-16 w-16 text-green-600" />
+            )}
+          </div>
+          <div className="absolute -bottom-2 -right-2 bg-green-500 text-white p-1.5 rounded-full shadow-lg border-2 border-white">
+            <CheckCircle2 className="h-5 w-5" />
+          </div>
+        </div>
+
+        <h2 className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">Verified!</h2>
+        <p className="text-slate-500 text-center max-w-xs mb-8">
+          Order #{order?.id} has been fully verified and marked as delivered.
+        </p>
+
+        <Button
+          size="lg"
+          className="bg-green-600 hover:bg-green-700 text-white font-semibold rounded-full px-8 shadow-lg shadow-green-200 animate-bounce"
+          onClick={() => {
+            onCompleted();
+            onClose();
+          }}
+        >
+          Done & Close
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl w-full p-0 overflow-hidden">
-          <DialogHeader className="px-6 pt-6 pb-4 border-b bg-slate-50">
-            <DialogTitle className="text-2xl font-bold">Order #{order?.id} Verification</DialogTitle>
-            <DialogDescription>
-              Scan product barcodes to verify this order before marking it as delivered.
-            </DialogDescription>
+        <DialogContent className="max-w-4xl w-full p-0 overflow-hidden h-[90vh] md:h-auto flex flex-col">
+          {verification?.status === "COMPLETED" && <SuccessOverlay />}
+
+          <DialogHeader className="px-6 pt-6 pb-4 border-b bg-slate-50 shrink-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-2xl font-bold">Order #{order?.id} Verification</DialogTitle>
+                <DialogDescription>
+                  Scan product barcodes to verify this order.
+                </DialogDescription>
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                <div className="text-sm font-medium text-slate-500">Progress</div>
+                <div className="text-2xl font-bold text-emerald-600">
+                  {Math.round(progressPercentage)}%
+                </div>
+              </div>
+            </div>
+
+            {/* Volume-style Progress Bar */}
+            <div className="mt-4 flex gap-1 h-3 w-full">
+              {Array.from({ length: 20 }).map((_, i) => {
+                const barValue = (i + 1) * 5; // each bar is 5%
+                const isActive = progressPercentage >= barValue;
+                return (
+                  <div
+                    key={i}
+                    className={`flex-1 rounded-sm transition-all duration-300 ${isActive
+                        ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+                        : "bg-slate-200"
+                      }`}
+                  />
+                );
+              })}
+            </div>
           </DialogHeader>
-          <div className="px-6 pt-4 pb-6 space-y-6 bg-slate-50">
+
+          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 bg-slate-50/50">
             {/* Scan Area */}
-            <Card className="border-emerald-200 shadow-sm">
-              <CardHeader className="pb-3 flex flex-row items-center justify-between">
+            <Card className="border-emerald-200 shadow-sm overflow-hidden relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/50 to-transparent pointer-events-none" />
+              <CardHeader className="pb-3 flex flex-row items-center justify-between relative">
                 <div>
-                  <CardTitle className="text-sm font-semibold text-emerald-900">Scan Barcode</CardTitle>
+                  <CardTitle className="text-sm font-semibold text-emerald-900">Scan Barcode / QR</CardTitle>
                   <p className="text-xs text-emerald-700 mt-1">
-                    Scanner active. Focus is locked on this field. Each scan will be validated against the order.
+                    Scanner active. Supports POS QR codes & standard barcodes.
                   </p>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                    LISTENING
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 animate-pulse">
+                    <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                    SCANNER READY
                   </span>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="relative">
                 <form onSubmit={handleScanSubmit}>
-                  <div className="relative">
-                    <Barcode className="absolute left-3 top-3 h-5 w-5 text-emerald-500" />
+                  <div className="relative group">
+                    <Barcode className="absolute left-3 top-3 h-5 w-5 text-emerald-500 group-focus-within:text-emerald-600 transition-colors" />
                     <Input
                       ref={inputRef}
                       value={scanValue}
                       onChange={(e) => setScanValue(e.target.value)}
-                      placeholder="Ready to scan..."
-                      className="h-12 pl-10 text-lg bg-emerald-50 border-emerald-200 focus-visible:ring-emerald-500"
+                      placeholder="Scan item..."
+                      className="h-12 pl-10 text-lg bg-white border-emerald-200 focus-visible:ring-emerald-500 focus-visible:ring-offset-0 transition-all shadow-sm"
                       autoFocus
                     />
                   </div>
@@ -206,41 +341,47 @@ export function OnlinePreorderVerificationModal({ order, open, onClose, onComple
             </Card>
 
             {/* Items Table */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-3">
+            <Card className="shadow-sm border-slate-200">
+              <CardHeader className="pb-3 bg-white border-b border-slate-100">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-slate-900">Items</CardTitle>
-                  <Badge variant="outline" className="text-xs">
-                    {stats.verified} / {stats.total} units verified
+                  <CardTitle className="text-sm font-semibold text-slate-900">Order Items</CardTitle>
+                  <Badge variant="secondary" className="text-xs font-normal">
+                    {stats.verified} / {stats.total} verified
                   </Badge>
                 </div>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="max-h-[320px] overflow-auto">
                   <Table>
-                    <TableHeader className="bg-slate-50">
+                    <TableHeader className="bg-slate-50 sticky top-0 z-10">
                       <TableRow>
-                        <TableHead>SKU</TableHead>
+                        <TableHead className="w-[100px]">SKU</TableHead>
                         <TableHead>Product</TableHead>
-                        <TableHead className="text-center">Qty</TableHead>
-                        <TableHead className="text-center">Status</TableHead>
+                        <TableHead className="text-center w-[80px]">Qty</TableHead>
+                        <TableHead className="text-center w-[100px]">Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {verification?.items?.map((item) => {
                         const status = getRowStatus(item);
+                        const isComplete = item.verified_qty >= item.ordered_qty;
                         return (
-                          <TableRow key={item.id}>
-                            <TableCell className="font-mono text-xs text-slate-700">{item.sku || "N/A"}</TableCell>
-                            <TableCell className="font-medium text-slate-900">
-                              {item.product_name || "Product"}
+                          <TableRow key={item.id} className={isComplete ? "bg-slate-50/50" : ""}>
+                            <TableCell className="font-mono text-xs text-slate-600">{item.sku || "N/A"}</TableCell>
+                            <TableCell>
+                              <div className="font-medium text-slate-900 text-sm">{item.product_name || "Product"}</div>
+                              {isComplete && <div className="text-[10px] text-green-600 flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Verified</div>}
                             </TableCell>
-                            <TableCell className="text-center text-sm font-semibold">
-                              {item.verified_qty}/{item.ordered_qty}
+                            <TableCell className="text-center text-sm font-medium">
+                              <span className={isComplete ? "text-green-600" : "text-slate-900"}>
+                                {item.verified_qty}
+                              </span>
+                              <span className="text-slate-400 mx-1">/</span>
+                              <span className="text-slate-600">{item.ordered_qty}</span>
                             </TableCell>
                             <TableCell className="text-center">
                               <span
-                                className={`inline-flex items-center justify-center rounded-full px-3 py-1 text-[11px] font-semibold ${status.variant}`}
+                                className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${status.variant}`}
                               >
                                 {status.label}
                               </span>
@@ -250,10 +391,12 @@ export function OnlinePreorderVerificationModal({ order, open, onClose, onComple
                       })}
                       {!verification?.items?.length && (
                         <TableRow>
-                          <TableCell colSpan={4} className="py-8 text-center text-slate-500">
-                            <div className="flex flex-col items-center justify-center gap-2">
-                              <Package className="h-8 w-8 text-slate-300" />
-                              <p>No items found for this order.</p>
+                          <TableCell colSpan={4} className="py-12 text-center text-slate-500">
+                            <div className="flex flex-col items-center justify-center gap-3">
+                              <div className="bg-slate-100 p-3 rounded-full">
+                                <Package className="h-6 w-6 text-slate-400" />
+                              </div>
+                              <p className="text-sm">No items found for this order.</p>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -264,50 +407,49 @@ export function OnlinePreorderVerificationModal({ order, open, onClose, onComple
               </CardContent>
             </Card>
 
-            {/* Summary + Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-              <Card className="md:col-span-1 bg-slate-900 text-white">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-xs font-medium text-slate-200">Total Units</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold">{stats.total}</p>
-                </CardContent>
-              </Card>
-              <Card className="md:col-span-1 bg-emerald-50 border-emerald-200">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-xs font-medium text-emerald-800">Verified Items</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-emerald-900">{stats.verified}</p>
-                </CardContent>
-              </Card>
-              <Card className="md:col-span-1 bg-amber-50 border-amber-200">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-xs font-medium text-amber-800">Remaining</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold text-amber-900">{stats.remaining}</p>
-                </CardContent>
-              </Card>
-              <div className="flex flex-col gap-2 md:items-end">
-                <Button
-                  size="lg"
-                  className="w-full md:w-auto bg-emerald-500 hover:bg-emerald-600 font-semibold"
-                  disabled={disabledComplete || isCompleting}
-                  onClick={handleComplete}
-                >
-                  <CheckCircle2 className="mr-2 h-4 w-4" />
-                  {isCompleting ? "Completing..." : "Complete Verification"}
-                </Button>
+            {/* Scan Log / Debug Info (Optional - kept hidden or small) */}
+          </div>
+
+          <div className="p-6 bg-white border-t border-slate-100 mt-auto shrink-0">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+              <div className="hidden md:block col-span-2">
+                <div className="flex gap-4">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Verified</span>
+                    <span className="text-2xl font-bold text-slate-900">{stats.verified}</span>
+                  </div>
+                  <div className="w-px bg-slate-200 h-10"></div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Remaining</span>
+                    <span className="text-2xl font-bold text-slate-400">{stats.remaining}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="col-span-1 md:col-span-2 flex gap-3 justify-end">
                 <Button
                   variant="outline"
-                  size="sm"
-                  className="w-full md:w-auto text-slate-700 border-slate-300"
+                  className="flex-1 md:flex-none border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                   onClick={() => setSkipDialogOpen(true)}
                 >
                   <SkipForward className="mr-2 h-4 w-4" />
-                  Skip Verification
+                  Skip
+                </Button>
+                <Button
+                  className={`flex-1 md:flex-none min-w-[140px] font-semibold shadow-sm transition-all ${verification?.status === "COMPLETED"
+                      ? "bg-green-600 hover:bg-green-700 text-white"
+                      : "bg-slate-900 hover:bg-slate-800 text-white"
+                    }`}
+                  disabled={disabledComplete || isCompleting}
+                  onClick={handleComplete}
+                >
+                  {isCompleting ? (
+                    "Processing..."
+                  ) : verification?.status === "COMPLETED" ? (
+                    <><CheckCircle2 className="mr-2 h-4 w-4" /> Complete</>
+                  ) : (
+                    "Complete Verification"
+                  )}
                 </Button>
               </div>
             </div>

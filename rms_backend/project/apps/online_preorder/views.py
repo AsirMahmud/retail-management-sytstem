@@ -149,7 +149,7 @@ class OnlinePreorderViewSet(
 
         return verification
 
-    @action(detail=True, methods=["post"], url_path="start-verification")
+    @action(detail=True, methods=["post"], url_path="start-verification", authentication_classes=[], permission_classes=[AllowAny])
     def start_verification(self, request, pk=None):
         """
         Initialize a verification session for this online preorder.
@@ -158,7 +158,7 @@ class OnlinePreorderViewSet(
         serializer = OnlinePreorderVerificationSerializer(verification, context={"request": request})
         return Response(serializer.data)
 
-    @action(detail=True, methods=["get"], url_path="verification")
+    @action(detail=True, methods=["get"], url_path="verification", authentication_classes=[], permission_classes=[AllowAny])
     def get_verification(self, request, pk=None):
         """
         Get current verification state for this online preorder.
@@ -171,26 +171,41 @@ class OnlinePreorderViewSet(
         serializer = OnlinePreorderVerificationSerializer(verification, context={"request": request})
         return Response(serializer.data)
 
-    @action(detail=True, methods=["post"], url_path="verify-scan")
+    @action(detail=True, methods=["post"], url_path="verify-scan", authentication_classes=[], permission_classes=[AllowAny])
     def verify_scan(self, request, pk=None):
         """
         Handle a barcode scan for the given online preorder.
-        Body: { \"sku\": \"SKU-9920\" }
+        Body: { "sku": "SKU-9920" } OR { "product_id": 123 }
         """
         sku = request.data.get("sku", "").strip()
-        if not sku:
-            return Response({"detail": "SKU is required."}, status=status.HTTP_400_BAD_REQUEST)
+        product_id = request.data.get("product_id")
+        
+        if not sku and not product_id:
+            return Response({"detail": "SKU or Product ID is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         verification = self._get_or_create_verification(request, pk)
 
         with transaction.atomic():
-            try:
-                item = verification.items.select_for_update().get(sku=sku)
-            except OnlinePreorderVerificationItem.DoesNotExist:
+            # Try to find item by SKU (exact match) OR via Product Barcode OR via Product ID
+            filter_query = models.Q()
+            
+            if product_id:
+                # specific product ID match (most accurate for QR codes)
+                filter_query |= models.Q(product_id=product_id)
+            
+            if sku:
+                # string match on SKU or Barcode
+                filter_query |= models.Q(sku__iexact=sku)
+                filter_query |= models.Q(product__barcode__iexact=sku)
+
+            # We use filter().first() instead of get() because multiple items might match 
+            candidates = verification.items.select_for_update().filter(filter_query)
+            
+            if not candidates.exists():
                 # Log not-in-order scan
                 OnlinePreorderVerificationScanLog.objects.create(
                     verification=verification,
-                    sku=sku,
+                    sku=sku or str(product_id),
                     result="NOT_IN_ORDER",
                 )
                 serializer = OnlinePreorderScanResultSerializer(
@@ -203,11 +218,14 @@ class OnlinePreorderViewSet(
                 )
                 return Response(serializer.data, status=status.HTTP_200_OK)
 
+            # Pick the first candidate (usually there's only one per SKU/Product)
+            item = candidates.first()
+
             # Prevent over-scan
             if item.verified_qty >= item.ordered_qty:
                 OnlinePreorderVerificationScanLog.objects.create(
                     verification=verification,
-                    sku=sku,
+                    sku=sku or str(product_id),
                     result="OVER_SCAN",
                 )
                 serializer = OnlinePreorderScanResultSerializer(
@@ -232,7 +250,7 @@ class OnlinePreorderViewSet(
 
             OnlinePreorderVerificationScanLog.objects.create(
                 verification=verification,
-                sku=sku,
+                sku=sku or str(product_id),
                 result="MATCHED",
             )
 
@@ -246,7 +264,7 @@ class OnlinePreorderViewSet(
         )
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=["post"], url_path="complete-verification")
+    @action(detail=True, methods=["post"], url_path="complete-verification", authentication_classes=[], permission_classes=[AllowAny])
     def complete_verification(self, request, pk=None):
         """
         Mark verification as completed and update order status to DELIVERED.
@@ -271,7 +289,7 @@ class OnlinePreorderViewSet(
         serializer = OnlinePreorderVerificationSerializer(verification, context={"request": request})
         return Response(serializer.data)
 
-    @action(detail=True, methods=["post"], url_path="skip-verification")
+    @action(detail=True, methods=["post"], url_path="skip-verification", authentication_classes=[], permission_classes=[AllowAny])
     def skip_verification(self, request, pk=None):
         """
         Skip verification for this order but still move it to DELIVERED.
