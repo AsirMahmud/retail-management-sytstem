@@ -105,12 +105,19 @@ export default function OrderCompletePage() {
   // GTM Order Submitted Event (Suppressed purchase event so Meta purchase only fires on Admin confirmation)
   useEffect(() => {
     if (order) {
+      const shippingAddr: any = order.shipping_address || {};
       sendGTMEvent('order_submitted', {
         transaction_id: String(order.id),
         value: order.total_amount,
         tax: 0,
         shipping: order.delivery_charge,
         currency: 'BDT',
+        customer_name: order.customer_name || '',
+        customer_phone: order.customer_phone || '',
+        customer_email: order.customer_email || '',
+        city: shippingAddr.city || shippingAddr.area || '',
+        fbc: shippingAddr.fbc || undefined,
+        fbp: shippingAddr.fbp || undefined,
         items: order.items.map(item => {
           const colorSlug = (item.color || '').toLowerCase().replace(/\s+/g, '-');
           return {

@@ -260,20 +260,37 @@ export function CheckoutForm() {
         deliveryMethodName = 'Outside Dhaka'
       }
 
-      // Final validation before sending
-      if (!customer_name || customer_name.length === 0) {
-        throw new Error("Customer name is required. Please fill in first name and last name.")
+      // Extract Meta Pixel cookies for Conversions API / GTM match quality
+      let fbc = ''
+      let fbp = ''
+      if (typeof document !== 'undefined') {
+        const cookieValue = `; ${document.cookie}`
+        const fbcPart = cookieValue.split('; _fbc=')
+        if (fbcPart.length === 2) fbc = fbcPart.pop()?.split(';').shift() || ''
+
+        const fbpPart = cookieValue.split('; _fbp=')
+        if (fbpPart.length === 2) fbp = fbpPart.pop()?.split(';').shift() || ''
+
+        if (!fbc && typeof window !== 'undefined') {
+          const urlParams = new URLSearchParams(window.location.search)
+          const fbclid = urlParams.get('fbclid')
+          if (fbclid) {
+            fbc = `fb.1.${Date.now()}.${fbclid}`
+          }
+        }
       }
 
-      if (!customer_phone || customer_phone.length === 0) {
-        throw new Error("Phone number is required.")
+      const enhancedShippingAddress = {
+        ...shipping_address,
+        fbc: fbc || undefined,
+        fbp: fbp || undefined,
       }
 
       const payload = {
         customer_name,
         customer_phone,
-        customer_email: customer_email || undefined, // Send undefined if empty, not empty string
-        shipping_address,
+        customer_email: customer_email || undefined,
+        shipping_address: enhancedShippingAddress,
         notes: notes || undefined,
         items,
         delivery_charge: deliveryCharge,
@@ -296,7 +313,6 @@ export function CheckoutForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      {/* Contact Information */}
       <div className="space-y-4">
         <h2 className="text-2xl font-bold">Contact Information</h2>
         <div className="grid md:grid-cols-2 gap-4">
