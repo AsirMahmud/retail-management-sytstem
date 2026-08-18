@@ -1,4 +1,4 @@
-type GTMEvent = 'add_to_cart' | 'purchase' | 'view_item' | 'begin_checkout' | 'remove_from_cart' | 'view_item_list';
+type GTMEvent = 'add_to_cart' | 'purchase' | 'view_item' | 'begin_checkout' | 'remove_from_cart' | 'view_item_list' | 'order_submitted';
 
 interface GTMItem {
     item_id: string;

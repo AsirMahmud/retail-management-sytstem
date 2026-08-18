@@ -102,10 +102,10 @@ export default function OrderCompletePage() {
     fetchOrder()
   }, [preorderId])
 
-  // GTM Purchase Event
+  // GTM Order Submitted Event (Suppressed purchase event so Meta purchase only fires on Admin confirmation)
   useEffect(() => {
     if (order) {
-      sendGTMEvent('purchase', {
+      sendGTMEvent('order_submitted', {
         transaction_id: String(order.id),
         value: order.total_amount,
         tax: 0,
@@ -123,7 +123,6 @@ export default function OrderCompletePage() {
           };
         })
       })
-      // Facebook Pixel Purchase is triggered via GTM from the purchase event above
     }
   }, [order])
 

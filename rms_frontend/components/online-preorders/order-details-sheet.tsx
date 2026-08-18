@@ -28,17 +28,58 @@ const statusConfig: Record<string, { color: string; icon: any }> = {
     CANCELLED: { color: "bg-red-100 text-red-800", icon: XCircle },
 };
 
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { sendAdminPurchaseConfirmed, sendAdminPurchaseCancelled } from "@/lib/gtm";
+
 export function OrderDetailsSheet({ order, isOpen, onClose, onRefresh, onEdit, onStartVerification }: OrderDetailsSheetProps) {
+    const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+    const [cancelReason, setCancelReason] = useState("Fake Customer / Fake Order");
+    const [isFakeCustomer, setIsFakeCustomer] = useState(true);
+    const [isSubmittingCancel, setIsSubmittingCancel] = useState(false);
+
     if (!order) return null;
 
     const handleStatusChange = async (newStatus: string) => {
-        // Simple status update; verification can be triggered via separate button
+        if (newStatus === "CANCELLED") {
+            setCancelReason("Fake Customer / Fake Order");
+            setIsFakeCustomer(true);
+            setCancelDialogOpen(true);
+            return;
+        }
+
         try {
             await onlinePreordersApi.updateStatus(order.id, newStatus);
             toast({ title: "Success", description: `Order status updated to ${newStatus}` });
+            
+            if (newStatus === "CONFIRMED" || newStatus === "COMPLETED") {
+                sendAdminPurchaseConfirmed({ ...order, status: newStatus });
+            }
+
             onRefresh();
         } catch (error) {
             toast({ title: "Error", description: "Failed to update status", variant: "destructive" });
+        }
+    };
+
+    const handleConfirmCancel = async () => {
+        if (!order) return;
+        setIsSubmittingCancel(true);
+        try {
+            await onlinePreordersApi.updateStatus(order.id, "CANCELLED");
+            sendAdminPurchaseCancelled(order, cancelReason, isFakeCustomer);
+            toast({ 
+                title: isFakeCustomer ? "Order Cancelled & Flagged as Fake" : "Order Cancelled", 
+                description: `Order #${order.id} status updated to CANCELLED.` 
+            });
+            setCancelDialogOpen(false);
+            onRefresh();
+        } catch (error) {
+            toast({ title: "Error", description: "Failed to cancel order", variant: "destructive" });
+        } finally {
+            setIsSubmittingCancel(false);
         }
     };
 
@@ -303,6 +344,86 @@ export function OrderDetailsSheet({ order, isOpen, onClose, onRefresh, onEdit, o
                         </div>
                     </div>
                 </ScrollArea>
+
+                {/* Cancel Order Confirmation Modal */}
+                <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+                    <DialogContent className="sm:max-w-md bg-white">
+                        <DialogHeader>
+                            <DialogTitle className="text-xl font-bold text-red-600 flex items-center gap-2">
+                                <XCircle className="w-5 h-5 text-red-600" />
+                                Cancel Order #{order.id}
+                            </DialogTitle>
+                            <DialogDescription>
+                                Specify the reason for cancelling this order. This event will be logged and dispatched to Meta GTM tracking.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-3">
+                            <div className="space-y-2">
+                                <Label className="font-semibold text-slate-700">Quick Reason Preset</Label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {[
+                                        { label: "Fake Customer / Fake Order", isFake: true },
+                                        { label: "Unreachable / Invalid Phone", isFake: true },
+                                        { label: "Customer Cancelled", isFake: false },
+                                        { label: "Out of Stock", isFake: false },
+                                    ].map((preset) => (
+                                        <button
+                                            key={preset.label}
+                                            type="button"
+                                            className={`px-3 py-2 text-xs font-semibold rounded-lg border text-left transition-all ${
+                                                cancelReason === preset.label
+                                                    ? "bg-red-50 text-red-700 border-red-300 font-bold"
+                                                    : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+                                            }`}
+                                            onClick={() => {
+                                                setCancelReason(preset.label);
+                                                setIsFakeCustomer(preset.isFake);
+                                            }}
+                                        >
+                                            {preset.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="cancelReason" className="font-semibold text-slate-700">Custom Reason</Label>
+                                <Input
+                                    id="cancelReason"
+                                    value={cancelReason}
+                                    onChange={(e) => setCancelReason(e.target.value)}
+                                    placeholder="Enter cancellation reason..."
+                                />
+                            </div>
+
+                            <div className="flex items-center gap-2 pt-2">
+                                <input
+                                    type="checkbox"
+                                    id="isFakeCheckbox"
+                                    checked={isFakeCustomer}
+                                    onChange={(e) => setIsFakeCustomer(e.target.checked)}
+                                    className="w-4 h-4 rounded text-red-600 focus:ring-red-500 border-slate-300 cursor-pointer"
+                                />
+                                <Label htmlFor="isFakeCheckbox" className="text-sm font-semibold text-red-700 cursor-pointer">
+                                    Flag as Fake Customer / Fake Order (Dispatches `is_fake: true` to Meta)
+                                </Label>
+                            </div>
+                        </div>
+                        <DialogFooter className="gap-2 sm:gap-0">
+                            <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
+                                Keep Order
+                            </Button>
+                            <Button 
+                                variant="destructive" 
+                                onClick={handleConfirmCancel}
+                                disabled={isSubmittingCancel}
+                                className="bg-red-600 hover:bg-red-700 font-bold"
+                            >
+                                {isSubmittingCancel ? "Cancelling..." : "Confirm Cancellation"}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </SheetContent>
         </Sheet>
     );
