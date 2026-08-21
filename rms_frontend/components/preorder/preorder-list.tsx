@@ -10,7 +10,6 @@ import {
   useUpdatePreorder,
 } from "@/hooks/queries/use-preorder";
 import { useSales } from "@/hooks/queries/use-sales";
-import { sendAdminPurchaseConfirmed, sendAdminPurchaseCancelled } from "@/lib/gtm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -232,16 +231,6 @@ export function PreorderList({ source, title = "Preorders", showCreateButton = t
           title: "Success",
           description: "Preorder completed and converted to sale successfully!",
         });
-      }
-
-      // Trigger GTM events on confirm / completion or cancellation
-      const targetPreorder = preorders?.data?.find((p: Preorder) => p.id === preorderId);
-      if (targetPreorder) {
-        if (newStatus === "CONFIRMED" || newStatus === "COMPLETED") {
-          sendAdminPurchaseConfirmed({ ...targetPreorder, status: newStatus });
-        } else if (newStatus === "CANCELLED") {
-          sendAdminPurchaseCancelled({ ...targetPreorder, status: newStatus });
-        }
       }
     } catch (error) {
       console.error("Error updating preorder status or creating sale:", error);

@@ -32,7 +32,6 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { sendAdminPurchaseConfirmed, sendAdminPurchaseCancelled } from "@/lib/gtm";
 
 export function OrderDetailsSheet({ order, isOpen, onClose, onRefresh, onEdit, onStartVerification }: OrderDetailsSheetProps) {
     const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -53,11 +52,6 @@ export function OrderDetailsSheet({ order, isOpen, onClose, onRefresh, onEdit, o
         try {
             await onlinePreordersApi.updateStatus(order.id, newStatus);
             toast({ title: "Success", description: `Order status updated to ${newStatus}` });
-            
-            if (newStatus === "CONFIRMED" || newStatus === "COMPLETED") {
-                sendAdminPurchaseConfirmed({ ...order, status: newStatus });
-            }
-
             onRefresh();
         } catch (error) {
             toast({ title: "Error", description: "Failed to update status", variant: "destructive" });
@@ -69,7 +63,6 @@ export function OrderDetailsSheet({ order, isOpen, onClose, onRefresh, onEdit, o
         setIsSubmittingCancel(true);
         try {
             await onlinePreordersApi.updateStatus(order.id, "CANCELLED");
-            sendAdminPurchaseCancelled(order, cancelReason, isFakeCustomer);
             toast({ 
                 title: isFakeCustomer ? "Order Cancelled & Flagged as Fake" : "Order Cancelled", 
                 description: `Order #${order.id} status updated to CANCELLED.` 
@@ -354,7 +347,7 @@ export function OrderDetailsSheet({ order, isOpen, onClose, onRefresh, onEdit, o
                                 Cancel Order #{order.id}
                             </DialogTitle>
                             <DialogDescription>
-                                Specify the reason for cancelling this order. This event will be logged and dispatched to Meta GTM tracking.
+                                Specify the reason for cancelling this order.
                             </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-3">
