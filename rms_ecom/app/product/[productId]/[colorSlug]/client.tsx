@@ -167,23 +167,8 @@ export default function ProductByColorPage() {
                                 product={productInfo}
                                 discountInfo={data.discount_info}
                                 colorLinks={colorToggler.map(c => ({ name: c.name, value: c.hex, href: c.href, active: c.active, oos: c.oos }))}
-                                onAddToCart={(payload) => {
-                                    const price = Number(data.product.price) || undefined
-                                    const contentId = `${data.product.id}-${data.color.slug}`
+                                // GTM add_to_cart is automatically handled inside useCartStore.addItem
 
-                                    // GTM add_to_cart - GTM triggers Facebook Pixel AddToCart
-                                    sendGTMEvent('add_to_cart', {
-                                        currency: 'BDT',
-                                        value: price ? price * payload.quantity : 0,
-                                        items: [{
-                                            item_id: contentId,
-                                            item_name: data.product.name,
-                                            price: price,
-                                            item_variant: `${payload.color} - ${payload.size}`,
-                                            quantity: payload.quantity
-                                        }]
-                                    })
-                                }}
                                 onBuyNow={(payload) => {
                                     const price = Number(data.product.price) || undefined
                                     const contentId = `${data.product.id}-${data.color.slug}`
