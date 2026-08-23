@@ -11,6 +11,13 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Retail Management System",
   description: "A comprehensive retail management system",
+  verification: {
+    other: {
+      "facebook-domain-verification": [
+        process.env.NEXT_PUBLIC_FB_DOMAIN_VERIFICATION || "mxu4lviifl6ibb18ptjz4z06l3b4a2",
+      ],
+    },
+  },
 };
 
 export default function RootLayout({
@@ -20,6 +27,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <meta
+          name="facebook-domain-verification"
+          content="mxu4lviifl6ibb18ptjz4z06l3b4a2"
+        />
+      </head>
       <body className={inter.className}>
         {/* Google Tag Manager */}
         <Script
