@@ -148,7 +148,7 @@ class OnlinePreorderCreateSerializer(serializers.ModelSerializer):
         customer_phone = validated_data.get('customer_phone')
         customer_name = validated_data.get('customer_name', '')
         customer_email = validated_data.get('customer_email')
-        shipping_address = validated_data.get('shipping_address', {})
+        shipping_address = validated_data.get('shipping_address') or {}
 
         # Build address string from structured shipping address
         address_parts = []
@@ -371,6 +371,37 @@ class OnlinePreorderSerializer(serializers.ModelSerializer):
                         pass
                 enriched_items.append(item)
             ret['items'] = enriched_items
+
+        # Calculate dynamic fraud summary and customer order history
+        try:
+            from apps.online_preorder.services.fraud_scoring import calculate_fraud_score
+            fraud_res = calculate_fraud_score(
+                customer_phone=instance.customer_phone,
+                current_order_amount=float(instance.total_amount or 0),
+                ip_address=instance.ip_address,
+                fbp=instance.fbp,
+                fbc=instance.fbc,
+                exclude_order_id=instance.id
+            )
+            ret['fraud_summary'] = {
+                'risk_score': instance.risk_score or fraud_res['risk_score'],
+                'risk_level': instance.risk_level or fraud_res['risk_level'],
+                'customer_stats': fraud_res['stats'],
+                'matching_signals': fraud_res['matching_signals'],
+                'attribution': {
+                    'fbp': instance.fbp,
+                    'fbc': instance.fbc,
+                    'fbclid': instance.fbclid,
+                    'utm_source': instance.utm_source,
+                    'utm_medium': instance.utm_medium,
+                    'utm_campaign': instance.utm_campaign,
+                    'utm_content': instance.utm_content,
+                    'utm_term': instance.utm_term,
+                }
+            }
+        except Exception:
+            ret['fraud_summary'] = None
+
         return ret
 
 

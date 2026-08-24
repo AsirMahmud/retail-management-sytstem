@@ -32,6 +32,52 @@ export interface OnlinePreorder {
   expected_delivery_date?: string;
   created_at: string;
   updated_at?: string;
+
+  fbp?: string;
+  fbc?: string;
+  fbclid?: string;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  utm_content?: string;
+  utm_term?: string;
+
+  event_id?: string;
+  purchase_event_sent?: boolean;
+  purchase_event_sent_at?: string;
+
+  ip_address?: string;
+  user_agent?: string;
+  session_id?: string;
+  risk_score?: number;
+  risk_level?: 'LOW' | 'MEDIUM' | 'HIGH';
+
+  fraud_summary?: {
+    risk_score: number;
+    risk_level: 'LOW' | 'MEDIUM' | 'HIGH';
+    customer_stats: {
+      total_orders: number;
+      delivered_count: number;
+      cancelled_count: number;
+      returned_refused_count: number;
+      recent_orders_24h: number;
+      recent_orders_7d: number;
+      previous_total_value: number;
+      previous_delivered_value: number;
+      last_order_date?: string | null;
+    };
+    matching_signals: string[];
+    attribution: {
+      fbp?: string;
+      fbc?: string;
+      fbclid?: string;
+      utm_source?: string;
+      utm_medium?: string;
+      utm_campaign?: string;
+      utm_content?: string;
+      utm_term?: string;
+    };
+  };
 }
 
 export interface OnlinePreorderVerificationItem {

@@ -10,6 +10,18 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
   Select,
   SelectContent,
+"use client"
+
+import type React from "react"
+
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import {
+  Select,
+  SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -21,6 +33,7 @@ import { ecommerceApi } from "@/lib/api"
 import { useCheckoutStore } from "@/hooks/useCheckoutStore"
 import { useBdAddress } from "@/hooks/useBdAddress"
 import { useLoading } from "@/hooks/useLoading"
+import { useAttribution, getStoredAttribution } from "@/hooks/useAttribution"
 import { CheckoutSummary } from "./checkout-summary"
 import dhakaThanasData from "../dhaka_thanas_structure.json"
 
@@ -43,11 +56,11 @@ interface CityCorporation {
 }
 
 export function CheckoutForm() {
+  useAttribution()
   const router = useRouter()
   const [paymentMethod] = useState("cod")
   const [error, setError] = useState<string | null>(null)
   const { deliveryMethod, setDeliveryMethod, couponCode, clearCoupon } = useCheckoutStore()
-  const { startLoading, stopLoading } = useLoading()
   const {
     divisions,
     districts,
@@ -260,30 +273,13 @@ export function CheckoutForm() {
         deliveryMethodName = 'Outside Dhaka'
       }
 
-      // Extract Meta Pixel cookies for Conversions API / GTM match quality
-      let fbc = ''
-      let fbp = ''
-      if (typeof document !== 'undefined') {
-        const cookieValue = `; ${document.cookie}`
-        const fbcPart = cookieValue.split('; _fbc=')
-        if (fbcPart.length === 2) fbc = fbcPart.pop()?.split(';').shift() || ''
-
-        const fbpPart = cookieValue.split('; _fbp=')
-        if (fbpPart.length === 2) fbp = fbpPart.pop()?.split(';').shift() || ''
-
-        if (!fbc && typeof window !== 'undefined') {
-          const urlParams = new URLSearchParams(window.location.search)
-          const fbclid = urlParams.get('fbclid')
-          if (fbclid) {
-            fbc = `fb.1.${Date.now()}.${fbclid}`
-          }
-        }
-      }
+      // Extract Meta Pixel & UTM attribution signals for Conversions API & fraud detection
+      const attribution = getStoredAttribution()
 
       const enhancedShippingAddress = {
         ...shipping_address,
-        fbc: fbc || undefined,
-        fbp: fbp || undefined,
+        fbc: attribution.fbc || undefined,
+        fbp: attribution.fbp || undefined,
       }
 
       const payload = {
@@ -296,6 +292,15 @@ export function CheckoutForm() {
         delivery_charge: deliveryCharge,
         delivery_method: deliveryMethodName,
         coupon_code: couponCode || undefined,
+        fbp: attribution.fbp || undefined,
+        fbc: attribution.fbc || undefined,
+        fbclid: attribution.fbclid || undefined,
+        utm_source: attribution.utm_source || undefined,
+        utm_medium: attribution.utm_medium || undefined,
+        utm_campaign: attribution.utm_campaign || undefined,
+        utm_content: attribution.utm_content || undefined,
+        utm_term: attribution.utm_term || undefined,
+        session_id: attribution.session_id || undefined,
       }
 
       console.log('Submitting payload:', { ...payload, items: items.length }) // Debug log

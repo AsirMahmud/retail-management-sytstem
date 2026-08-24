@@ -971,17 +971,54 @@ class CreateOnlinePreorderView(APIView):
             except (ValueError, TypeError):
                 expected_delivery_date = None
 
+        # Technical & Attribution Signal Extraction
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip_address = x_forwarded_for.split(',')[0].strip()
+        else:
+            ip_address = request.META.get('REMOTE_ADDR')
+
+        user_agent = request.META.get('HTTP_USER_AGENT', '')
+
+        fbp = request.data.get('fbp') or None
+        fbclid = request.data.get('fbclid') or None
+        fbc = request.data.get('fbc') or None
+
+        # Rule: Only store fbc if valid fbclid is present or valid fbc string is provided
+        if not fbclid and not (fbc and 'fb.1.' in fbc):
+            fbc = None
+        elif fbclid and not fbc:
+            fbc = f"fb.1.{int(timezone.now().timestamp() * 1000)}.{fbclid}"
+
+        utm_source = request.data.get('utm_source') or None
+        utm_medium = request.data.get('utm_medium') or None
+        utm_campaign = request.data.get('utm_campaign') or None
+        utm_content = request.data.get('utm_content') or None
+        utm_term = request.data.get('utm_term') or None
+        session_id = request.data.get('session_id') or None
+
         try:
             with transaction.atomic():
                 pricing = price_cart(items, request.data.get('coupon_code'), lock_coupon=True)
                 coupon = pricing['coupon_object']
+                total_amount = pricing['subtotal'] + delivery_charge
+
+                from apps.online_preorder.services.fraud_scoring import calculate_fraud_score
+                fraud_res = calculate_fraud_score(
+                    customer_phone=customer_phone,
+                    current_order_amount=float(total_amount),
+                    ip_address=ip_address,
+                    fbp=fbp,
+                    fbc=fbc
+                )
+
                 preorder_data = {
                     'customer_name': customer_name, 'customer_phone': customer_phone,
                     'customer_email': customer_email if customer_email else '',
                     'items': pricing['items'],
                     'shipping_address': shipping_address_data if shipping_address_data else None,
                     'delivery_charge': delivery_charge, 'delivery_method': delivery_method,
-                    'total_amount': pricing['subtotal'] + delivery_charge,
+                    'total_amount': total_amount,
                     'notes': request.data.get('notes', '') or '', 'status': 'PENDING',
                     'coupon': coupon.pk if coupon else None,
                     'coupon_code': coupon.code if coupon else '',
@@ -990,6 +1027,19 @@ class CreateOnlinePreorderView(APIView):
                     'automatic_discount_amount': pricing['automatic_discount_amount'],
                     'coupon_discount_amount': pricing['coupon_discount_amount'],
                     'final_merchandise_subtotal': pricing['subtotal'],
+                    'fbp': fbp,
+                    'fbc': fbc,
+                    'fbclid': fbclid,
+                    'utm_source': utm_source,
+                    'utm_medium': utm_medium,
+                    'utm_campaign': utm_campaign,
+                    'utm_content': utm_content,
+                    'utm_term': utm_term,
+                    'ip_address': ip_address,
+                    'user_agent': user_agent,
+                    'session_id': session_id,
+                    'risk_score': fraud_res['risk_score'],
+                    'risk_level': fraud_res['risk_level'],
                 }
                 if expected_delivery_date:
                     preorder_data['expected_delivery_date'] = expected_delivery_date
@@ -997,6 +1047,11 @@ class CreateOnlinePreorderView(APIView):
                 if not serializer.is_valid():
                     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
                 online_preorder = serializer.save()
+
+                if not online_preorder.event_id:
+                    online_preorder.event_id = f"purchase_{online_preorder.id}"
+                    online_preorder.save(update_fields=['event_id'])
+
                 if coupon:
                     CouponRedemption.objects.create(coupon=coupon, order=online_preorder)
         except PricingError as exc:

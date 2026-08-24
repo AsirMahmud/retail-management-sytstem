@@ -202,7 +202,7 @@ export function OrderDetailsSheet({ order, isOpen, onClose, onRefresh, onEdit, o
                                     {order.shipping_address ? (
                                         <div className="whitespace-pre-line">
                                             {order.shipping_address.address}<br />
-                                            {order.shipping_address.city}, {order.shipping_address.upazila}
+                                            {order.shipping_address.city || order.shipping_address.thana || ""}{order.shipping_address.district ? `, ${order.shipping_address.district}` : ""}
                                         </div>
                                     ) : (
                                         "No shipping address provided"
@@ -216,6 +216,107 @@ export function OrderDetailsSheet({ order, isOpen, onClose, onRefresh, onEdit, o
                                 </div>
                             </div>
                         </div>
+
+                        {/* Fraud Risk & Customer History Card */}
+                        {order.fraud_summary && (
+                            <div className="bg-white p-4 rounded-xl border shadow-sm space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 font-semibold text-slate-800">
+                                        <AlertCircle className="w-4 h-4 text-indigo-600" />
+                                        <span>Fraud Risk & Customer History</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs text-slate-500 font-medium">Score: {order.fraud_summary.risk_score}/100</span>
+                                        <Badge className={`px-2.5 py-0.5 text-xs font-bold border-none ${
+                                            order.fraud_summary.risk_level === 'HIGH' ? 'bg-red-100 text-red-800' :
+                                            order.fraud_summary.risk_level === 'MEDIUM' ? 'bg-amber-100 text-amber-800' :
+                                            'bg-emerald-100 text-emerald-800'
+                                        }`}>
+                                            Risk: {order.fraud_summary.risk_level}
+                                        </Badge>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-4 gap-2 bg-slate-50 p-3 rounded-lg text-center text-xs">
+                                    <div>
+                                        <div className="text-slate-400 font-medium">Total Orders</div>
+                                        <div className="font-bold text-slate-900 text-sm mt-0.5">{order.fraud_summary.customer_stats.total_orders}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-slate-400 font-medium">Delivered</div>
+                                        <div className="font-bold text-emerald-700 text-sm mt-0.5">{order.fraud_summary.customer_stats.delivered_count}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-slate-400 font-medium">Cancelled</div>
+                                        <div className="font-bold text-amber-700 text-sm mt-0.5">{order.fraud_summary.customer_stats.cancelled_count}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-slate-400 font-medium">Refused/Fake</div>
+                                        <div className="font-bold text-red-700 text-sm mt-0.5">{order.fraud_summary.customer_stats.returned_refused_count}</div>
+                                    </div>
+                                </div>
+
+                                {order.fraud_summary.matching_signals.length > 0 && (
+                                    <div className="space-y-1 text-xs">
+                                        <div className="font-medium text-slate-500">Risk Signals:</div>
+                                        <ul className="list-disc list-inside space-y-0.5 text-slate-700">
+                                            {order.fraud_summary.matching_signals.map((sig, idx) => (
+                                                <li key={idx} className="text-amber-800">{sig}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Marketing & Meta Attribution Signals Card */}
+                        {(order.utm_source || order.fbp || order.fbc || order.fbclid) && (
+                            <div className="bg-white p-4 rounded-xl border shadow-sm space-y-3">
+                                <div className="flex items-center gap-2 font-semibold text-slate-800">
+                                    <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                                    <span>Attribution & Tracking Signals</span>
+                                </div>
+
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                                    {order.utm_source && (
+                                        <div className="bg-slate-50 p-2 rounded border">
+                                            <span className="text-slate-400 block font-medium">UTM Source</span>
+                                            <span className="font-semibold text-slate-800">{order.utm_source}</span>
+                                        </div>
+                                    )}
+                                    {order.utm_medium && (
+                                        <div className="bg-slate-50 p-2 rounded border">
+                                            <span className="text-slate-400 block font-medium">UTM Medium</span>
+                                            <span className="font-semibold text-slate-800">{order.utm_medium}</span>
+                                        </div>
+                                    )}
+                                    {order.utm_campaign && (
+                                        <div className="bg-slate-50 p-2 rounded border">
+                                            <span className="text-slate-400 block font-medium">UTM Campaign</span>
+                                            <span className="font-semibold text-slate-800">{order.utm_campaign}</span>
+                                        </div>
+                                    )}
+                                    {order.fbp && (
+                                        <div className="bg-slate-50 p-2 rounded border truncate" title={order.fbp}>
+                                            <span className="text-slate-400 block font-medium">Meta _fbp</span>
+                                            <span className="font-mono text-[10px] text-slate-700">{order.fbp}</span>
+                                        </div>
+                                    )}
+                                    {order.fbc && (
+                                        <div className="bg-slate-50 p-2 rounded border truncate" title={order.fbc}>
+                                            <span className="text-slate-400 block font-medium">Meta _fbc</span>
+                                            <span className="font-mono text-[10px] text-slate-700">{order.fbc}</span>
+                                        </div>
+                                    )}
+                                    {order.purchase_event_sent && (
+                                        <div className="bg-emerald-50 p-2 rounded border border-emerald-200">
+                                            <span className="text-emerald-600 block font-medium">Meta Purchase CAPI</span>
+                                            <span className="font-bold text-emerald-800">Sent ✓</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Payment Section */}
                         <div className="bg-white p-4 rounded-xl border shadow-sm flex flex-col gap-4">

@@ -40,6 +40,35 @@ class OnlinePreorder(models.Model):
     unit_price = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     cost_price = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
 
+    # Attribution fields
+    fbp = models.CharField(max_length=255, null=True, blank=True)
+    fbc = models.CharField(max_length=255, null=True, blank=True)
+    fbclid = models.CharField(max_length=255, null=True, blank=True)
+    utm_source = models.CharField(max_length=255, null=True, blank=True)
+    utm_medium = models.CharField(max_length=255, null=True, blank=True)
+    utm_campaign = models.CharField(max_length=255, null=True, blank=True)
+    utm_content = models.CharField(max_length=255, null=True, blank=True)
+    utm_term = models.CharField(max_length=255, null=True, blank=True)
+
+    # Event Deduplication & Meta CAPI Idempotency
+    event_id = models.CharField(max_length=255, null=True, blank=True, unique=True, db_index=True)
+    purchase_event_sent = models.BooleanField(default=False)
+    purchase_event_sent_at = models.DateTimeField(null=True, blank=True)
+
+    # Technical & Fraud Detection Signals
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(null=True, blank=True)
+    session_id = models.CharField(max_length=255, null=True, blank=True)
+    risk_score = models.IntegerField(default=0)
+    risk_level = models.CharField(max_length=20, default='LOW')
+
+    # Cancellation & Steadfast courier fields
+    cancel_reason = models.CharField(max_length=255, null=True, blank=True)
+    is_fake = models.BooleanField(default=False, help_text="Marked as fake order or fake customer")
+    steadfast_consignment_id = models.CharField(max_length=100, null=True, blank=True)
+    steadfast_status = models.CharField(max_length=100, null=True, blank=True)
+    steadfast_tracking_code = models.CharField(max_length=100, null=True, blank=True)
+
     def __str__(self):
         return f"OnlinePreorder #{self.id} - {self.customer_name}"
 
@@ -181,4 +210,35 @@ class OnlinePreorderVerificationScanLog(models.Model):
 
     def __str__(self):
         return f"Scan {self.sku} -> {self.result}"
+
+
+class MetaEventLog(models.Model):
+    """
+    Log of Meta CAPI and GTM server event dispatches for auditing, troubleshooting, and idempotency tracking.
+    """
+    STATUS_CHOICES = [
+        ('SUCCESS', 'Success'),
+        ('FAILED', 'Failed'),
+        ('SKIPPED', 'Skipped / Already Sent'),
+    ]
+
+    online_preorder = models.ForeignKey(
+        OnlinePreorder,
+        on_delete=models.CASCADE,
+        related_name='meta_event_logs'
+    )
+    event_id = models.CharField(max_length=255, db_index=True)
+    event_name = models.CharField(max_length=100, default='Purchase')
+    action_source = models.CharField(max_length=50, default='website')
+    status = models.CharField(max_length=30, choices=STATUS_CHOICES, default='SUCCESS')
+    request_payload = models.JSONField(default=dict, blank=True)
+    response_code = models.IntegerField(null=True, blank=True)
+    response_body = models.TextField(blank=True)
+    error_message = models.TextField(blank=True)
+    retry_count = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"MetaEventLog #{self.id} [{self.event_name}] Order #{self.online_preorder_id} - {self.status}"
+
 

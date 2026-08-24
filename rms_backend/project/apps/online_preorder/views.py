@@ -99,6 +99,15 @@ class OnlinePreorderViewSet(
                 logger = logging.getLogger(__name__)
                 logger.error(f"Error sending confirmation notification for order {updated_instance.id}: {str(e)}")
 
+            # Trigger Meta Purchase Conversion API Event (Idempotent)
+            try:
+                from .services.meta_capi import dispatch_meta_purchase_event
+                dispatch_meta_purchase_event(updated_instance)
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Error dispatching Meta Purchase event for order {updated_instance.id}: {str(e)}")
+
         elif old_status != 'DELIVERED' and new_status == 'DELIVERED':
             try:
                 from .email_utils import send_delivery_notification

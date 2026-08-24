@@ -183,6 +183,18 @@ export const sendAdminPurchaseConfirmed = (order: any) => {
 export const sendAdminPurchaseCancelled = (order: any, reason?: string, isFake: boolean = false) => {
   if (!order) return;
 
+  const items: GTMItem[] = (order.items || []).map((item: any) => {
+    const colorSlug = (item.color || '').toLowerCase().replace(/\s+/g, '-');
+    return {
+      item_id: colorSlug ? `${item.product_id}-${colorSlug}` : String(item.product_id),
+      item_name: item.product_name || `Product ${item.product_id}`,
+      price: Number(item.unit_price || 0),
+      quantity: Number(item.quantity || 1),
+      discount: Number(item.discount || 0),
+      item_variant: `${item.color || ''} ${item.size || ''}`.trim()
+    };
+  });
+
   const shippingAddr = order.shipping_address || {};
   const fbc = order.fbc || shippingAddr.fbc || getBrowserCookie('_fbc') || undefined;
   const fbp = order.fbp || shippingAddr.fbp || getBrowserCookie('_fbp') || undefined;
@@ -198,7 +210,8 @@ export const sendAdminPurchaseCancelled = (order: any, reason?: string, isFake: 
     fbc,
     fbp,
     cancel_reason: reason || order.notes || 'Admin Cancelled',
-    is_fake: isFake
+    is_fake: isFake,
+    items
   };
 
   sendGTMEvent('admin_purchase_cancelled', payload);

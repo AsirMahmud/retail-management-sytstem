@@ -36,6 +36,8 @@ class Customer(models.Model):
         ('both', 'Both'),
     ]
     customer_type = models.CharField(max_length=10, choices=CUSTOMER_TYPE_CHOICES, default='shop')
+    is_flagged_fake = models.BooleanField(default=False, help_text="Flagged as a fake customer or fraudulent buyer")
+    fake_notes = models.TextField(blank=True, null=True, help_text="Reason or notes for flagging as fake")
 
     def __str__(self):
         name = f"{self.first_name} {self.last_name}" if self.first_name and self.last_name else "Unknown"
