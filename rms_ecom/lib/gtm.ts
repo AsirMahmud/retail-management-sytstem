@@ -82,6 +82,29 @@ export const sendGTMEvent = (event: GTMEvent, params: GTMParams) => {
     console.log(`[GTM] ${event}`, params);
 
     if (typeof window !== 'undefined') {
+        // Prevent duplicate begin_checkout / InitiateCheckout events within 45 seconds
+        if (event === 'begin_checkout') {
+            try {
+                const lastSent = sessionStorage.getItem('gtm_begin_checkout_timestamp');
+                const now = Date.now();
+                if (lastSent && (now - parseInt(lastSent, 10)) < 45000) {
+                    console.log('[GTM] begin_checkout deduplicated (already sent within 45s)');
+                    return;
+                }
+                sessionStorage.setItem('gtm_begin_checkout_timestamp', now.toString());
+            } catch (e) {
+                // Ignore storage access errors
+            }
+        }
+
+        if (event === 'order_submitted' || event === 'purchase') {
+            try {
+                sessionStorage.removeItem('gtm_begin_checkout_timestamp');
+            } catch (e) {
+                // Ignore storage access errors
+            }
+        }
+
         (window as any).dataLayer = (window as any).dataLayer || [];
         const firstItemId = params.items && params.items.length > 0 ? params.items[0].item_id : undefined;
 

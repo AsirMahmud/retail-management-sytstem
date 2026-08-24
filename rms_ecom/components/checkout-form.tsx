@@ -10,18 +10,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
   Select,
   SelectContent,
-"use client"
-
-import type React from "react"
-
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import {
-  Select,
-  SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -58,6 +46,7 @@ interface CityCorporation {
 export function CheckoutForm() {
   useAttribution()
   const router = useRouter()
+  const { startLoading, stopLoading } = useLoading()
   const [paymentMethod] = useState("cod")
   const [error, setError] = useState<string | null>(null)
   const { deliveryMethod, setDeliveryMethod, couponCode, clearCoupon } = useCheckoutStore()
