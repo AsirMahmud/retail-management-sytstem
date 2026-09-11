@@ -193,3 +193,27 @@ class OrderTrackingFraudMetaTest(TestCase):
         # Confirm old order without attribution data
         res = dispatch_meta_purchase_event(old_order)
         self.assertEqual(res['status'], 'SUCCESS')
+
+    def test_completed_status_does_not_trigger_purchase_event(self):
+        order = OnlinePreorder.objects.create(
+            customer_name="Non Confirmed Customer",
+            customer_phone="01700000006",
+            total_amount=2200,
+            status="DELIVERED"
+        )
+        self.assertFalse(order.purchase_event_sent)
+
+        # Transition to COMPLETED
+        patch_resp = self.client.patch(
+            f'/api/online-preorder/orders/{order.id}/',
+            data={"status": "COMPLETED"},
+            content_type='application/json'
+        )
+        self.assertEqual(patch_resp.status_code, status.HTTP_200_OK)
+
+        order.refresh_from_db()
+        # Purchase event must NOT have been sent when moving to COMPLETED
+        self.assertFalse(order.purchase_event_sent)
+        self.assertIsNone(order.purchase_event_sent_at)
+        self.assertEqual(MetaEventLog.objects.filter(online_preorder=order, event_name='Purchase').count(), 0)
+

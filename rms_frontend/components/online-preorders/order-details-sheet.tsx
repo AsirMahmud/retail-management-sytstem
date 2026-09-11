@@ -54,7 +54,7 @@ export function OrderDetailsSheet({ order, isOpen, onClose, onRefresh, onEdit, o
             await onlinePreordersApi.updateStatus(order.id, newStatus);
             toast({ title: "Success", description: `Order status updated to ${newStatus}` });
             
-            if (newStatus === "CONFIRMED" || newStatus === "COMPLETED") {
+            if (newStatus === "CONFIRMED") {
                 sendAdminPurchaseConfirmed({ ...order, status: newStatus });
             }
 

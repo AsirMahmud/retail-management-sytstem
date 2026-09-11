@@ -234,10 +234,10 @@ export function PreorderList({ source, title = "Preorders", showCreateButton = t
         });
       }
 
-      // Trigger GTM events on confirm / completion or cancellation
+      // Trigger GTM events on confirm or cancellation
       const targetPreorder = preorders?.data?.find((p: Preorder) => p.id === preorderId);
       if (targetPreorder) {
-        if (newStatus === "CONFIRMED" || newStatus === "COMPLETED") {
+        if (newStatus === "CONFIRMED") {
           sendAdminPurchaseConfirmed({ ...targetPreorder, status: newStatus });
         } else if (newStatus === "CANCELLED") {
           sendAdminPurchaseCancelled({ ...targetPreorder, status: newStatus });
