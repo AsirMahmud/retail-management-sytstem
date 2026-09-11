@@ -160,18 +160,18 @@ function DashboardContent() {
       initial="hidden"
       animate="show"
     >
-      <div className="max-w-7xl mx-auto p-6">
-        <motion.div className="mb-8" variants={item}>
-          <div className="flex items-center justify-between">
+      <div className="max-w-7xl mx-auto p-0 sm:p-2 md:p-6">
+        <motion.div className="mb-6 sm:mb-8" variants={item}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                <TrendingUp className="h-6 w-6 text-white" />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shrink-0">
+                <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                   Business Dashboard
                 </h1>
-                <p className="text-gray-600 mt-1">
+                <p className="text-gray-600 mt-1 text-xs sm:text-sm">
                   Complete overview of your business performance
                 </p>
               </div>
@@ -179,9 +179,9 @@ function DashboardContent() {
             <Button
               onClick={() => refetch()}
               variant="outline"
-              className="gap-2"
+              className="self-start sm:self-auto gap-2 text-xs sm:text-sm h-9"
             >
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw className="h-3.5 w-3.5" />
               Refresh Data
             </Button>
           </div>
@@ -189,7 +189,7 @@ function DashboardContent() {
 
         {/* Key Metrics - Today's and Monthly Overview */}
         <motion.div
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8"
           variants={item}
         >
           <Card className="bg-gradient-to-br from-blue-50 to-indigo-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
@@ -275,7 +275,7 @@ function DashboardContent() {
 
         {/* Business Counts */}
         <motion.div
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6 mb-6 sm:mb-8"
           variants={item}
         >
           <Card className="bg-gradient-to-br from-orange-50 to-amber-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
@@ -338,7 +338,7 @@ function DashboardContent() {
 
         {/* Charts Row 1 - Sales vs Expenses */}
         <motion.div
-          className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8"
+          className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 mb-6 sm:mb-8"
           variants={item}
         >
           {/* Sales Trend */}

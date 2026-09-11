@@ -10,11 +10,11 @@ export const metadata: Metadata = {
 
 export default function TasksPage() {
   return (
-    <div className="flex flex-col gap-6 p-6 md:p-8">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className="flex flex-col gap-4 sm:gap-6 p-2 sm:p-4 md:p-8 min-w-0">
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Task Board</h1>
-          <p className="text-muted-foreground">Manage and track tasks across your retail business</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Task Board</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">Manage and track tasks across your retail business</p>
         </div>
         <TaskFilterBar />
       </div>

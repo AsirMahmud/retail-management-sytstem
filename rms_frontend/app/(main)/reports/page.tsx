@@ -147,12 +147,12 @@ export default function ReportsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="mb-8">
+      <div className="max-w-7xl mx-auto p-2 sm:p-4 md:p-6 min-w-0">
+        <div className="mb-6 sm:mb-8">
           <div className="flex items-center space-x-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shrink-0">
               <svg
-                className="h-6 w-6 text-white"
+                className="h-5 w-5 sm:h-6 sm:w-6 text-white"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
@@ -166,10 +166,10 @@ export default function ReportsPage() {
               </svg>
             </div>
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                 Reports & Analytics
               </h1>
-              <p className="text-gray-600 mt-1">
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">
                 Visualize and analyze your retail business performance
               </p>
             </div>
@@ -177,13 +177,13 @@ export default function ReportsPage() {
         </div>
 
         {/* Enhanced Filter System */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Filter className="h-5 w-5 text-blue-600" />
-                  <CardTitle className="text-lg font-semibold text-gray-800">
+                  <CardTitle className="text-base sm:text-lg font-semibold text-gray-800">
                     Filter Reports
                   </CardTitle>
                 </div>
@@ -208,19 +208,19 @@ export default function ReportsPage() {
               </div>
               
               {/* Current Filter Display - Always Visible */}
-              <div className="flex items-center justify-between pt-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-2 gap-2">
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-600">Current Period:</span>
-                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  <span className="text-xs sm:text-sm text-gray-600">Current Period:</span>
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
                     {selectedFilter === "custom" 
                       ? formatDateRangeDisplay(customDateRange)
                       : PRESET_FILTERS.find(f => f.value === selectedFilter)?.label || "All Time"
                     }
                   </Badge>
                 </div>
-                <div className="flex items-center space-x-2 text-sm text-gray-500">
-                  <Calendar className="h-4 w-4" />
-                  <span>
+                <div className="flex items-center space-x-2 text-xs sm:text-sm text-gray-500">
+                  <Calendar className="h-4 w-4 shrink-0" />
+                  <span className="break-all sm:break-normal">
                     {dateRange.from?.toLocaleDateString()} - {dateRange.to?.toLocaleDateString()}
                   </span>
                 </div>
@@ -232,7 +232,7 @@ export default function ReportsPage() {
               <CardContent className="space-y-6 pt-0">
                 {/* Preset Filters */}
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-3">Quick Filters</h3>
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-700 mb-3">Quick Filters</h3>
                   <div className="flex flex-wrap gap-2">
                     {PRESET_FILTERS.map((filter) => {
                       const Icon = filter.icon;
@@ -242,13 +242,13 @@ export default function ReportsPage() {
                           variant={selectedFilter === filter.value ? "default" : "outline"}
                           size="sm"
                           onClick={() => setSelectedFilter(filter.value)}
-                          className={`transition-all duration-200 ${
+                          className={`transition-all duration-200 text-xs sm:text-sm ${
                             selectedFilter === filter.value
                               ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg"
                               : "hover:bg-blue-50 hover:border-blue-300"
                           }`}
                         >
-                          <Icon className="h-4 w-4 mr-2" />
+                          <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2" />
                           {filter.label}
                         </Button>
                       );
@@ -258,8 +258,8 @@ export default function ReportsPage() {
 
                 {/* Custom Date Range */}
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-3">Custom Date Range</h3>
-                  <div className="flex items-center space-x-4">
+                  <h3 className="text-xs sm:text-sm font-medium text-gray-700 mb-3">Custom Date Range</h3>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                     <DatePickerWithRange
                       value={customDateRange}
                       onChange={(range) => {
@@ -268,7 +268,7 @@ export default function ReportsPage() {
                       }}
                     />
                     {selectedFilter === "custom" && (
-                      <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-800 w-fit">
                         {formatDateRangeDisplay(customDateRange)}
                       </Badge>
                     )}
@@ -279,73 +279,73 @@ export default function ReportsPage() {
           </Card>
         </div>
 
-        <Tabs defaultValue="overview" className="space-y-8">
-          <TabsList className="grid w-full grid-cols-9 bg-white/70 backdrop-blur-sm border border-white/20 shadow-lg rounded-xl p-1">
+        <Tabs defaultValue="overview" className="space-y-6 sm:space-y-8">
+          <TabsList className="flex items-center w-full overflow-x-auto no-scrollbar justify-start space-x-1 sm:grid sm:grid-cols-9 sm:space-x-0 bg-white/70 backdrop-blur-sm border border-white/20 shadow-lg rounded-xl p-1 min-w-0">
             <TabsTrigger
               value="overview"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
+              className="shrink-0 whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
             >
               Overview
             </TabsTrigger>
             <TabsTrigger
               value="sales"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
+              className="shrink-0 whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
             >
               Sales
             </TabsTrigger>
             <TabsTrigger
               value="expenses"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
+              className="shrink-0 whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
             >
               Expenses
             </TabsTrigger>
             <TabsTrigger
               value="inventory"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
+              className="shrink-0 whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
             >
               Inventory
             </TabsTrigger>
             <TabsTrigger
               value="customers"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
+              className="shrink-0 whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
             >
               Customers
             </TabsTrigger>
             <TabsTrigger
               value="profit-loss"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
+              className="shrink-0 whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
             >
               Profit & Loss
             </TabsTrigger>
             <TabsTrigger
               value="product-performance"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
+              className="shrink-0 whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
             >
               Product Performance
             </TabsTrigger>
             <TabsTrigger
               value="preorder"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
+              className="shrink-0 whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
             >
               Preorder Analytics
             </TabsTrigger>
             <TabsTrigger
               value="online-preorder"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
+              className="shrink-0 whitespace-nowrap px-3 py-1.5 text-xs sm:text-sm data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
             >
-              Online Preorder Analytics
+              Online Preorders
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="overview" className="space-y-8">
+          <TabsContent value="overview" className="space-y-6 sm:space-y-8">
             {isLoadingOverview ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 <Skeleton className="h-32" />
                 <Skeleton className="h-32" />
                 <Skeleton className="h-32" />
                 <Skeleton className="h-32" />
               </div>
             ) : overviewData ? (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                 <Card className="bg-gradient-to-br from-blue-50 to-indigo-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium text-gray-700">

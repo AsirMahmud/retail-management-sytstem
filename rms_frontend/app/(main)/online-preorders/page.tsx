@@ -181,26 +181,26 @@ export default function OnlinePreordersPage() {
   };
 
   return (
-    <div className="min-h-screen space-y-8 animate-in fade-in duration-500">
+    <div className="min-h-screen space-y-6 sm:space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900">Online Preorders</h1>
-          <p className="text-slate-500 mt-2 font-medium">Manage and track your ecommerce COD orders from one place.</p>
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900">Online Preorders</h1>
+          <p className="text-slate-500 mt-1 sm:mt-2 text-xs sm:text-sm font-medium">Manage and track your ecommerce COD orders from one place.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" className="bg-white" onClick={loadData}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <Button variant="outline" className="bg-white text-xs sm:text-sm h-9" onClick={loadData}>
+            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button className="bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200" onClick={() => { setEditingOrder(null); setActiveTab("manual"); }}>
-            <Plus className="w-4 h-4 mr-2" />
+          <Button className="bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-200 text-xs sm:text-sm h-9" onClick={() => { setEditingOrder(null); setActiveTab("manual"); }}>
+            <Plus className="w-3.5 h-3.5 mr-1.5" />
             Create Order
           </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200 shadow-lg hover:shadow-xl transition-all">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-semibold text-indigo-900">Total Orders</CardTitle>
@@ -271,17 +271,17 @@ export default function OnlinePreordersPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); if (v !== "manual") setEditingOrder(null); }} className="w-full">
-        <TabsList className="bg-white border p-1 h-12 shadow-sm rounded-xl mb-6">
-          <TabsTrigger value="orders" className="rounded-lg data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-600 px-6 font-semibold transition-all">
-            <ShoppingBag className="w-4 h-4 mr-2" />
+        <TabsList className="bg-white border p-1 h-auto flex flex-wrap sm:inline-flex sm:h-12 shadow-sm rounded-xl mb-6">
+          <TabsTrigger value="orders" className="rounded-lg data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-600 px-3 sm:px-6 py-2 sm:py-0 text-xs sm:text-sm font-semibold transition-all">
+            <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
             Orders
           </TabsTrigger>
-          <TabsTrigger value="manual" className="rounded-lg data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-600 px-6 font-semibold transition-all">
-            {editingOrder ? <Edit className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+          <TabsTrigger value="manual" className="rounded-lg data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-600 px-3 sm:px-6 py-2 sm:py-0 text-xs sm:text-sm font-semibold transition-all">
+            {editingOrder ? <Edit className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" /> : <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />}
             {editingOrder ? "Edit Order" : "Manual Order"}
           </TabsTrigger>
-          <TabsTrigger value="customers" className="rounded-lg data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-600 px-6 font-semibold transition-all">
-            <User className="w-4 h-4 mr-2" />
+          <TabsTrigger value="customers" className="rounded-lg data-[state=active]:bg-indigo-50 data-[state=active]:text-indigo-600 px-3 sm:px-6 py-2 sm:py-0 text-xs sm:text-sm font-semibold transition-all">
+            <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
             Customers
           </TabsTrigger>
         </TabsList>
@@ -300,14 +300,13 @@ export default function OnlinePreordersPage() {
                   />
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
-                    <Filter className="w-4 h-4" />
-                    Status:
-                  </div>
                   <Select value={status} onValueChange={setStatus}>
-                    <SelectTrigger className="w-44 bg-white"><SelectValue placeholder="All Status" /></SelectTrigger>
+                    <SelectTrigger className="w-[180px] h-10 bg-white border-slate-200">
+                      <Filter className="w-4 h-4 mr-2 text-slate-400" />
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Orders</SelectItem>
+                      <SelectItem value="all">All Status</SelectItem>
                       <SelectItem value="PENDING">Pending</SelectItem>
                       <SelectItem value="CONFIRMED">Confirmed</SelectItem>
                       <SelectItem value="DELIVERED">Delivered</SelectItem>
@@ -325,7 +324,7 @@ export default function OnlinePreordersPage() {
                   <p className="text-slate-500 font-medium">Loading orders...</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto max-h-[600px]">
+                <div className="overflow-x-auto max-h-[600px] min-w-0">
                   <Table>
                     <TableHeader className="bg-slate-50/80 sticky top-0 z-10 backdrop-blur-sm">
                       <TableRow>
@@ -355,24 +354,36 @@ export default function OnlinePreordersPage() {
                             onClick={() => { setSelectedOrder(o); setIsSheetOpen(true); }}
                           >
                             <TableCell>
-                              <div className="flex gap-2 items-center">
+                              <div className="flex gap-1.5 items-center">
                                 {images.length > 0 ? (
-                                  displayImages.map((img, idx) => (
+                                  <>
                                     <div
-                                      key={idx}
-                                      className={`${isMulti ? 'w-16 h-20' : 'w-20 h-24'} rounded-md border bg-white overflow-hidden flex-shrink-0 relative transition-all`}
+                                      className="w-14 h-16 sm:w-16 sm:h-20 rounded-md border bg-white overflow-hidden flex-shrink-0 relative transition-all"
                                     >
-                                      <img src={img} alt="Order preview" className="w-full h-full object-cover" />
-                                      {isMulti && idx === 2 && remainingCount > 0 && (
-                                        <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                          <span className="text-white text-xs font-bold">+{remainingCount}</span>
+                                      <img src={images[0]} alt="Order preview" className="w-full h-full object-cover" />
+                                      {images.length > 1 && (
+                                        <div className="sm:hidden absolute inset-0 bg-black/60 flex items-center justify-center">
+                                          <span className="text-white text-xs font-bold">+{images.length - 1}</span>
                                         </div>
                                       )}
                                     </div>
-                                  ))
+                                    {displayImages.slice(1).map((img, idx) => (
+                                      <div
+                                        key={idx}
+                                        className="hidden sm:block w-16 h-20 rounded-md border bg-white overflow-hidden flex-shrink-0 relative transition-all"
+                                      >
+                                        <img src={img} alt="Order preview" className="w-full h-full object-cover" />
+                                        {idx === 1 && remainingCount > 0 && (
+                                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                            <span className="text-white text-xs font-bold">+{remainingCount}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </>
                                 ) : (
-                                  <div className="w-20 h-24 rounded-md border bg-white overflow-hidden flex items-center justify-center flex-shrink-0">
-                                    <Package className="w-8 h-8 text-slate-300" />
+                                  <div className="w-14 h-16 sm:w-20 sm:h-24 rounded-md border bg-white overflow-hidden flex items-center justify-center flex-shrink-0">
+                                    <Package className="w-6 h-6 text-slate-300" />
                                   </div>
                                 )}
                               </div>

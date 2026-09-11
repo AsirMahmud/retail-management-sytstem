@@ -15,35 +15,28 @@ import { BismillahLogo } from "@/components/bismillah-logo";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export default function RootLayout({
+export default function MainLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html>
-      <body className={inter.className}>
-        <AuthProvider>
-          <TaskProvider>
-            <ThemeProvider attribute="class" defaultTheme="light">
-              <BismillahProvider>
-                <div className="flex min-h-screen bg-[#F1F5F9]">
-                  <SideNav />
-                  <div className="flex-1 mx-auto md:ml-[280px] flex flex-col">
-                    <UpperNav />
-                    <BismillahLogo />
-                    <main className="flex-1 p-4 md:p-6 overflow-auto">
-                      {children}
-                    </main>
-
-                    <Toaster />
-                  </div>
-                </div>
-              </BismillahProvider>
-            </ThemeProvider>
-          </TaskProvider>
-        </AuthProvider>
-      </body>
-    </html>
+    <TaskProvider>
+      <ThemeProvider attribute="class" defaultTheme="light">
+        <BismillahProvider>
+          <div className="flex min-h-screen bg-[#F1F5F9] w-full max-w-full overflow-x-hidden">
+            <SideNav />
+            <div className="flex-1 min-w-0 w-full max-w-full md:ml-[280px] flex flex-col">
+              <UpperNav />
+              <BismillahLogo />
+              <main className="flex-1 p-3 sm:p-4 md:p-6 min-w-0 w-full max-w-full">
+                {children}
+              </main>
+              <Toaster />
+            </div>
+          </div>
+        </BismillahProvider>
+      </ThemeProvider>
+    </TaskProvider>
   );
 }

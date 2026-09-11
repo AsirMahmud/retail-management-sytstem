@@ -36,14 +36,14 @@ export default function FloatingCart() {
           transition={{ type: "spring", damping: 20 }}
           className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg z-50"
         >
-          <div className="container mx-auto px-4 py-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
+          <div className="container mx-auto px-3 sm:px-4 py-2 sm:py-3">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+              <div className="flex items-center justify-between sm:justify-start space-x-3 sm:space-x-4">
                 <div className="flex items-center">
-                  <ShoppingCart className="h-6 w-6 text-primary" />
-                  <Badge className="ml-2">{cart.length} items</Badge>
+                  <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                  <Badge className="ml-2 text-xs">{cart.length} items</Badge>
                 </div>
-                <div className="text-lg font-semibold">
+                <div className="text-base sm:text-lg font-semibold">
                   Total: {formatCurrency(total)}
                 </div>
               </div>
@@ -51,13 +51,14 @@ export default function FloatingCart() {
                 <Button
                   variant="outline"
                   size="sm"
+                  className="flex-1 sm:flex-none h-8 text-xs sm:text-sm"
                   onClick={() => {
                     // TODO: Implement view cart functionality
                   }}
                 >
                   View Cart
                 </Button>
-                <Button size="sm" onClick={handleCompletePayment}>
+                <Button size="sm" className="flex-1 sm:flex-none h-8 text-xs sm:text-sm" onClick={handleCompletePayment}>
                   Checkout
                 </Button>
               </div>

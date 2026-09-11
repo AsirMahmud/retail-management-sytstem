@@ -347,18 +347,18 @@ export function PreorderList({ source, title = "Preorders", showCreateButton = t
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <CardTitle className="text-2xl font-bold text-gray-900">
+            <CardTitle className="text-xl sm:text-2xl font-bold text-gray-900">
               {title}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm">
               Manage customer preorders and track their status
             </CardDescription>
           </div>
           {showCreateButton && (
-            <Link href="/preorder/create">
-              <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+            <Link href="/preorder/create" className="self-start sm:self-auto">
+              <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-xs sm:text-sm h-9">
                 Create Preorder
               </Button>
             </Link>
@@ -373,7 +373,7 @@ export function PreorderList({ source, title = "Preorders", showCreateButton = t
               placeholder="Search by customer name, phone, email, or product..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-10 text-sm"
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -391,7 +391,7 @@ export function PreorderList({ source, title = "Preorders", showCreateButton = t
           </Select>
         </div>
 
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto min-w-0">
           <Table>
             <TableHeader>
               <TableRow>

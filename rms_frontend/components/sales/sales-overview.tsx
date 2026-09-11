@@ -164,26 +164,26 @@ export default function SalesOverview() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="p-6 space-y-8">
+      <div className="p-2 sm:p-4 md:p-6 space-y-6 sm:space-y-8 min-w-0">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-          <div className="space-y-2">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6">
+          <div className="space-y-1 sm:space-y-2">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
               Sales Overview
             </h1>
-            <p className="text-lg text-gray-600">
+            <p className="text-xs sm:text-sm md:text-base text-gray-600">
               Track your sales performance and key metrics
             </p>
           </div>
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
             <Select
               value={timeFilter}
               onValueChange={(value: "7d" | "30d" | "90d") =>
                 setTimeFilter(value)
               }
             >
-              <SelectTrigger className="w-40 bg-white border-gray-200 shadow-sm">
-                <Calendar className="w-4 h-4 mr-2 text-gray-500" />
+              <SelectTrigger className="w-full sm:w-40 bg-white border-gray-200 shadow-sm text-xs sm:text-sm">
+                <Calendar className="w-4 h-4 mr-2 text-gray-500 shrink-0" />
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -194,10 +194,10 @@ export default function SalesOverview() {
             </Select>
             <Button
               variant="outline"
-              className="bg-white border-gray-200 shadow-sm hover:bg-gray-50"
+              className="w-full sm:w-auto bg-white border-gray-200 shadow-sm hover:bg-gray-50 text-xs sm:text-sm"
               onClick={() => setAdvancedOpen(true)}
             >
-              <Filter className="w-4 h-4 mr-2" />
+              <Filter className="w-4 h-4 mr-2 shrink-0" />
               Advanced Filters
             </Button>
           </div>
@@ -205,7 +205,7 @@ export default function SalesOverview() {
 
         {/* Advanced Filter Modal */}
         <Dialog open={advancedOpen} onOpenChange={setAdvancedOpen}>
-          <DialogContent className="p-6 w-full max-w-md space-y-4">
+          <DialogContent className="p-4 sm:p-6 w-[95vw] max-w-md space-y-4">
             <h2 className="text-lg font-semibold">Advanced Filters</h2>
             <div className="space-y-2">
               <label>Status</label>
@@ -261,7 +261,7 @@ export default function SalesOverview() {
         </Dialog>
 
         {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-6">
           <Card className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">

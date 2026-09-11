@@ -200,9 +200,9 @@ export default function CartAndCheckout() {
               stiffness: 300,
               damping: 30,
             }}
-            className="fixed bottom-0 right-[100px] z-50"
+            className="fixed bottom-0 right-0 sm:right-4 lg:right-[100px] z-50 w-full sm:w-auto"
           >
-            <Card className="w-[1000px] bg-white border-t flex flex-col p-4 h-[70vh] mb-8 overflow-hidden">
+            <Card className="w-full sm:w-[600px] lg:w-[1000px] bg-white border-t sm:border shadow-2xl flex flex-col p-3 sm:p-4 h-[88vh] sm:h-[75vh] lg:h-[70vh] mb-0 sm:mb-4 lg:mb-8 rounded-t-2xl sm:rounded-xl rounded-b-none sm:rounded-b-xl overflow-hidden">
               {/* Cart Header */}
               <div className="p-2 border-b flex justify-between items-center">
                                  <h2 className="text-sm font-semibold flex items-center">
@@ -601,20 +601,20 @@ export default function CartAndCheckout() {
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
-            className="fixed bottom-4 right-[100px] z-50"
+            className="fixed bottom-4 right-4 sm:right-6 lg:right-[100px] z-50"
           >
             <Button
               ref={toggleButtonRef}
               variant="outline"
               size="sm"
-              className="bg-white shadow-md"
+              className="bg-white shadow-lg border-2 border-indigo-200 text-indigo-900 font-semibold"
               onClick={() => setIsMounted(true)}
             >
-                             <ChevronLeft className="h-4 w-4 mr-1" />
-               Show Cart
-               {cart.length > 0 && (
-                 <Badge className="ml-1 text-xs bg-blue-500 hover:bg-blue-600">{cart.length}</Badge>
-               )}
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Show Cart
+              {cart.length > 0 && (
+                <Badge className="ml-1 text-xs bg-blue-500 hover:bg-blue-600">{cart.length}</Badge>
+              )}
             </Button>
           </motion.div>
         )}

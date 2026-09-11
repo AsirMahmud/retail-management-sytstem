@@ -175,22 +175,38 @@ export function SideNav() {
 
   return (
     <>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetTrigger
-          asChild
-          className="md:hidden absolute h-screen top-4 left-4 z-50"
-        >
+      {/* Mobile Top Header Bar */}
+      <header className="md:hidden sticky top-0 z-40 w-full bg-white/95 backdrop-blur border-b border-blue-100 px-4 h-14 flex items-center justify-between shadow-xs">
+        <div className="flex items-center gap-3">
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
-            className="bg-white/80 backdrop-blur-sm hover:bg-white"
+            onClick={() => setOpen(true)}
+            className="text-slate-700 hover:bg-blue-50 h-9 w-9 rounded-lg"
+            aria-label="Open navigation menu"
           >
             <Menu className="h-5 w-5" />
           </Button>
-        </SheetTrigger>
+          <div className="flex items-center gap-2">
+            {branding?.logo_image_url ? (
+              <img
+                src={branding.logo_image_url}
+                alt={branding.logo_text || "Logo"}
+                className="h-7 w-auto object-contain"
+              />
+            ) : (
+              <span className="font-bold text-base text-blue-900 tracking-tight">
+                {branding?.logo_text || "RAW STITCH RMS"}
+              </span>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="left"
-          className="bg-gradient-to-b from-blue-50 to-white p-0 w-[280px] border-r border-blue-100"
+          className="bg-gradient-to-b from-blue-50 to-white p-0 w-[280px] border-r border-blue-100 z-50"
         >
           <div className="flex flex-col h-full">
             <div className="flex flex-col h-auto items-center px-6 border-b border-blue-100 bg-white/50 backdrop-blur-sm">
@@ -225,7 +241,6 @@ export function SideNav() {
                               ? "bg-blue-100 text-blue-900 shadow-sm"
                               : "text-gray-600 hover:bg-blue-50 hover:text-blue-900"
                           )}
-                          onClick={() => setOpen(false)}
                         >
                           <div className="flex items-center gap-3">
                             <item.icon

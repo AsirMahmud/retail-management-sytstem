@@ -638,36 +638,36 @@ export default function ProductsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="max-w-7xl mx-auto p-0 sm:p-2 md:p-6">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <div className="flex items-center space-x-3 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-              <ShoppingCart className="h-6 w-6 text-white" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shrink-0">
+              <ShoppingCart className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                 Products
               </h1>
-              <p className="text-gray-600 mt-1">
+              <p className="text-gray-600 mt-1 text-xs sm:text-sm">
                 Manage your product inventory and stock levels
               </p>
             </div>
           </div>
-          <div className="flex justify-end gap-3">
+          <div className="flex flex-wrap sm:justify-end gap-2 sm:gap-3">
             <Button
               variant="outline"
               onClick={handleDownloadCatalog}
-              className="border-blue-200 hover:bg-blue-50 text-blue-700 shadow-sm"
+              className="flex-1 sm:flex-none border-blue-200 hover:bg-blue-50 text-blue-700 shadow-sm text-xs sm:text-sm h-9"
             >
-              <Download className="mr-2 h-4 w-4" />
-              Download Catalog (CSV)
+              <Download className="mr-1.5 sm:mr-2 h-4 w-4" />
+              Download Catalog
             </Button>
             <Button
               onClick={() => router.push("/inventory/add-product")}
-              className="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg"
+              className="flex-1 sm:flex-none bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white shadow-lg text-xs sm:text-sm h-9"
             >
-              <PlusCircle className="mr-2 h-4 w-4" />
+              <PlusCircle className="mr-1.5 sm:mr-2 h-4 w-4" />
               Add Product
             </Button>
           </div>
@@ -804,7 +804,7 @@ export default function ProductsPage() {
                 />
               </div>
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger className="w-[180px] h-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors">
+                <SelectTrigger className="w-full md:w-[180px] h-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors">
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -817,7 +817,7 @@ export default function ProductsPage() {
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px] h-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors">
+                <SelectTrigger className="w-full md:w-[180px] h-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -827,7 +827,7 @@ export default function ProductsPage() {
                 </SelectContent>
               </Select>
               <Select value={stockFilter} onValueChange={setStockFilter}>
-                <SelectTrigger className="w-[180px] h-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors">
+                <SelectTrigger className="w-full md:w-[180px] h-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors">
                   <SelectValue placeholder="Stock Level" />
                 </SelectTrigger>
                 <SelectContent>
@@ -838,7 +838,7 @@ export default function ProductsPage() {
                 </SelectContent>
               </Select>
               <Select value={onlineFilter} onValueChange={setOnlineFilter}>
-                <SelectTrigger className="w-[180px] h-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors">
+                <SelectTrigger className="w-full md:w-[180px] h-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-colors">
                   <SelectValue placeholder="Online/Offline" />
                 </SelectTrigger>
                 <SelectContent>

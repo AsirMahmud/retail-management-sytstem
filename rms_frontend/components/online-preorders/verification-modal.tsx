@@ -268,27 +268,27 @@ export function OnlinePreorderVerificationModal({ order, open, onClose, onComple
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl w-full p-0 overflow-hidden h-[90vh] md:h-auto flex flex-col">
+        <DialogContent className="max-w-[96vw] sm:max-w-4xl w-full p-0 overflow-hidden h-[92vh] md:h-auto flex flex-col">
           {verification?.status === "COMPLETED" && <SuccessOverlay />}
 
-          <DialogHeader className="px-6 pt-6 pb-4 border-b bg-slate-50 shrink-0">
-            <div className="flex items-center justify-between">
+          <DialogHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4 border-b bg-slate-50 shrink-0">
+            <div className="flex items-center justify-between gap-2">
               <div>
-                <DialogTitle className="text-2xl font-bold">Order #{order?.id} Verification</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-xl sm:text-2xl font-bold">Order #{order?.id} Verification</DialogTitle>
+                <DialogDescription className="text-xs sm:text-sm">
                   Scan product barcodes to verify this order.
                 </DialogDescription>
               </div>
-              <div className="flex flex-col items-end gap-1">
-                <div className="text-sm font-medium text-slate-500">Progress</div>
-                <div className="text-2xl font-bold text-emerald-600">
+              <div className="flex flex-col items-end gap-0.5">
+                <div className="text-xs sm:text-sm font-medium text-slate-500">Progress</div>
+                <div className="text-xl sm:text-2xl font-bold text-emerald-600">
                   {Math.round(progressPercentage)}%
                 </div>
               </div>
             </div>
 
             {/* Volume-style Progress Bar */}
-            <div className="mt-4 flex gap-1 h-3 w-full">
+            <div className="mt-3 sm:mt-4 flex gap-1 h-2.5 sm:h-3 w-full">
               {Array.from({ length: 20 }).map((_, i) => {
                 const barValue = (i + 1) * 5; // each bar is 5%
                 const isActive = progressPercentage >= barValue;
@@ -305,7 +305,7 @@ export function OnlinePreorderVerificationModal({ order, open, onClose, onComple
             </div>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 bg-slate-50/50">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 bg-slate-50/50">
             {/* Scan Area */}
             <Card className="border-emerald-200 shadow-sm overflow-hidden relative">
               <div className="absolute inset-0 bg-gradient-to-r from-emerald-50/50 to-transparent pointer-events-none" />
@@ -412,23 +412,23 @@ export function OnlinePreorderVerificationModal({ order, open, onClose, onComple
             {/* Scan Log / Debug Info (Optional - kept hidden or small) */}
           </div>
 
-          <div className="p-6 bg-white border-t border-slate-100 mt-auto shrink-0">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-              <div className="hidden md:block col-span-2">
+          <div className="p-4 sm:p-6 border-t bg-white shrink-0">
+            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+              <div className="flex items-center justify-between w-full sm:w-auto gap-4">
                 <div className="flex gap-4">
                   <div className="flex flex-col">
                     <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Verified</span>
-                    <span className="text-2xl font-bold text-slate-900">{stats.verified}</span>
+                    <span className="text-xl sm:text-2xl font-bold text-slate-900">{stats.verified}</span>
                   </div>
-                  <div className="w-px bg-slate-200 h-10"></div>
+                  <div className="w-px bg-slate-200 h-8 sm:h-10"></div>
                   <div className="flex flex-col">
                     <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">Remaining</span>
-                    <span className="text-2xl font-bold text-slate-400">{stats.remaining}</span>
+                    <span className="text-xl sm:text-2xl font-bold text-slate-400">{stats.remaining}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="col-span-1 md:col-span-2 flex gap-3 justify-end">
+              <div className="flex gap-2 sm:gap-3 w-full sm:w-auto justify-end">
                 <Button
                   variant="outline"
                   className="flex-1 md:flex-none border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50"

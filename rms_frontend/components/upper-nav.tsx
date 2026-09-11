@@ -20,5 +20,5 @@ export function UpperNav() {
   const { showBismillah } = useBismillah();
   const { setTheme, theme } = useTheme();
 
-  return <div className="w-full bg-white border-b"></div>;
+  return null;
 }

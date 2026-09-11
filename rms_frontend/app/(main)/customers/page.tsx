@@ -483,18 +483,18 @@ export default function CustomersPage() {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto py-3 sm:py-6 px-2 sm:px-4 space-y-4 sm:space-y-6 min-w-0">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Customer Management</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold">Customer Management</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
             Manage your customer relationships and track their activity
           </p>
         </div>
       </div>
 
       {/* Analytics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">
@@ -662,9 +662,9 @@ export default function CustomersPage() {
                 </div>
               )}
             </div>
-            <div className="flex gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap sm:flex-nowrap gap-2 w-full sm:w-auto">
               <Select value={filterBy} onValueChange={setFilterBy}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[160px] flex-1 sm:flex-initial">
                   <SelectValue placeholder="Filter by" />
                 </SelectTrigger>
                 <SelectContent>
@@ -679,7 +679,7 @@ export default function CustomersPage() {
                 </SelectContent>
               </Select>
               <Select value={sortBy} onValueChange={handleSortChange}>
-                <SelectTrigger className="w-[150px]">
+                <SelectTrigger className="w-full sm:w-[140px] flex-1 sm:flex-initial">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>
                 <SelectContent>
@@ -693,6 +693,7 @@ export default function CustomersPage() {
               <Button 
                 variant="outline" 
                 size="icon"
+                className="shrink-0"
                 onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
               >
                 <ArrowUpDown className="h-4 w-4" />

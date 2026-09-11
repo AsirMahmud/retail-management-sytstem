@@ -89,46 +89,48 @@ export function OrderDetailsSheet({ order, isOpen, onClose, onRefresh, onEdit, o
     return (
         <Sheet open={isOpen} onOpenChange={onClose}>
             <SheetContent className="sm:max-w-xl w-full p-0 flex flex-col h-full bg-slate-50">
-                <SheetHeader className="p-6 bg-white border-b">
-                    <div className="flex items-center justify-between">
+                <SheetHeader className="p-4 sm:p-6 bg-white border-b">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
-                            <SheetTitle className="text-2xl font-bold flex items-center gap-2">
+                            <SheetTitle className="text-xl sm:text-2xl font-bold flex items-center gap-2">
                                 Order #{order.id}
                             </SheetTitle>
-                            <SheetDescription>
+                            <SheetDescription className="text-xs sm:text-sm">
                                 Placed on {format(new Date(order.created_at), "MMM dd, yyyy 'at' hh:mm a")}
                             </SheetDescription>
                         </div>
-                        <div className="flex flex-col items-end gap-2">
+                        <div className="flex flex-wrap sm:flex-col sm:items-end gap-2">
                             <Badge className={`${status.color} px-3 py-1 text-sm font-medium border-none`}>
                                 <StatusIcon className="w-3.5 h-3.5 mr-1.5" />
                                 {order.status}
                             </Badge>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => onEdit(order)}
-                                className="h-8 text-xs font-bold border-indigo-200 text-indigo-600 hover:bg-indigo-50"
-                            >
-                                <Edit className="w-3 h-3 mr-1.5" />
-                                Edit Order
-                            </Button>
-                            {onStartVerification && (
+                            <div className="flex items-center gap-2">
                                 <Button
-                                    variant="default"
+                                    variant="outline"
                                     size="sm"
-                                    onClick={() => onStartVerification(order)}
-                                    className="h-8 text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white"
+                                    onClick={() => onEdit(order)}
+                                    className="h-8 text-xs font-bold border-indigo-200 text-indigo-600 hover:bg-indigo-50"
                                 >
-                                    Verify Order
+                                    <Edit className="w-3 h-3 mr-1.5" />
+                                    Edit Order
                                 </Button>
-                            )}
+                                {onStartVerification && (
+                                    <Button
+                                        variant="default"
+                                        size="sm"
+                                        onClick={() => onStartVerification(order)}
+                                        className="h-8 text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white"
+                                    >
+                                        Verify Order
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </SheetHeader>
 
                 <ScrollArea className="flex-1">
-                    <div className="p-6 space-y-6">
+                    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
                         {/* Status Management Section */}
                         <div className="bg-white p-4 rounded-xl border shadow-sm space-y-4">
                             <div className="flex items-center justify-between mb-1">
@@ -137,7 +139,7 @@ export function OrderDetailsSheet({ order, isOpen, onClose, onRefresh, onEdit, o
                                     <span>Order Status</span>
                                 </div>
                                 <span className="text-xs text-slate-500">
-                                    Click a step to update the status
+                                    Click a step to update
                                 </span>
                             </div>
                             <div className="flex flex-wrap gap-2">
@@ -147,7 +149,7 @@ export function OrderDetailsSheet({ order, isOpen, onClose, onRefresh, onEdit, o
                                         (statusValue === "COMPLETED" && order.status !== "DELIVERED");
 
                                     const baseClasses =
-                                        "px-3 py-1.5 text-xs font-semibold rounded-full border transition-colors";
+                                        "px-3.5 py-1.5 text-xs font-semibold rounded-full border transition-colors min-h-[36px] flex items-center justify-center";
 
                                     const activeClasses = "bg-indigo-600 text-white border-indigo-600";
                                     const inactiveClasses =
@@ -180,7 +182,7 @@ export function OrderDetailsSheet({ order, isOpen, onClose, onRefresh, onEdit, o
                         </div>
 
                         {/* Customer & Address Section */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                             <div className="bg-white p-4 rounded-xl border shadow-sm space-y-3">
                                 <div className="flex items-center gap-2 text-indigo-600 font-semibold mb-1">
                                     <User className="w-4 h-4" />

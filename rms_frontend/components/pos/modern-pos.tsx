@@ -785,20 +785,20 @@ export function ModernPOS() {
           <div className="p-4">
             {/* Search & Filter Bar */}
             <div className="mb-4 space-y-2">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
+              <div className="flex flex-wrap gap-2">
+                <div className="relative flex-1 min-w-[200px]">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     ref={barcodeInputRef}
                     placeholder={
                       barcodeMode
-                        ? "Scan barcode or QR code (Barcode Mode Active)"
-                        : "Search products by name, SKU, or description"
+                        ? "Scan barcode or QR code"
+                        : "Search products by name, SKU, etc."
                     }
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={handleBarcodeScan}
-                    className={`pl-10 ${barcodeMode ? "pr-24" : ""}`}
+                    className={`pl-10 text-sm ${barcodeMode ? "pr-24" : ""}`}
                   />
                   {barcodeMode && (
                     <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
@@ -809,34 +809,39 @@ export function ModernPOS() {
                     </div>
                   )}
                 </div>
-                <Button
-                  variant={barcodeMode ? "default" : "outline"}
-                  onClick={() => {
-                    setBarcodeMode(!barcodeMode);
-                    // Focus input when enabling barcode mode
-                    if (!barcodeMode) {
-                      setTimeout(() => {
-                        barcodeInputRef.current?.focus();
-                      }, 100);
-                    }
-                  }}
-                  className={barcodeMode ? "bg-green-600 hover:bg-green-700" : ""}
-                >
-                  <ScanLine className="h-4 w-4 mr-2" />
-                  {barcodeMode ? "Barcode Mode ON" : "Barcode Mode"}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsFilterOpen(!isFilterOpen)}
-                >
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filters
-                  {isFilterOpen ? (
-                    <ChevronUp className="h-4 w-4 ml-2" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 ml-2" />
-                  )}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={barcodeMode ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      setBarcodeMode(!barcodeMode);
+                      // Focus input when enabling barcode mode
+                      if (!barcodeMode) {
+                        setTimeout(() => {
+                          barcodeInputRef.current?.focus();
+                        }, 100);
+                      }
+                    }}
+                    className={`text-xs h-9 ${barcodeMode ? "bg-green-600 hover:bg-green-700" : ""}`}
+                  >
+                    <ScanLine className="h-3.5 w-3.5 mr-1.5" />
+                    {barcodeMode ? "Scan ON" : "Barcode"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsFilterOpen(!isFilterOpen)}
+                    className="text-xs h-9"
+                  >
+                    <Filter className="h-3.5 w-3.5 mr-1.5" />
+                    Filters
+                    {isFilterOpen ? (
+                      <ChevronUp className="h-3.5 w-3.5 ml-1" />
+                    ) : (
+                      <ChevronDown className="h-3.5 w-3.5 ml-1" />
+                    )}
+                  </Button>
+                </div>
               </div>
 
               {/* Expanded Filters */}
