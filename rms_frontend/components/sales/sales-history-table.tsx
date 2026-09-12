@@ -708,46 +708,46 @@ export default function SalesHistory() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="p-6 space-y-8">
+      <div className="p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 md:space-y-8">
         {/* Header - Always visible */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-          <div className="space-y-2">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 sm:gap-4 md:gap-6">
+          <div className="space-y-1 sm:space-y-2">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
               Sales History
             </h1>
-            <p className="text-lg text-gray-600">
+            <p className="text-xs sm:text-sm md:text-lg text-gray-600">
               View and manage all sales transactions
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
             <Button
               variant="outline"
-              className="bg-white border-gray-200 shadow-sm hover:bg-gray-50"
+              className="bg-white border-gray-200 shadow-sm hover:bg-gray-50 text-xs sm:text-sm h-8 sm:h-9 md:h-10"
               onClick={handleExport}
               disabled={isLoading}
             >
-              <Download className="w-4 h-4 mr-2" />
-              Export Data
+              <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+              Export
             </Button>
             <DatePickerWithRange value={dateRange} onChange={setDateRange} />
             <Button
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg text-xs sm:text-sm h-8 sm:h-9 md:h-10"
               onClick={handleReport}
               disabled={isLoading}
             >
-              <FileText className="w-4 h-4 mr-2" />
-              Generate Report
+              <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+              Report
             </Button>
             <Button
               variant="destructive"
-              className="bg-red-600 hover:bg-red-700 shadow-lg flex items-center"
+              className="bg-red-600 hover:bg-red-700 shadow-lg flex items-center text-xs sm:text-sm h-8 sm:h-9 md:h-10"
               onClick={handleDeleteAllClick}
               disabled={isLoading || isDeletingAll}
             >
               {isDeletingAll ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 animate-spin" />
               ) : (
-                <Trash2 className="w-4 h-4 mr-2" />
+                <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
               )}
               Delete All
             </Button>
@@ -756,8 +756,8 @@ export default function SalesHistory() {
 
         {/* Filters - Always visible */}
         <Card className="bg-white border-0 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex flex-col lg:flex-row gap-4">
+          <CardContent className="p-3 sm:p-4 md:p-6">
+            <div className="flex flex-col gap-3 sm:gap-4">
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -765,7 +765,7 @@ export default function SalesHistory() {
                     placeholder="Search by invoice, customer name, or phone..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 pr-10 h-12 bg-gray-50 border-gray-200 focus:bg-white transition-colors"
+                    className="pl-10 pr-10 h-9 sm:h-10 md:h-12 bg-gray-50 border-gray-200 focus:bg-white transition-colors text-sm"
                   />
                   {/* Search indicators */}
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
@@ -808,7 +808,7 @@ export default function SalesHistory() {
                 }
                 disabled={isLoading}
               >
-                <SelectTrigger className="w-48 h-12 bg-gray-50 border-gray-200">
+                <SelectTrigger className="w-full sm:w-36 md:w-48 h-9 sm:h-10 md:h-12 bg-gray-50 border-gray-200 text-xs sm:text-sm">
                   <SelectValue placeholder="Filter by Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -828,7 +828,7 @@ export default function SalesHistory() {
                 }
                 disabled={isLoading}
               >
-                <SelectTrigger className="w-48 h-12 bg-gray-50 border-gray-200">
+                <SelectTrigger className="w-full sm:w-36 md:w-48 h-9 sm:h-10 md:h-12 bg-gray-50 border-gray-200 text-xs sm:text-sm">
                   <SelectValue placeholder="Sale Type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -845,7 +845,7 @@ export default function SalesHistory() {
                 }
                 disabled={isLoading}
               >
-                <SelectTrigger className="w-48 h-12 bg-gray-50 border-gray-200">
+                <SelectTrigger className="w-full sm:w-36 md:w-48 h-9 sm:h-10 md:h-12 bg-gray-50 border-gray-200 text-xs sm:text-sm">
                   <SelectValue placeholder="Payment Method" />
                 </SelectTrigger>
                 <SelectContent>
@@ -866,7 +866,7 @@ export default function SalesHistory() {
                 }
                 disabled={isLoading}
               >
-                <SelectTrigger className="w-48 h-12 bg-gray-50 border-gray-200">
+                <SelectTrigger className="w-full sm:w-36 md:w-48 h-9 sm:h-10 md:h-12 bg-gray-50 border-gray-200 text-xs sm:text-sm">
                   <SelectValue placeholder="Payment Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -878,16 +878,16 @@ export default function SalesHistory() {
               </Select>
               <Button
                 variant="outline"
-                className="h-12 px-6 bg-gray-50 border-gray-200 hover:bg-gray-100"
+                className="h-9 sm:h-10 md:h-12 px-3 sm:px-4 md:px-6 bg-gray-50 border-gray-200 hover:bg-gray-100 text-xs sm:text-sm w-full sm:w-auto"
                 disabled={isLoading}
               >
-                <Filter className="w-4 h-4 mr-2" />
+                <Filter className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
                 More Filters
               </Button>
               {(statusFilter !== "all" || saleTypeFilter !== "all" || paymentFilter !== "all" || paymentStatusFilter !== "all" || searchTerm || dateRange.from || dateRange.to) && (
                 <Button
                   variant="outline"
-                  className="h-12 px-4 bg-red-50 border-red-200 hover:bg-red-100 text-red-600"
+                  className="h-9 sm:h-10 md:h-12 px-3 sm:px-4 bg-red-50 border-red-200 hover:bg-red-100 text-red-600 text-xs sm:text-sm w-full sm:w-auto"
                   onClick={clearAllFilters}
                   disabled={isLoading}
                 >
@@ -901,17 +901,17 @@ export default function SalesHistory() {
 
         {/* Sales Table */}
         <Card className="bg-white border-0 shadow-lg">
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
+          <CardHeader className="pb-2 sm:pb-4 px-3 sm:px-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
               <div>
-                <CardTitle className="text-xl font-semibold text-gray-900">
+                <CardTitle className="text-base sm:text-lg md:text-xl font-semibold text-gray-900">
                   Transaction History
                 </CardTitle>
-                <CardDescription className="text-gray-600">
+                <CardDescription className="text-xs sm:text-sm text-gray-600">
                   {isLoading ? (
                     <span className="flex items-center gap-2">
                       <Loader2 className="w-3 h-3 animate-spin" />
-                      Loading transactions...
+                      Loading...
                     </span>
                   ) : (
                     `Showing ${sales.length} of ${pagination?.count || 0
@@ -920,13 +920,13 @@ export default function SalesHistory() {
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">Sort by:</span>
+                <span className="text-xs sm:text-sm text-gray-500">Sort:</span>
                 <Select
                   value={sortBy}
                   onValueChange={setSortBy}
                   disabled={isLoading}
                 >
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-24 sm:w-32 h-8 sm:h-9 text-xs sm:text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -938,9 +938,9 @@ export default function SalesHistory() {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
+          <CardContent className="px-2 sm:px-4 md:px-6">
+            <div className="overflow-x-auto -mx-2 sm:mx-0 scrollbar-thin">
+              <Table className="min-w-[800px]">
                 <TableHeader>
                   <TableRow className="border-gray-200">
                     <TableHead className="font-semibold text-gray-700">

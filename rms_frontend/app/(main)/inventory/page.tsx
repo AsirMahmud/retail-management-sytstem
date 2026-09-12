@@ -91,7 +91,7 @@ export default function InventoryPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-8 p-6">
+      <div className="space-y-6 sm:space-y-8 p-2 sm:p-4 md:p-6">
         <div className="flex justify-between items-center">
           <div className="space-y-2">
             <Skeleton className="h-8 w-64" />
@@ -165,7 +165,7 @@ export default function InventoryPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900">
+              <div className="text-2xl sm:text-3xl font-bold text-gray-900">
                 {overview?.metrics.total_products}
               </div>
               <p className="text-xs text-blue-600 font-medium mt-1">
@@ -184,7 +184,7 @@ export default function InventoryPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900">
+              <div className="text-2xl sm:text-3xl font-bold text-gray-900">
                 ${overview?.metrics.total_inventory_value.toLocaleString()}
               </div>
               <p className="text-xs text-emerald-600 font-medium mt-1">
@@ -203,7 +203,7 @@ export default function InventoryPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900">
+              <div className="text-2xl sm:text-3xl font-bold text-gray-900">
                 {overview?.metrics.low_stock_products}
               </div>
               <p className="text-xs text-orange-600 font-medium mt-1">
@@ -222,7 +222,7 @@ export default function InventoryPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-gray-900">
+              <div className="text-2xl sm:text-3xl font-bold text-gray-900">
                 {overview?.metrics.out_of_stock_products}
               </div>
               <p className="text-xs text-red-600 font-medium mt-1">

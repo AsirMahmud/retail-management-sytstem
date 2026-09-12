@@ -779,14 +779,14 @@ export function ModernPOS() {
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
       {/* Main POS Interface - Two Column Layout */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
         {/* Left Column - Product Selection */}
         <div className="flex-1 bg-gray-50 overflow-y-auto pb-20">
           <div className="p-4">
             {/* Search & Filter Bar */}
             <div className="mb-4 space-y-2">
               <div className="flex flex-wrap gap-2">
-                <div className="relative flex-1 min-w-[200px]">
+                <div className="relative flex-1 min-w-0">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     ref={barcodeInputRef}
@@ -847,7 +847,7 @@ export function ModernPOS() {
               {/* Expanded Filters */}
               {isFilterOpen && (
                 <div className="bg-white p-4 rounded-md border shadow-sm">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {/* Price Range Filter */}
                     <div>
                       <h3 className="text-sm font-medium mb-2">Price Range</h3>

@@ -24,7 +24,7 @@ export default function MainLayout({
     <TaskProvider>
       <ThemeProvider attribute="class" defaultTheme="light">
         <BismillahProvider>
-          <div className="flex min-h-screen bg-[#F1F5F9] w-full max-w-full overflow-x-hidden">
+          <div className="flex flex-col md:flex-row min-h-screen bg-[#F1F5F9] w-full max-w-full overflow-x-hidden">
             <SideNav />
             <div className="flex-1 min-w-0 w-full max-w-full md:ml-[280px] flex flex-col">
               <UpperNav />

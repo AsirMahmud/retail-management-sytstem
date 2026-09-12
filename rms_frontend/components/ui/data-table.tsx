@@ -46,8 +46,8 @@ export function DataTable<TData, TValue>({
   });
 
   return (
-    <div className="rounded-md border overflow-x-auto min-w-0">
-      <Table>
+    <div className="rounded-md border overflow-x-auto min-w-0 scrollbar-thin">
+      <Table className="min-w-[600px]">
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id}>

@@ -126,7 +126,7 @@ export default function ExpenseManagement() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-gray-900">
+                  <div className="text-2xl sm:text-3xl font-bold text-gray-900">
                     {formatCurrency(stats?.monthly.total_amount || 0)}
                   </div>
                   <p className="text-xs text-blue-600 font-medium mt-1">
@@ -145,7 +145,7 @@ export default function ExpenseManagement() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-gray-900">
+                  <div className="text-2xl sm:text-3xl font-bold text-gray-900">
                     {formatCurrency(stats?.today.total_amount || 0)}
                   </div>
                   <p className="text-xs text-emerald-600 font-medium mt-1">
@@ -164,7 +164,7 @@ export default function ExpenseManagement() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-gray-900">
+                  <div className="text-2xl sm:text-3xl font-bold text-gray-900">
                     {stats?.today.pending_count || 0}
                   </div>
                   <p className="text-xs text-purple-600 font-medium mt-1">
@@ -183,7 +183,7 @@ export default function ExpenseManagement() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-gray-900">
+                  <div className="text-2xl sm:text-3xl font-bold text-gray-900">
                     {stats?.today.approved_count || 0}
                   </div>
                   <p className="text-xs text-orange-600 font-medium mt-1">
@@ -194,7 +194,7 @@ export default function ExpenseManagement() {
             </div>
 
             {/* Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
               {/* Monthly Trend */}
               <Card className="border-0 shadow-lg overflow-hidden">
                 <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
@@ -205,8 +205,8 @@ export default function ExpenseManagement() {
                     Expense trends over the last 6 months
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <div className="h-[300px]">
+                <CardContent className="p-3 sm:p-4 md:p-6">
+                  <div className="h-[250px] sm:h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={stats?.monthly_trend}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -249,8 +249,8 @@ export default function ExpenseManagement() {
                     Expenses by category this month
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <div className="h-[300px]">
+                <CardContent className="p-3 sm:p-4 md:p-6">
+                  <div className="h-[250px] sm:h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie

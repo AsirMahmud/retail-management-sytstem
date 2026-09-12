@@ -263,13 +263,13 @@ export default function SalesOverview() {
         {/* Key Metrics */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-6">
           <Card className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 group">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-gray-600">
                     Today's Sales
                   </p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
                     ${metrics.todayRevenue.toLocaleString()}
                   </p>
                   <div className="flex items-center text-sm">
@@ -284,13 +284,13 @@ export default function SalesOverview() {
           </Card>
 
           <Card className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 group">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-gray-600">
                     Today's Orders
                   </p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
                     {metrics.todayOrders}
                   </p>
                   <div className="flex items-center text-sm">
@@ -305,13 +305,13 @@ export default function SalesOverview() {
           </Card>
 
           <Card className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 group">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-gray-600">
                     Today's Profit
                   </p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
                     ${metrics.todayProfit.toLocaleString()}
                   </p>
                   <div className="flex items-center text-sm">
@@ -325,13 +325,13 @@ export default function SalesOverview() {
             </CardContent>
           </Card>
           <Card className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 group">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-gray-600">
                     Total Revenue
                   </p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
                     ${metrics.totalRevenue.toLocaleString()}
                   </p>
                   <div className="flex items-center text-sm">
@@ -346,13 +346,13 @@ export default function SalesOverview() {
           </Card>
 
           <Card className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 group">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-gray-600">
                     Total Orders
                   </p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
                     {metrics.totalOrders}
                   </p>
                   <div className="flex items-center text-sm">
@@ -367,13 +367,13 @@ export default function SalesOverview() {
           </Card>
 
           <Card className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 group">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-gray-600">
                     Total Profit
                   </p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
                     ${metrics.totalProfit.toLocaleString()}
                   </p>
                   <div className="flex items-center text-sm">
@@ -388,13 +388,13 @@ export default function SalesOverview() {
           </Card>
 
           <Card className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 group">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-gray-600">
                     Avg Transaction
                   </p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
                     ${metrics.avgTransactionValue.toFixed(0)}
                   </p>
                   <div className="flex items-center text-sm">
@@ -409,13 +409,13 @@ export default function SalesOverview() {
           </Card>
 
           <Card className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 group">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-gray-600">
                     Total Customers
                   </p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
                     {metrics.totalCustomers}
                   </p>
                   <div className="flex items-center text-sm">
@@ -430,13 +430,13 @@ export default function SalesOverview() {
           </Card>
 
           <Card className="bg-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 group">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-gray-600">
                     Total Discount
                   </p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
                     ${metrics.totalDiscount.toLocaleString()}
                   </p>
                   <div className="flex items-center text-sm">
@@ -452,11 +452,11 @@ export default function SalesOverview() {
         </div>
 
         {/* Top Products and Top Customers */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* Top Products */}
           <Card className="bg-white border-0 shadow-lg">
             <CardHeader className="pb-4">
-              <CardTitle className="text-xl font-semibold text-gray-900">
+              <CardTitle className="text-base sm:text-lg md:text-xl font-semibold text-gray-900">
                 Top Selling Products
               </CardTitle>
               <CardDescription className="text-gray-600">
@@ -468,14 +468,14 @@ export default function SalesOverview() {
                 {stats?.top_products?.map((product, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                    className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
                   >
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
                       <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold">
                         {index + 1}
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900">
+                        <div className="min-w-0">
+                        <p className="font-medium text-gray-900 text-sm sm:text-base truncate">
                           {product.product__name}
                         </p>
                         <p className="text-sm text-gray-500">
@@ -500,7 +500,7 @@ export default function SalesOverview() {
           {/* Top Customers */}
           <Card className="bg-white border-0 shadow-lg">
             <CardHeader className="pb-4">
-              <CardTitle className="text-xl font-semibold text-gray-900">
+              <CardTitle className="text-base sm:text-lg md:text-xl font-semibold text-gray-900">
                 Top Customers
               </CardTitle>
               <CardDescription className="text-gray-600">
@@ -513,14 +513,14 @@ export default function SalesOverview() {
                   (customer, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                      className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
                     >
-                      <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
                         <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-teal-600 rounded-lg flex items-center justify-center text-white font-bold">
                           {index + 1}
                         </div>
-                        <div>
-                          <p className="font-medium text-gray-900">
+                          <div className="min-w-0">
+                          <p className="font-medium text-gray-900 text-sm sm:text-base truncate">
                             {customer.customer_name}
                           </p>
                           <p className="text-sm text-gray-500">
@@ -547,7 +547,7 @@ export default function SalesOverview() {
         {/* Sales Trend Chart */}
         <Card className="bg-white border-0 shadow-lg">
           <CardHeader className="pb-4">
-            <CardTitle className="text-xl font-semibold text-gray-900">
+            <CardTitle className="text-base sm:text-lg md:text-xl font-semibold text-gray-900">
               Sales & Profit Trend
             </CardTitle>
             <CardDescription className="text-gray-600">
@@ -555,7 +555,7 @@ export default function SalesOverview() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[400px]">
+            <div className="h-[280px] sm:h-[350px] md:h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={salesTrendData}
@@ -646,7 +646,7 @@ export default function SalesOverview() {
         {/* Payment Method Distribution */}
         <Card className="bg-white border-0 shadow-lg">
           <CardHeader className="pb-4">
-            <CardTitle className="text-xl font-semibold text-gray-900">
+            <CardTitle className="text-base sm:text-lg md:text-xl font-semibold text-gray-900">
               Payment Method Distribution
             </CardTitle>
             <CardDescription className="text-gray-600">
@@ -654,7 +654,7 @@ export default function SalesOverview() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[400px]">
+            <div className="h-[280px] sm:h-[350px] md:h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -662,7 +662,7 @@ export default function SalesOverview() {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    outerRadius={150}
+                    outerRadius={100}
                     fill="#8884d8"
                     dataKey="total"
                     label={({ method, total, count }) =>
@@ -689,15 +689,15 @@ export default function SalesOverview() {
         </Card>
 
         {/* Customer Analytics */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
           <Card className="bg-white border-0 shadow-lg">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-gray-600">
                     New Customers Today
                   </p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
                     {stats?.customer_analytics?.new_customers_today || 0}
                   </p>
                 </div>
@@ -709,13 +709,13 @@ export default function SalesOverview() {
           </Card>
 
           <Card className="bg-white border-0 shadow-lg">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-gray-600">
                     Active Customers Today
                   </p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
                     {stats?.customer_analytics?.active_customers_today || 0}
                   </p>
                 </div>
@@ -727,13 +727,13 @@ export default function SalesOverview() {
           </Card>
 
           <Card className="bg-white border-0 shadow-lg">
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-gray-600">
                     Customer Retention Rate
                   </p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900">
                     {stats?.customer_analytics?.customer_retention_rate?.toFixed(
                       1
                     ) || 0}

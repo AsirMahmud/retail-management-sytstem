@@ -37,7 +37,7 @@ export function DashboardCharts() {
 
   if (isOverviewLoading || isMovementLoading) {
     return (
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
         <Skeleton className="h-[400px]" />
         <Skeleton className="h-[400px]" />
       </div>
@@ -67,7 +67,7 @@ export function DashboardCharts() {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="movement" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-white/70 backdrop-blur-sm border border-white/20 shadow-lg rounded-xl p-1">
+        <TabsList className="grid w-full grid-cols-2 bg-white/70 backdrop-blur-sm border border-white/20 shadow-lg rounded-xl p-1 text-xs sm:text-sm">
           <TabsTrigger
             value="movement"
             className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white rounded-lg transition-all duration-200"
@@ -89,8 +89,8 @@ export function DashboardCharts() {
               </CardTitle>
               <CardDescription>Track stock movements over time</CardDescription>
             </CardHeader>
-            <CardContent className="p-6">
-              <div className="h-[400px]">
+            <CardContent className="p-3 sm:p-4 md:p-6">
+              <div className="h-[280px] sm:h-[350px] md:h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={movementData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -144,8 +144,8 @@ export function DashboardCharts() {
               </CardTitle>
               <CardDescription>Inventory value by category</CardDescription>
             </CardHeader>
-            <CardContent className="p-6">
-              <div className="h-[400px]">
+            <CardContent className="p-3 sm:p-4 md:p-6">
+              <div className="h-[280px] sm:h-[350px] md:h-[400px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -156,7 +156,7 @@ export function DashboardCharts() {
                       label={({ name, percent }) =>
                         `${name} (${(percent * 100).toFixed(0)}%)`
                       }
-                      outerRadius={150}
+                      outerRadius={100}
                       fill="#8884d8"
                       dataKey="value"
                     >
@@ -190,8 +190,8 @@ export function DashboardCharts() {
           </CardTitle>
           <CardDescription>Stock movements by category</CardDescription>
         </CardHeader>
-        <CardContent className="p-6">
-          <div className="h-[300px]">
+        <CardContent className="p-3 sm:p-4 md:p-6">
+          <div className="h-[250px] sm:h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={categoryMovementData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -199,7 +199,7 @@ export function DashboardCharts() {
                 <YAxis
                   type="category"
                   dataKey="name"
-                  width={150}
+                  width={100}
                   stroke="#64748b"
                   fontSize={12}
                 />

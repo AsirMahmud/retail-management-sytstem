@@ -10,11 +10,44 @@ from apps.expenses.models import Expense, ExpenseCategory
 from apps.customer.models import Customer
 from apps.inventory.models import Product
 from apps.supplier.models import Supplier
+from apps.online_preorder.models import OnlinePreorder
 
 class DashboardStatsView(APIView):
     def get(self, request):
         today = timezone.now().date()
         start_of_month = today.replace(day=1)
+
+        # Get online preorders metrics
+        today_preorders = OnlinePreorder.objects.filter(created_at__date=today)
+        today_preorders_count = today_preorders.count()
+        today_preorders_amount = today_preorders.aggregate(total=Sum('total_amount'))['total'] or 0
+
+        # Status counts for today
+        today_status_breakdown = {
+            'PENDING': 0,
+            'CONFIRMED': 0,
+            'DELIVERED': 0,
+            'COMPLETED': 0,
+            'CANCELLED': 0,
+        }
+        for s_item in today_preorders.values('status').annotate(count=Count('id')):
+            if s_item['status'] in today_status_breakdown:
+                today_status_breakdown[s_item['status']] = s_item['count']
+
+        # Status counts for all time
+        all_status_breakdown = {
+            'PENDING': 0,
+            'CONFIRMED': 0,
+            'DELIVERED': 0,
+            'COMPLETED': 0,
+            'CANCELLED': 0,
+        }
+        for s_item in OnlinePreorder.objects.values('status').annotate(count=Count('id')):
+            if s_item['status'] in all_status_breakdown:
+                all_status_breakdown[s_item['status']] = s_item['count']
+
+        total_preorders_count = OnlinePreorder.objects.count()
+        total_preorders_amount = OnlinePreorder.objects.aggregate(total=Sum('total_amount'))['total'] or 0
         
         # Get today's metrics using Sale model for accurate profit calculation
         today_sales = Sale.objects.filter(
@@ -99,6 +132,8 @@ class DashboardStatsView(APIView):
                 'sales': today_sales['total'] or 0,
                 'expenses': today_expenses,
                 'profit': today_sales['total_profit'] or 0,
+                'online_preorders_count': today_preorders_count,
+                'online_preorders_amount': float(today_preorders_amount),
             },
             'monthly': {
                 'sales': monthly_sales['total'] or 0,
@@ -109,6 +144,15 @@ class DashboardStatsView(APIView):
                 'customers': total_customers,
                 'products': total_products,
                 'suppliers': total_suppliers,
+                'online_preorders': total_preorders_count,
+            },
+            'online_preorders': {
+                'today_count': today_preorders_count,
+                'today_amount': float(today_preorders_amount),
+                'total_count': total_preorders_count,
+                'total_amount': float(total_preorders_amount),
+                'today_status_breakdown': today_status_breakdown,
+                'status_breakdown': all_status_breakdown,
             },
             'sales_trend': list(sales_trend),
             'expense_trend': list(expense_trend),

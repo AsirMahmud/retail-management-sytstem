@@ -19,6 +19,43 @@ body {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+  /* Thin scrollbar for horizontal scroll areas */
+  .scrollbar-thin::-webkit-scrollbar {
+    height: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 9999px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+}
+
+/* Mobile-specific optimizations */
+@media (max-width: 640px) {
+  /* Ensure buttons and interactive elements have adequate tap targets */
+  button, a, [role="button"], select, input {
+    min-height: 32px;
+  }
+  
+  /* Smoother horizontal scrolling on mobile */
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Prevent text overflow in cards */
+  .truncate {
+    max-width: 100%;
+  }
 }
 
 /* Base layer: variables, resets, browser tweaks */
