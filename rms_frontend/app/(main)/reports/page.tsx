@@ -18,6 +18,8 @@ import { useOverviewReport } from "@/hooks/queries/use-reports";
 import {
   LineChart,
   Line,
+  AreaChart,
+  Area,
   BarChart,
   Bar,
   XAxis,
@@ -336,99 +338,179 @@ export default function ReportsPage() {
               Online Preorders
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="overview" className="space-y-6 sm:space-y-8">
+          <TabsContent value="overview" className="space-y-6">
             {isLoadingOverview ? (
               <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                <Skeleton className="h-32" />
-                <Skeleton className="h-32" />
-                <Skeleton className="h-32" />
-                <Skeleton className="h-32" />
+                <Skeleton className="h-28 rounded-2xl" />
+                <Skeleton className="h-28 rounded-2xl" />
+                <Skeleton className="h-28 rounded-2xl" />
+                <Skeleton className="h-28 rounded-2xl" />
               </div>
             ) : overviewData ? (
-              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                <Card className="bg-gradient-to-br from-blue-50 to-indigo-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-700">
+              <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                <Card className="relative overflow-hidden bg-white border border-slate-100/80 shadow-md hover:shadow-lg transition-all rounded-2xl">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-indigo-500" />
+                  <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4 px-4 sm:px-5">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Total Sales
-                    </CardTitle>
-                    <DollarSign className="h-4 w-4 text-blue-600" />
+                    </span>
+                    <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-sm">
+                      <DollarSign className="w-4 h-4" />
+                    </div>
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-gray-900">
+                  <CardContent className="px-4 sm:px-5 pb-4">
+                    <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                       ${parseFloat(overviewData.total_sales).toFixed(2)}
                     </div>
-                    <p className="text-xs text-blue-600 font-medium mt-1">
-                      {overviewData.total_orders} orders
+                    <p className="text-[11px] text-indigo-600 font-medium mt-1">
+                      {overviewData.total_orders} orders recorded
                     </p>
                   </CardContent>
                 </Card>
-                <Card className="bg-gradient-to-br from-emerald-50 to-teal-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-700">
+
+                <Card className="relative overflow-hidden bg-white border border-slate-100/80 shadow-md hover:shadow-lg transition-all rounded-2xl">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-rose-500" />
+                  <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4 px-4 sm:px-5">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Total Expenses
-                    </CardTitle>
-                    <TrendingDown className="h-4 w-4 text-emerald-600" />
+                    </span>
+                    <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shadow-sm">
+                      <TrendingDown className="w-4 h-4" />
+                    </div>
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-gray-900">
+                  <CardContent className="px-4 sm:px-5 pb-4">
+                    <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                       ${parseFloat(overviewData.total_expenses).toFixed(2)}
                     </div>
-                    <p className="text-xs text-emerald-600 font-medium mt-1">
-                      from {overviewData.expenses_by_date.length} transactions
+                    <p className="text-[11px] text-rose-600 font-medium mt-1">
+                      From {overviewData.expenses_by_date.length} transactions
                     </p>
                   </CardContent>
                 </Card>
-                <Card className="bg-gradient-to-br from-purple-50 to-indigo-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-700">
+
+                <Card className="relative overflow-hidden bg-white border border-slate-100/80 shadow-md hover:shadow-lg transition-all rounded-2xl">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500" />
+                  <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4 px-4 sm:px-5">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Net Profit
-                    </CardTitle>
-                    <TrendingUp className="h-4 w-4 text-purple-600" />
+                    </span>
+                    <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm">
+                      <TrendingUp className="w-4 h-4" />
+                    </div>
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-gray-900">
+                  <CardContent className="px-4 sm:px-5 pb-4">
+                    <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                       ${parseFloat(overviewData.net_profit).toFixed(2)}
                     </div>
+                    <p className="text-[11px] text-emerald-600 font-medium mt-1">
+                      After all operating costs
+                    </p>
                   </CardContent>
                 </Card>
-                <Card className="bg-gradient-to-br from-orange-50 to-amber-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-700">
+
+                <Card className="relative overflow-hidden bg-white border border-slate-100/80 shadow-md hover:shadow-lg transition-all rounded-2xl">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-amber-500" />
+                  <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4 px-4 sm:px-5">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                       Profit Margin
-                    </CardTitle>
-                    <ShoppingCart className="h-4 w-4 text-orange-600" />
+                    </span>
+                    <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-sm">
+                      <ShoppingCart className="w-4 h-4" />
+                    </div>
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold text-gray-900">
+                  <CardContent className="px-4 sm:px-5 pb-4">
+                    <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                       {parseFloat(overviewData.profit_margin).toFixed(2)}%
                     </div>
+                    <p className="text-[11px] text-amber-600 font-medium mt-1">
+                      Return on revenue
+                    </p>
                   </CardContent>
                 </Card>
               </div>
             ) : null}
-            <Card className="border-0 shadow-lg overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
-                <CardTitle>Sales vs Expenses</CardTitle>
+
+            <Card className="border border-slate-100/80 shadow-md bg-white rounded-2xl overflow-hidden">
+              <CardHeader className="p-5 border-b border-slate-100 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Sales vs Expenses
+                  </CardTitle>
+                  <p className="text-xs text-slate-400 mt-0.5">Revenue inflows compared against expenditures</p>
+                </div>
+                <div className="flex items-center gap-3 text-xs font-semibold">
+                  <span className="flex items-center gap-1.5 text-emerald-600">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Sales
+                  </span>
+                  <span className="flex items-center gap-1.5 text-rose-600">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Expenses
+                  </span>
+                </div>
               </CardHeader>
-              <CardContent className="pl-2">
+              <CardContent className="p-4 sm:p-6">
                 {isLoadingOverview ? (
-                  <Skeleton className="h-80" />
+                  <Skeleton className="h-80 rounded-xl" />
                 ) : (
-                  <ResponsiveContainer width="100%" height={350}>
-                    <LineChart data={combinedChartData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line type="monotone" dataKey="sales" stroke="#10b981" />
-                      <Line
-                        type="monotone"
-                        dataKey="expenses"
-                        stroke="#ef4444"
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
+                  <div className="h-[320px] sm:h-[380px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={combinedChartData}>
+                        <defs>
+                          <linearGradient id="repSalesGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#10B981" stopOpacity={0.0} />
+                          </linearGradient>
+                          <linearGradient id="repExpGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#F43F5E" stopOpacity={0.0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                        <XAxis dataKey="date" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={{ stroke: '#e2e8f0' }} />
+                        <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `$${v}`} />
+                        <Tooltip
+                          content={({ active, payload, label }) => {
+                            if (active && payload && payload.length) {
+                              return (
+                                <div className="bg-slate-900/90 text-white px-3.5 py-2.5 rounded-xl shadow-xl backdrop-blur-md text-xs border border-slate-800 space-y-1">
+                                  <p className="font-semibold text-slate-300 mb-1">{label}</p>
+                                  {payload.map((p: any, idx: number) => (
+                                    <p key={idx} className="flex items-center gap-2">
+                                      <span
+                                        className="w-2 h-2 rounded-full inline-block"
+                                        style={{ backgroundColor: p.stroke || p.color }}
+                                      />
+                                      <span className="text-slate-400 capitalize">{p.name}:</span>
+                                      <span className="font-bold text-white">${Number(p.value).toFixed(2)}</span>
+                                    </p>
+                                  ))}
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="sales"
+                          stroke="#10B981"
+                          strokeWidth={2.5}
+                          fillOpacity={1}
+                          fill="url(#repSalesGrad)"
+                          name="Sales"
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="expenses"
+                          stroke="#F43F5E"
+                          strokeWidth={2.5}
+                          fillOpacity={1}
+                          fill="url(#repExpGrad)"
+                          name="Expenses"
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
                 )}
               </CardContent>
             </Card>

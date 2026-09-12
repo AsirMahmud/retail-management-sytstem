@@ -81,6 +81,10 @@ export interface CustomerReport {
     new_customers: number;
     total_sales: string;
     average_customer_value: string;
+    total_orders?: number;
+    completed_orders?: number;
+    cancelled_orders?: number;
+    cancellation_rate?: string | number;
     top_customers: Array<{
         first_name: string;
         last_name: string;
@@ -89,6 +93,10 @@ export interface CustomerReport {
         items_purchased: number;
         unique_products: number;
         last_purchase_date: string;
+        total_orders?: number;
+        completed_orders?: number;
+        cancelled_orders?: number;
+        cancellation_rate?: string | number;
     }>;
     customer_acquisition: Array<{
         date: string;
@@ -222,6 +230,8 @@ export interface OverviewReport {
 export interface OnlinePreorderAnalytics {
     total_orders: number;
     total_sales_count: number;
+    cancelled_orders_count?: number;
+    cancellation_rate?: string | number;
     total_revenue: string;
     total_profit: string;
     average_order_value: string;
@@ -246,6 +256,31 @@ export interface OnlinePreorderAnalytics {
         orders_count: number;
     }>;
     status_breakdown: Record<string, number>;
+    cancel_reasons?: Array<{
+        cancel_reason: string;
+        count: number;
+    }>;
+    top_customers?: Array<{
+        customer_name: string;
+        customer_phone: string;
+        customer_email: string;
+        customer_address?: string | Record<string, any> | null;
+        total_orders: number;
+        completed_orders: number;
+        cancelled_orders: number;
+        pending_orders: number;
+        cancellation_rate: string | number;
+        total_spent: string;
+        last_order_date?: string | null;
+        last_order_id?: number;
+    }>;
+    customer_stats?: {
+        total_unique_customers: number;
+        repeat_customers: number;
+        repeat_rate: string | number;
+        cancelled_orders: number;
+        cancellation_rate: string | number;
+    };
 }
 
 export const formatDateRange = (dateRange: DateRange | undefined): ReportDateRange | null => {

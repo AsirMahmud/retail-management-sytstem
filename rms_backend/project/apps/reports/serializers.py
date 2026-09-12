@@ -113,13 +113,17 @@ class StockMovementSerializer(serializers.Serializer):
     total_value = serializers.DecimalField(max_digits=10, decimal_places=2)
 
 class TopCustomersSerializer(serializers.Serializer):
-    first_name = serializers.CharField()
-    last_name = serializers.CharField()
-    phone = serializers.CharField()
+    first_name = serializers.CharField(allow_blank=True, allow_null=True, required=False)
+    last_name = serializers.CharField(allow_blank=True, allow_null=True, required=False)
+    phone = serializers.CharField(allow_blank=True, allow_null=True, required=False)
     total_sales = serializers.DecimalField(max_digits=15, decimal_places=2)
-    items_purchased = serializers.IntegerField()
-    unique_products = serializers.IntegerField()
-    last_purchase_date = serializers.DateField()
+    items_purchased = serializers.IntegerField(required=False, default=0)
+    unique_products = serializers.IntegerField(required=False, default=0)
+    last_purchase_date = serializers.DateField(allow_null=True, required=False)
+    total_orders = serializers.IntegerField(required=False, default=0)
+    completed_orders = serializers.IntegerField(required=False, default=0)
+    cancelled_orders = serializers.IntegerField(required=False, default=0)
+    cancellation_rate = serializers.DecimalField(max_digits=5, decimal_places=2, required=False, default=Decimal('0.00'))
 
 class CustomerAcquisitionSerializer(serializers.Serializer):
     date = serializers.DateField()
@@ -130,6 +134,10 @@ class CustomerReportSerializer(serializers.Serializer):
     new_customers = serializers.IntegerField()
     total_sales = serializers.DecimalField(max_digits=15, decimal_places=2)
     average_customer_value = serializers.DecimalField(max_digits=15, decimal_places=2)
+    total_orders = serializers.IntegerField(required=False, default=0)
+    completed_orders = serializers.IntegerField(required=False, default=0)
+    cancelled_orders = serializers.IntegerField(required=False, default=0)
+    cancellation_rate = serializers.DecimalField(max_digits=5, decimal_places=2, required=False, default=Decimal('0.00'))
     top_customers = TopCustomersSerializer(many=True)
     customer_acquisition = CustomerAcquisitionSerializer(many=True)
 

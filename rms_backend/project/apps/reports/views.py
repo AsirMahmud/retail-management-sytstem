@@ -277,25 +277,52 @@ class ReportViewSet(viewsets.ModelViewSet):
             created_at__range=[date_from, date_to]
         ).count()
 
-        # Calculate total sales and average customer value
-        sales = Sale.objects.filter(
-            date__range=[date_from, date_to],
-            status='completed'
-        )
-        total_sales = sales.aggregate(total=Sum('total'))['total'] or Decimal('0.00')
-        active_customers_count = sales.values('customer').distinct().count()
+        # All sales in date range
+        all_sales = Sale.objects.filter(date__range=[date_from, date_to])
+        total_orders_count = all_sales.count()
+        completed_sales = all_sales.filter(status='completed')
+        completed_orders_count = completed_sales.count()
+        cancelled_sales = all_sales.filter(status='cancelled')
+        cancelled_orders_count = cancelled_sales.count()
+        overall_cancellation_rate = (Decimal(cancelled_orders_count) / Decimal(total_orders_count) * 100) if total_orders_count > 0 else Decimal('0.00')
+
+        # Calculate total sales and average customer value from completed sales
+        total_sales = completed_sales.aggregate(total=Sum('total'))['total'] or Decimal('0.00')
+        active_customers_count = completed_sales.values('customer').distinct().count()
         average_customer_value = total_sales / active_customers_count if active_customers_count > 0 else Decimal('0.00')
 
-        # Top customers
-        top_customers = sales.values('customer_id').annotate(
-            first_name=F('customer__first_name'),
-            last_name=F('customer__last_name'),
-            phone=F('customer__phone'),
-            total_sales=Sum('total'),
-            items_purchased=Sum('items__quantity'),
-            unique_products=Count('items__product', distinct=True),
-            last_purchase_date=Cast(Max('date'), DateField())
-        ).order_by('-total_sales')[:10]
+        # Top customers with completed and cancelled orders tracking
+        top_customers_qs = all_sales.filter(customer__isnull=False).values('customer_id').annotate(
+            first_name=Coalesce(F('customer__first_name'), Value('')),
+            last_name=Coalesce(F('customer__last_name'), Value('')),
+            phone=Coalesce(F('customer__phone'), Value('')),
+            total_orders=Count('id'),
+            completed_orders=Count('id', filter=Q(status='completed')),
+            cancelled_orders=Count('id', filter=Q(status='cancelled')),
+            total_sales=Coalesce(Sum('total', filter=Q(status='completed')), Decimal('0.00')),
+            items_purchased=Coalesce(Sum('items__quantity', filter=Q(status='completed')), 0),
+            unique_products=Count('items__product', distinct=True, filter=Q(status='completed')),
+            last_purchase_date=Cast(Max('date', filter=Q(status='completed')), DateField())
+        ).order_by('-total_sales', '-total_orders')[:25]
+
+        top_customers_list = []
+        for cust in top_customers_qs:
+            tot = cust['total_orders'] or 0
+            canc = cust['cancelled_orders'] or 0
+            canc_rate = (Decimal(canc) / Decimal(tot) * 100) if tot > 0 else Decimal('0.00')
+            top_customers_list.append({
+                'first_name': cust['first_name'] or '',
+                'last_name': cust['last_name'] or '',
+                'phone': cust['phone'] or '',
+                'total_orders': tot,
+                'completed_orders': cust['completed_orders'] or 0,
+                'cancelled_orders': canc,
+                'cancellation_rate': round(canc_rate, 2),
+                'total_sales': cust['total_sales'] or Decimal('0.00'),
+                'items_purchased': cust['items_purchased'] or 0,
+                'unique_products': cust['unique_products'] or 0,
+                'last_purchase_date': cust['last_purchase_date']
+            })
 
         # Customer acquisition
         customer_acquisition = Customer.objects.filter(
@@ -309,7 +336,11 @@ class ReportViewSet(viewsets.ModelViewSet):
             'new_customers': new_customers,
             'total_sales': total_sales,
             'average_customer_value': average_customer_value,
-            'top_customers': list(top_customers),
+            'total_orders': total_orders_count,
+            'completed_orders': completed_orders_count,
+            'cancelled_orders': cancelled_orders_count,
+            'cancellation_rate': round(overall_cancellation_rate, 2),
+            'top_customers': top_customers_list,
             'customer_acquisition': list(customer_acquisition)
         }
 
@@ -771,6 +802,51 @@ class ReportViewSet(viewsets.ModelViewSet):
         for status_choice in OnlinePreorder.STATUS_CHOICES:
             status_breakdown[status_choice[0]] = online_preorders.filter(status=status_choice[0]).count()
 
+        cancelled_orders = online_preorders.filter(status='CANCELLED')
+        cancelled_orders_count = cancelled_orders.count()
+        cancellation_rate = (Decimal(cancelled_orders_count) / Decimal(total_orders) * 100) if total_orders > 0 else Decimal('0.00')
+        
+        cancel_reasons_qs = cancelled_orders.exclude(cancel_reason__isnull=True).exclude(cancel_reason='').values('cancel_reason').annotate(count=Count('id')).order_by('-count')[:10]
+        cancel_reasons = [{'cancel_reason': item['cancel_reason'], 'count': item['count']} for item in cancel_reasons_qs]
+
+        # Customer analysis for online preorders
+        customer_analytics_qs = online_preorders.values('customer_phone').annotate(
+            customer_name=Max('customer_name'),
+            customer_email=Max('customer_email'),
+            customer_address=Max('shipping_address'),
+            total_orders=Count('id'),
+            completed_orders=Count('id', filter=Q(status='COMPLETED')),
+            cancelled_orders=Count('id', filter=Q(status='CANCELLED')),
+            pending_orders=Count('id', filter=Q(status__in=['PENDING', 'CONFIRMED', 'DELIVERED'])),
+            total_spent=Coalesce(Sum('total_amount', filter=Q(status='COMPLETED')), Decimal('0.00')),
+            last_order_date=Cast(Max('created_at'), DateField()),
+            last_order_id=Max('id')
+        ).order_by('-total_orders', '-total_spent')[:100]
+
+        top_customers_online = []
+        for cust in customer_analytics_qs:
+            tot = cust['total_orders'] or 0
+            canc = cust['cancelled_orders'] or 0
+            canc_rate = (Decimal(canc) / Decimal(tot) * 100) if tot > 0 else Decimal('0.00')
+            top_customers_online.append({
+                'customer_name': cust['customer_name'] or 'Unknown',
+                'customer_phone': cust['customer_phone'] or '',
+                'customer_email': cust['customer_email'] or '',
+                'customer_address': cust['customer_address'] or '',
+                'total_orders': tot,
+                'completed_orders': cust['completed_orders'] or 0,
+                'cancelled_orders': canc,
+                'pending_orders': cust['pending_orders'] or 0,
+                'cancellation_rate': round(canc_rate, 2),
+                'total_spent': str(cust['total_spent'] or '0.00'),
+                'last_order_date': str(cust['last_order_date']) if cust['last_order_date'] else None,
+                'last_order_id': cust['last_order_id']
+            })
+
+        total_unique_customers = online_preorders.values('customer_phone').distinct().count()
+        repeat_customers_count = online_preorders.values('customer_phone').annotate(c=Count('id')).filter(c__gt=1).count()
+        repeat_rate = (Decimal(repeat_customers_count) / Decimal(total_unique_customers) * 100) if total_unique_customers > 0 else Decimal('0.00')
+
         # Convert QuerySets to lists and handle None values
         top_products_final = []
         for item in top_products_list:
@@ -796,6 +872,8 @@ class ReportViewSet(viewsets.ModelViewSet):
         data = {
             'total_orders': total_orders,
             'total_sales_count': total_sales_count,
+            'cancelled_orders_count': cancelled_orders_count,
+            'cancellation_rate': round(cancellation_rate, 2),
             'total_revenue': str(total_revenue),
             'total_profit': str(total_profit),
             'average_order_value': str(average_order_value),
@@ -803,6 +881,15 @@ class ReportViewSet(viewsets.ModelViewSet):
             'top_categories': top_categories_final,
             'sales_by_date': sales_by_date_list,
             'status_breakdown': status_breakdown,
+            'cancel_reasons': cancel_reasons,
+            'top_customers': top_customers_online,
+            'customer_stats': {
+                'total_unique_customers': total_unique_customers,
+                'repeat_customers': repeat_customers_count,
+                'repeat_rate': round(repeat_rate, 2),
+                'cancelled_orders': cancelled_orders_count,
+                'cancellation_rate': round(cancellation_rate, 2)
+            }
         }
 
         return Response(data)

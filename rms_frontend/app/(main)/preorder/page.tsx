@@ -151,235 +151,220 @@ export default function PreorderPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="dashboard" className="space-y-8">
-            {/* Enhanced Key Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="bg-gradient-to-br from-blue-50 to-indigo-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-700">
+          <TabsContent value="dashboard" className="space-y-6">
+            {/* Modern Key Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="relative overflow-hidden bg-white border border-slate-100/80 shadow-md hover:shadow-xl transition-all duration-300 rounded-2xl">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-indigo-500" />
+                <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4 px-4 sm:px-5">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                     Total Orders
-                  </CardTitle>
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center">
-                    <ShoppingCart className="h-5 w-5 text-white" />
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-sm">
+                    <ShoppingCart className="w-4 h-4" />
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-gray-900">
+                <CardContent className="px-4 sm:px-5 pb-4">
+                  <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                     {typedStats?.total_orders || 0}
                   </div>
-                  <p className="text-xs text-blue-600 font-medium mt-1">
-                    All time preorders
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    All-time preorders count
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-emerald-50 to-teal-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-700">
+              <Card className="relative overflow-hidden bg-white border border-slate-100/80 shadow-md hover:shadow-xl transition-all duration-300 rounded-2xl">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500" />
+                <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4 px-4 sm:px-5">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                     Total Revenue
-                  </CardTitle>
-                  <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full flex items-center justify-center">
-                    <TrendingUp className="h-5 w-5 text-white" />
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm">
+                    <TrendingUp className="w-4 h-4" />
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-gray-900">
+                <CardContent className="px-4 sm:px-5 pb-4">
+                  <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                     {formatCurrency(typedStats?.total_revenue || 0)}
                   </div>
-                  <p className="text-xs text-emerald-600 font-medium mt-1">
-                    Expected revenue
+                  <p className="text-[11px] text-emerald-600 font-medium mt-1">
+                    Expected preorder revenue
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-purple-50 to-indigo-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-700">
+              <Card className="relative overflow-hidden bg-white border border-slate-100/80 shadow-md hover:shadow-xl transition-all duration-300 rounded-2xl">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-amber-500" />
+                <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4 px-4 sm:px-5">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                     Pending Orders
-                  </CardTitle>
-                  <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full flex items-center justify-center">
-                    <Calendar className="h-5 w-5 text-white" />
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-sm">
+                    <Calendar className="w-4 h-4" />
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-gray-900">
+                <CardContent className="px-4 sm:px-5 pb-4">
+                  <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                     {typedStats?.pending_orders || 0}
                   </div>
-                  <p className="text-xs text-purple-600 font-medium mt-1">
-                    Awaiting completion
+                  <p className="text-[11px] text-amber-600 font-medium mt-1">
+                    Awaiting processing/arrival
                   </p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-orange-50 to-amber-100 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-gray-700">
+              <Card className="relative overflow-hidden bg-white border border-slate-100/80 shadow-md hover:shadow-xl transition-all duration-300 rounded-2xl">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-purple-500" />
+                <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4 px-4 sm:px-5">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                     Completed Orders
-                  </CardTitle>
-                  <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full flex items-center justify-center">
-                    <Package className="h-5 w-5 text-white" />
+                  </span>
+                  <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shadow-sm">
+                    <Package className="w-4 h-4" />
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-gray-900">
+                <CardContent className="px-4 sm:px-5 pb-4">
+                  <div className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                     {typedStats?.completed_orders || 0}
                   </div>
-                  <p className="text-xs text-orange-600 font-medium mt-1">
-                    Successfully delivered
+                  <p className="text-[11px] text-purple-600 font-medium mt-1">
+                    Delivered & finished
                   </p>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Status Distribution */}
-              <Card className="border-0 shadow-lg overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
-                  <CardTitle className="text-lg font-semibold text-slate-900">
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Modern Status Distribution Donut */}
+              <Card className="border border-slate-100/80 shadow-md bg-white rounded-2xl overflow-hidden">
+                <CardHeader className="p-5 border-b border-slate-100">
+                  <CardTitle className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse" />
                     Order Status Distribution
                   </CardTitle>
-                  <CardDescription>
-                    Distribution of preorders by status
+                  <CardDescription className="text-xs text-slate-500">
+                    Preorder breakdown by current processing stage
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-6">
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={statusChartData}
-                          dataKey="count"
-                          nameKey="status"
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={100}
-                          label={({
-                            cx,
-                            cy,
-                            midAngle,
-                            innerRadius,
-                            outerRadius,
-                            value,
-                            index,
-                          }) => {
-                            const RADIAN = Math.PI / 180;
-                            const radius =
-                              25 + innerRadius + (outerRadius - innerRadius);
-                            const x =
-                              cx + radius * Math.cos(-midAngle * RADIAN);
-                            const y =
-                              cy + radius * Math.sin(-midAngle * RADIAN);
+                <CardContent className="p-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+                    <div className="sm:col-span-7 h-[250px] relative flex items-center justify-center">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Tooltip
+                            content={({ active, payload }) => {
+                              if (active && payload && payload.length) {
+                                const data = payload[0];
+                                return (
+                                  <div className="bg-slate-900/90 text-white px-3 py-2 rounded-xl shadow-xl backdrop-blur-md text-xs border border-slate-800">
+                                    <p className="font-semibold text-slate-300">{data.name}</p>
+                                    <p className="font-bold text-indigo-400 mt-0.5">
+                                      {data.value} orders
+                                    </p>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <Pie
+                            data={statusChartData}
+                            dataKey="count"
+                            nameKey="status"
+                            cx="50%"
+                            cy="50%"
+                            innerRadius="65%"
+                            outerRadius="88%"
+                            paddingAngle={3}
+                            cornerRadius={5}
+                          >
+                            {statusChartData.map((entry, index) => (
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={COLORS[index % COLORS.length]}
+                                stroke="transparent"
+                              />
+                            ))}
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <span className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider">
+                          Total
+                        </span>
+                        <span className="text-xl font-extrabold text-slate-900">
+                          {typedStats?.total_orders || 0}
+                        </span>
+                        <span className="text-[10px] text-slate-400">Orders</span>
+                      </div>
+                    </div>
 
-                            return (
-                              <text
-                                x={x}
-                                y={y}
-                                fill="#64748b"
-                                textAnchor={x > cx ? "start" : "end"}
-                                dominantBaseline="central"
-                                className="text-xs"
-                              >
-                                {statusChartData[index]?.status} ({value})
-                              </text>
-                            );
-                          }}
-                        >
-                          {statusChartData.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={COLORS[index % COLORS.length]}
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
+                    <div className="sm:col-span-5 max-h-[250px] overflow-y-auto space-y-2 pr-1">
+                      {statusChartData.length === 0 ? (
+                        <p className="text-xs text-slate-400 text-center py-8">No status data</p>
+                      ) : (
+                        statusChartData.map((entry, idx) => (
+                          <div
+                            key={entry.status}
+                            className="flex items-center justify-between p-2 rounded-xl bg-slate-50/80 hover:bg-slate-100 transition-colors border border-slate-100 text-xs"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span
+                                className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm"
+                                style={{ backgroundColor: COLORS[idx % COLORS.length] }}
+                              />
+                              <span className="font-medium text-slate-800 truncate">
+                                {entry.status}
+                              </span>
+                            </div>
+                            <span className="font-bold text-slate-900 ml-2">
+                              {entry.count}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Top Products */}
-              <Card className="border-0 shadow-lg overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
-                  <CardTitle className="text-lg font-semibold text-slate-900">
-                    Top Preorder Products
-                  </CardTitle>
-                  <CardDescription>
-                    Products with the most orders
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={[]} layout="horizontal">
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                        <XAxis type="number" stroke="#64748b" fontSize={12} />
-                        <YAxis
-                          type="category"
-                          dataKey="name"
-                          stroke="#64748b"
-                          fontSize={12}
-                          width={80}
-                        />
-                        <Tooltip
-                          formatter={(value, name) => [
-                            name === "orders"
-                              ? value
-                              : formatCurrency(value as number),
-                            name === "orders" ? "Orders" : "Revenue",
-                          ]}
-                          contentStyle={{
-                            backgroundColor: "white",
-                            border: "none",
-                            borderRadius: "8px",
-                            boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
-                          }}
-                        />
-                        <Bar
-                          dataKey="orders"
-                          fill="#3b82f6"
-                          radius={[0, 4, 4, 0]}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Status Breakdown Detailed Cards */}
+              {typedStats?.status_breakdown && (
+                <Card className="border border-slate-100/80 shadow-md bg-white rounded-2xl overflow-hidden flex flex-col justify-between">
+                  <CardHeader className="p-5 border-b border-slate-100">
+                    <CardTitle className="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                      <Package className="w-4 h-4 text-indigo-600" />
+                      Detailed Status Matrix
+                    </CardTitle>
+                    <CardDescription className="text-xs text-slate-500">
+                      Quick overview of active pipeline status
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-5">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {Object.entries(typedStats.status_breakdown).map(
+                        ([status, count]) => (
+                          <div
+                            key={status}
+                            className="flex flex-col p-3 bg-slate-50/70 hover:bg-slate-50 rounded-xl border border-slate-100 transition-all hover:border-slate-200"
+                          >
+                            <Badge className={`${getStatusColor(status)} w-fit text-[10px] px-2 py-0.5 rounded-md font-medium mb-2`}>
+                              {status}
+                            </Badge>
+                            <span className="text-xl font-black text-slate-900">
+                              {count}
+                            </span>
+                            <span className="text-[10px] text-slate-400">Total orders</span>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
-
-            {/* Status Breakdown Cards */}
-            {typedStats?.status_breakdown && (
-              <Card className="border-0 shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 border-b">
-                  <CardTitle className="text-lg font-semibold text-slate-900">
-                    Detailed Status Breakdown
-                  </CardTitle>
-                  <CardDescription>
-                    Complete overview of all order statuses
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {Object.entries(typedStats.status_breakdown).map(
-                      ([status, count]) => (
-                        <div
-                          key={status}
-                          className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-100 shadow-sm"
-                        >
-                          <Badge className={getStatusColor(status)}>
-                            {status}
-                          </Badge>
-                          <span className="font-semibold text-gray-900">
-                            {count}
-                          </span>
-                        </div>
-                      )
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
           </TabsContent>
 
           <TabsContent value="orders" className="space-y-4">

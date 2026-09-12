@@ -23,16 +23,28 @@ import {
   BarChart3,
   MoreHorizontal,
   Clock,
+  XCircle,
 } from "lucide-react";
 import { onlinePreordersApi, type OnlinePreorder } from "@/lib/api/onlinePreorder";
 import { OrderDetailsSheet } from "@/components/online-preorders/order-details-sheet";
 import { OnlinePreorderVerificationModal } from "@/components/online-preorders/verification-modal";
 import { ManualOrderForm } from "@/components/online-preorders/manual-order-form";
+import { OnlineCustomersTab } from "@/components/online-preorders/online-customers-tab";
 import { useDebounce } from "@/hooks/use-debounce";
 import { format } from "date-fns";
 import { useOnlinePreorderAnalytics } from "@/hooks/queries/use-reports";
 import { useMemo } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { sendAdminPurchaseCancelled } from "@/lib/gtm";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -67,6 +79,37 @@ export default function OnlinePreordersPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [verificationOrder, setVerificationOrder] = useState<OnlinePreorder | null>(null);
   const [isVerificationOpen, setIsVerificationOpen] = useState(false);
+
+  // Quick Cancel Order state
+  const [cancelOrderTarget, setCancelOrderTarget] = useState<OnlinePreorder | null>(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("Fake Customer / Fake Order");
+  const [isFakeCustomer, setIsFakeCustomer] = useState(true);
+  const [isSubmittingCancel, setIsSubmittingCancel] = useState(false);
+
+  const handleQuickCancel = async () => {
+    if (!cancelOrderTarget) return;
+    setIsSubmittingCancel(true);
+    try {
+      await onlinePreordersApi.updateStatus(cancelOrderTarget.id, "CANCELLED");
+      sendAdminPurchaseCancelled(cancelOrderTarget, cancelReason, isFakeCustomer);
+      toast({
+        title: isFakeCustomer ? "Order Cancelled & Flagged Fake" : "Order Cancelled",
+        description: `Order #${cancelOrderTarget.id} status updated to CANCELLED.`,
+      });
+      setCancelDialogOpen(false);
+      setCancelOrderTarget(null);
+      void loadData();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error?.response?.data?.detail || "Failed to cancel order",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingCancel(false);
+    }
+  };
 
   const debouncedSearch = useDebounce(search, 500);
 
@@ -449,6 +492,21 @@ export default function OnlinePreordersPage() {
                                     <Clock className="mr-2 h-4 w-4" />
                                     Change Status
                                   </DropdownMenuItem>
+                                  {o.status !== "CANCELLED" && (
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation?.();
+                                        setCancelOrderTarget(o);
+                                        setCancelReason("Fake Customer / Fake Order");
+                                        setIsFakeCustomer(true);
+                                        setCancelDialogOpen(true);
+                                      }}
+                                      className="text-amber-600 focus:text-amber-700 font-medium"
+                                    >
+                                      <XCircle className="mr-2 h-4 w-4" />
+                                      Cancel Order
+                                    </DropdownMenuItem>
+                                  )}
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
                                     onClick={(e) => {
@@ -494,18 +552,12 @@ export default function OnlinePreordersPage() {
         </TabsContent>
 
         <TabsContent value="customers">
-          <Card className="border-none shadow-xl bg-white min-h-[400px]">
-            <CardHeader>
-              <CardTitle>Frequent Online Customers</CardTitle>
-              <CardDescription>View customers who frequently place online orders</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col items-center justify-center py-24 gap-4 opacity-40">
-                <User className="w-16 h-16" />
-                <p className="font-bold text-lg">Customer history will appear here</p>
-              </div>
-            </CardContent>
-          </Card>
+          <OnlineCustomersTab
+            onFilterCustomerOrders={(customerPhone) => {
+              setSearch(customerPhone);
+              setActiveTab("orders");
+            }}
+          />
         </TabsContent>
       </Tabs>
 
@@ -557,6 +609,79 @@ export default function OnlinePreordersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Quick Cancel Order Dialog */}
+      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-rose-600">
+              <XCircle className="w-5 h-5" />
+              Cancel Preorder #{cancelOrderTarget?.id}
+            </DialogTitle>
+            <DialogDescription>
+              Provide the cancellation reason and decide whether to flag this customer.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-3">
+            {cancelOrderTarget && (
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs space-y-1">
+                <p className="font-bold text-slate-800">Customer: {cancelOrderTarget.customer_name}</p>
+                <p className="text-slate-500">Phone: {cancelOrderTarget.customer_phone}</p>
+                <p className="font-semibold text-slate-700">Amount: ৳{Number(cancelOrderTarget.total_amount).toLocaleString()}</p>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label className="font-semibold text-slate-700">Cancellation Reason</Label>
+              <Select value={cancelReason} onValueChange={setCancelReason}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select reason" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Fake Customer / Fake Order">Fake Customer / Fake Order</SelectItem>
+                  <SelectItem value="Customer Unreachable">Customer Unreachable</SelectItem>
+                  <SelectItem value="Customer Requested Cancellation">Customer Requested Cancellation</SelectItem>
+                  <SelectItem value="Out of Stock / Delivery Issue">Out of Stock / Delivery Issue</SelectItem>
+                  <SelectItem value="Duplicate Order">Duplicate Order</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="customReason" className="font-semibold text-slate-700">Custom Details (Optional)</Label>
+              <Input
+                id="customReason"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Enter custom cancellation notes..."
+              />
+            </div>
+            <div className="flex items-center gap-2 pt-2">
+              <input
+                type="checkbox"
+                id="pageFakeCheckbox"
+                checked={isFakeCustomer}
+                onChange={(e) => setIsFakeCustomer(e.target.checked)}
+                className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 border-slate-300 cursor-pointer"
+              />
+              <Label htmlFor="pageFakeCheckbox" className="text-xs font-semibold text-rose-700 cursor-pointer">
+                Flag as Fake Customer / Fake Order (Dispatches `is_fake: true` to Meta)
+              </Label>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
+              Keep Order
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleQuickCancel}
+              disabled={isSubmittingCancel}
+              className="bg-rose-600 hover:bg-rose-700 font-bold"
+            >
+              {isSubmittingCancel ? "Cancelling..." : "Confirm Cancellation"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

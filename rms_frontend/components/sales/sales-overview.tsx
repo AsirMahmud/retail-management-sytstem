@@ -644,47 +644,107 @@ export default function SalesOverview() {
         </Card>
 
         {/* Payment Method Distribution */}
-        <Card className="bg-white border-0 shadow-lg">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base sm:text-lg md:text-xl font-semibold text-gray-900">
+        <Card className="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all duration-300 overflow-hidden">
+          <CardHeader className="bg-slate-50/70 border-b border-slate-100 p-4 sm:p-5">
+            <CardTitle className="text-base sm:text-lg font-bold text-slate-900">
               Payment Method Distribution
             </CardTitle>
-            <CardDescription className="text-gray-600">
-              Revenue breakdown by payment method
+            <CardDescription className="text-xs text-slate-500">
+              Revenue breakdown and volume across payment channels
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="h-[280px] sm:h-[350px] md:h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={paymentMethodData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="total"
-                    label={({ method, total, count }) =>
-                      `${method.toUpperCase()}: $${total.toLocaleString()} (${count} orders)`
-                    }
-                  >
-                    {paymentMethodData.map((entry, index: number) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={COLORS[index % COLORS.length]}
+          <CardContent className="p-4 sm:p-6">
+            {paymentMethodData && paymentMethodData.length > 0 ? (
+              <div className="space-y-4">
+                {/* Donut Chart with Center Total */}
+                <div className="h-[220px] sm:h-[250px] relative flex items-center justify-center">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={paymentMethodData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius="65%"
+                        outerRadius="88%"
+                        paddingAngle={3}
+                        cornerRadius={5}
+                        dataKey="total"
+                        stroke="none"
+                      >
+                        {paymentMethodData.map((entry, index: number) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={COLORS[index % COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number) => [
+                          `$${value.toLocaleString()}`,
+                          "Revenue",
+                        ]}
+                        contentStyle={{
+                          backgroundColor: "#0f172a",
+                          border: "1px solid #334155",
+                          borderRadius: "12px",
+                          color: "#f8fafc",
+                          boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.25)",
+                        }}
+                        itemStyle={{ color: "#38bdf8", fontWeight: 600 }}
                       />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(value: number, name: string) => [
-                      `$${value.toLocaleString()}`,
-                      "Revenue",
-                    ]}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  {/* Center Metric */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                      Total Revenue
+                    </span>
+                    <span className="text-base sm:text-lg font-extrabold text-slate-900 tracking-tight">
+                      ${paymentMethodData.reduce((sum, p) => sum + (p.total || 0), 0).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Modern Legend Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-2 border-t border-slate-100">
+                  {paymentMethodData.map((item, index) => {
+                    const totalRev = paymentMethodData.reduce((sum, p) => sum + (p.total || 0), 0);
+                    const pct = totalRev > 0 ? Math.round(((item.total || 0) / totalRev) * 100) : 0;
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-50 transition-colors text-xs"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span
+                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                            style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                          />
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-800 uppercase tracking-wide truncate">
+                              {item.method}
+                            </p>
+                            <p className="text-[11px] text-slate-400">
+                              {item.count} orders
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="font-extrabold text-slate-900">${(item.total || 0).toLocaleString()}</p>
+                          <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
+                            {pct}%
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-48 text-slate-400 text-sm">
+                No payment method data available
+              </div>
+            )}
           </CardContent>
         </Card>
 
